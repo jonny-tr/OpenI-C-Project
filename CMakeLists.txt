@@ -2,7 +2,7 @@
 cmake_minimum_required(VERSION 3.10)
 
 # Project name and version
-project(myset VERSION 1.0)
+project(assembler VERSION 1.0)
 
 # Set compiler
 set(CMAKE_C_COMPILER "C:\\msys64\\ucrt64\\bin\\gcc.exe")
