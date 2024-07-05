@@ -37,44 +37,40 @@ char *assembler_strcat(const char *s1, const char *s2) {
  * @brief builds the macro table
  * @param next_part the next part of the file
  * @param as_fd the file pointer
- * @param macro_table the table of macros
+ * @param macro_table_head the table of macros
  * @param macro_counter the counter of macros
  * @return 0
  */
-int macro_table_builder(char *next_part, FILE *as_fd, Macro **macro_table,
-                         int *macro_counter) {
+int macro_table_builder(char *next_part, FILE *as_fd, macro_ptr *macro_table_head, int *macro_counter) {
     char *macro_content = NULL; /* string */
-    Macro *temp_macro; /* macro table */
-    unsigned len; /* counter */
+    macro_ptr new_macro; /* new macro */
+    int len; /* length */
 
     read_next_part(as_fd, &next_part);
 
-    /* realloc macro_table if there are too many macros */
-    if (*macro_counter % 19 == 0) {
-        temp_macro = realloc(*macro_table,
-                             sizeof(Macro) * (*macro_counter + 20));
-        if (temp_macro == NULL) {
-            safe_free(next_part)
-            free_macro_table(*macro_table, *macro_counter);
-            fclose(as_fd);
-            allocation_failure
-        }
-        *macro_table = temp_macro;
+    /* Create new macro node */
+    new_macro = malloc(sizeof(Macro));
+    if (new_macro == NULL) {
+        safe_free(next_part)
+        free_macro_table(*macro_table_head);
+        fclose(as_fd);
+        allocation_failure
     }
 
     /* check if macro name is valid */
-    if (!is_macro_name_valid(next_part, macro_table, *macro_counter)) {
-        macro_table[*macro_counter]->name = assembler_strdup(next_part);
+    if (!is_macro_name_valid(next_part, *macro_table_head)) {
+        new_macro->name = assembler_strdup(next_part);
         read_next_part(as_fd, &next_part); /* skip spaces */
         if (strchr(next_part, '\n') == NULL) {
-            fprintf(stderr, "Error: Extra characters after macr name\n");
+            fprintf(stderr, "Error: Extra characters after macro name\n");
             safe_free(next_part)
-            free_macro_table(*macro_table, *macro_counter);
+            free_macro_table(*macro_table_head);
             fclose(as_fd);
             return 1;
         }
         read_next_part(as_fd, &next_part); /* read next part */
     } else {
+        free(new_macro);
         do {
             read_next_part(as_fd, &next_part); /* skip macro */
         } while (strcmp(next_part, "endmacr") != 0);
@@ -101,8 +97,11 @@ int macro_table_builder(char *next_part, FILE *as_fd, Macro **macro_table,
         macro_content = assembler_strcat(macro_content, next_part);
         read_next_part(as_fd, &next_part);
     }
-    macro_table[*macro_counter]->content =
-            assembler_strdup(macro_content);
+
+    new_macro->content = assembler_strdup(macro_content);
+    new_macro->next = *macro_table_head;
+    *macro_table_head = new_macro;
+
     safe_free(macro_content)
     ++*macro_counter;
 
@@ -111,18 +110,20 @@ int macro_table_builder(char *next_part, FILE *as_fd, Macro **macro_table,
 
 /**
  * @brief frees the macro table
- * @param macro_table the table of macros
- * @param macro_counter the counter of macros
+ * @param macro_table_head the table of macros
  * @return 0
  */
-int free_macro_table(Macro *macro_table, int macro_counter) {
-    int i; /* counter */
+int free_macro_table(macro_ptr macro_table_head) {
+    Macro *current, *next;
 
-    for (i = 0; i < macro_counter; ++i) {
-        safe_free(macro_table[i].name)
-        safe_free(macro_table[i].content)
+    current = macro_table_head;
+    while (current != NULL) {
+        next = current->next;
+        safe_free(current->name)
+        safe_free(current->content)
+        safe_free(current)
+        current = next;
     }
-    safe_free(macro_table)
 
     return 0;
 }
@@ -130,17 +131,20 @@ int free_macro_table(Macro *macro_table, int macro_counter) {
 /**
  * @brief checks if  next part is a macro
  * @param next_part the part read from the file
- * @param macro_table the table of macros
+ * @param macro_table_head the table of macros
  * @param macro_counter the counter of macros
  * @return the index of the macro if it is a macro, 0 if it is not
  */
-int is_macro(char *next_part, Macro **macro_table, int macro_counter) {
-    int i; /* counter */
+int is_macro(char *next_part, macro_ptr macro_table_head) {
+    macro_ptr current = macro_table_head;
+    int index = 0;
 
-    for (i = 0; i < macro_counter; ++i) {
-        if (strcmp(next_part, macro_table[i]->name) == 0) {
-            return i;
+    while (current != NULL) {
+        if (strcmp(next_part, current->name) == 0) {
+            return index;
         }
+        current = current->next;
+        index++;
     }
 
     return -1;
@@ -151,13 +155,14 @@ int is_macro(char *next_part, Macro **macro_table, int macro_counter) {
  * @param name the name of the macro
  * @return 0 if the name is valid, 1 if it is not
  */
-int is_macro_name_valid(char *name, Macro **macro_table, int macro_counter) {
+int is_macro_name_valid(char *name, macro_ptr macro_table_head) {
     char *invalid[] = {".data", ".string", ".entry", ".extern",
                       "mov", "cmp", "add", "sub", "lea",
                       "clr", "not", "inc", "dec", "jmp",
                       "bne", "red", "prn", "jsr", "rts",
                       "stop"}; /* invalid names */
     unsigned int i; /* counter */
+    Macro *current = macro_table_head;
 
     /* check if macro name is a saved word */
     for (i = 0; i < 20; ++i) {
@@ -169,11 +174,12 @@ int is_macro_name_valid(char *name, Macro **macro_table, int macro_counter) {
     }
 
     /* check if macro name is already taken */
-    for (i = 0; i < macro_counter; ++i) {
-        if (strcmp(name, macro_table[i]->name) == 0) {
+    while (current != NULL) {
+        if (strcmp(name, current->name) == 0) {
             fprintf(stderr, "Error: Macro name already exists - %s\n", name);
             return 1;
         }
+        current = current->next;
     }
 
     return 0;
@@ -233,15 +239,9 @@ int read_next_part(FILE *fd, char **next_part) {
  */
 int macro_parser(FILE *as_fd, char *filename) {
     char *next_part = NULL; /* strings */
-    int macro_counter = 0, macro_index; /* macro counter */
+    int macro_counter = 0, macro_index, i; /* macro counter */
     FILE *am_fd; /* file pointer */
-    Macro *macro_table = NULL; /* macro table */
-
-    macro_table = (Macro *)calloc(20, sizeof(Macro));
-    if (macro_table == NULL) {
-        fclose(as_fd);
-        allocation_failure
-    }
+    Macro *macro_table_head = NULL; /* macro table */
 
     /* create a new file with the .am suffix */
     filename[strlen(filename) - 1] = 'm';
@@ -264,20 +264,20 @@ int macro_parser(FILE *as_fd, char *filename) {
         }
 
         /* save macros in the macros table */
-        if (strlen(next_part) >= 4
-                && strncmp(next_part, "macr", 4) == 0) {
-            read_next_part(as_fd, &next_part); /* skip spaces */
-            if (macro_table_builder(next_part, as_fd, &macro_table,
-                                &macro_counter) == 1) {
+        if (strlen(next_part) >= 4 && strncmp(next_part, "macr", 4) == 0) {
+            read_next_part(as_fd, &next_part);
+            if (macro_table_builder(next_part, as_fd, &macro_table_head, &macro_counter) == 1) {
                 fclose(am_fd);
                 return 1;
             }
         } else {
-            macro_index = is_macro(next_part, &macro_table, macro_counter);
+            macro_index = is_macro(next_part, macro_table_head);
             if (macro_index > -1) {
-                fwrite(macro_table[macro_index].content,
-                       strlen(macro_table[macro_index].content),
-                       1, am_fd);
+                Macro *current = macro_table_head;
+                for (i = 0; i < macro_index; i++) {
+                    current = current->next;
+                }
+                fwrite(current->content, strlen(current->content), 1, am_fd);
             } else {
                 fwrite(next_part, strlen(next_part), 1, am_fd);
             }
@@ -285,7 +285,7 @@ int macro_parser(FILE *as_fd, char *filename) {
     }
 
     /* free memory */
-    free_macro_table(macro_table, macro_counter);
+    free_macro_table(macro_table_head);
     safe_free(next_part)
     fclose(am_fd);
 
