@@ -25,7 +25,7 @@ typedef Macro *macro_ptr;
 /* pre_assembler functions */
 int pre_assembler(char **in_fd);
 int macro_table_builder(char *next_part, FILE *as_fd,
-                        macro_ptr *macro_table_head, int *macro_counter);
+                        macro_ptr *macro_table_head);
 char *assembler_strdup(const char *s);
 char *assembler_strcat(const char *s1, const char *s2);
 int free_macro_table(Macro *macro_table_head);

@@ -38,11 +38,10 @@ char *assembler_strcat(const char *s1, const char *s2) {
  * @param next_part the next part of the file
  * @param as_fd the file pointer
  * @param macro_table_head the table of macros
- * @param macro_counter the counter of macros
  * @return 0
  */
 int macro_table_builder(char *next_part, FILE *as_fd,
-                        macro_ptr *macro_table_head, int *macro_counter) {
+                        macro_ptr *macro_table_head) {
     char *macro_content = NULL; /* string */
     macro_ptr new_macro; /* new macro */
     int len; /* length */
@@ -103,7 +102,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
     new_macro->next = *macro_table_head;
     *macro_table_head = new_macro;
     safe_free(macro_content)
-    ++*macro_counter;
+    safe_free(next_part)
 
     return 0;
 }
@@ -239,7 +238,7 @@ int read_next_part(FILE *fd, char **next_part) {
  */
 int macro_parser(FILE *as_fd, char *filename) {
     char *next_part = NULL; /* strings */
-    int macro_counter = 0, macro_index, i; /* macro counter */
+    int macro_index, i; /* macro counter */
     FILE *am_fd; /* file pointer */
     Macro *macro_table_head = NULL; /* macro table */
 
@@ -266,7 +265,8 @@ int macro_parser(FILE *as_fd, char *filename) {
         /* save macros in the macros table */
         if (strlen(next_part) >= 4 && strncmp(next_part, "macr", 4) == 0) {
             read_next_part(as_fd, &next_part);
-            if (macro_table_builder(next_part, as_fd, &macro_table_head, &macro_counter) == 1) {
+            if (macro_table_builder(next_part, as_fd,
+                                    &macro_table_head) == 1) {
                 fclose(am_fd);
                 return 1;
             }
