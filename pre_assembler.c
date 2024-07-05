@@ -48,13 +48,6 @@ int macro_table_builder(char *next_part, FILE *as_fd, Macro **macro_table,
     unsigned len; /* counter */
 
     read_next_part(as_fd, &next_part);
-    if (strchr(next_part, '\n') == NULL) {
-        fprintf(stderr, "Error: Extra characters after macr name\n");
-        safe_free(next_part)
-        free_macro_table(*macro_table, *macro_counter);
-        fclose(as_fd);
-        return 1;
-    }
 
     /* realloc macro_table if there are too many macros */
     if (*macro_counter % 19 == 0) {
@@ -73,7 +66,14 @@ int macro_table_builder(char *next_part, FILE *as_fd, Macro **macro_table,
     if (!is_macro_name_valid(next_part, macro_table, *macro_counter)) {
         macro_table[*macro_counter]->name = assembler_strdup(next_part);
         read_next_part(as_fd, &next_part); /* skip spaces */
-        read_next_part(as_fd, &next_part); /* real next part */
+        if (strchr(next_part, '\n') == NULL) {
+            fprintf(stderr, "Error: Extra characters after macr name\n");
+            safe_free(next_part)
+            free_macro_table(*macro_table, *macro_counter);
+            fclose(as_fd);
+            return 1;
+        }
+        read_next_part(as_fd, &next_part); /* read next part */
     } else {
         do {
             read_next_part(as_fd, &next_part); /* skip macro */
@@ -254,6 +254,7 @@ int macro_parser(FILE *as_fd, char *filename) {
     /* initial allocation */
     if (!(next_part = (char *)calloc(20, sizeof(char)))) {
         fclose(as_fd);
+        fclose(am_fd);
         allocation_failure
     }
 
@@ -267,8 +268,10 @@ int macro_parser(FILE *as_fd, char *filename) {
                 && strncmp(next_part, "macr", 4) == 0) {
             read_next_part(as_fd, &next_part); /* skip spaces */
             if (macro_table_builder(next_part, as_fd, &macro_table,
-                                &macro_counter) == 1)
+                                &macro_counter) == 1) {
+                fclose(am_fd);
                 return 1;
+            }
         } else {
             macro_index = is_macro(next_part, &macro_table, macro_counter);
             if (macro_index > -1) {
@@ -284,6 +287,7 @@ int macro_parser(FILE *as_fd, char *filename) {
     /* free memory */
     free_macro_table(macro_table, macro_counter);
     safe_free(next_part)
+    fclose(am_fd);
 
     return 0;
 }
@@ -296,21 +300,21 @@ int macro_parser(FILE *as_fd, char *filename) {
  * @return 0 if the function ran successfully, 1 if an error occurred
  */
 int pre_assembler(char **in_fd) {
-    unsigned int i; /* counter */
-    FILE *fd; /* file pointer */
+    FILE *as_fd; /* file pointer */
 
     *in_fd = strcat(*in_fd, ".as");
-    fd = fopen(*in_fd, "r");
-    if (fd == NULL) {
+    as_fd = fopen(*in_fd, "r");
+    if (as_fd == NULL) {
         fprintf(stderr, "Error: Could not open file %s\n", *in_fd);
         return 1;
     }
 
-    if (macro_parser(fd, *in_fd) == 1) {
-        fclose(fd);
-        return 1;
+    switch (macro_parser(as_fd, *in_fd)) {
+        default:
+            fclose(as_fd);
+        case 0:
+            return 0;
+        case 1:
+            return 1;
     }
-    fclose(fd);
-
-    return 0;
 }

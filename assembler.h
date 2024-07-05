@@ -21,7 +21,7 @@ typedef struct {
 } Macro;
 
 /* pre_assembler functions */
-int pre_assembler(int argc, char **argv);
+int pre_assembler(char **argv);
 int macro_table_builder(char *next_part, FILE *as_fd, Macro **macro_table,
                         int *macro_counter);
 char *assembler_strdup(const char *s);

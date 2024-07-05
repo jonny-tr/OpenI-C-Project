@@ -17,10 +17,9 @@ int main(int argc, char *argv[]) {
     }
 
     for (i = 1; i < argc; i++) {
-        pre_assembler(&argv[i]);
+        if (pre_assembler(&argv[i]) == 1) continue;
         fd = fopen(strcat(argv[i], ".am"), "r");
-        if (fd == NULL)
-            continue; /* skip, .as file had an error */
+        if (fd == NULL) continue; /* skip */
     }
 
     return 0;
