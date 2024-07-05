@@ -266,8 +266,9 @@ int macro_parser(FILE *as_fd, char *filename) {
         if (strlen(next_part) >= 4
                 && strncmp(next_part, "macr", 4) == 0) {
             read_next_part(as_fd, &next_part); /* skip spaces */
-            macro_table_builder(next_part, as_fd, &macro_table,
-                                &macro_counter);
+            if (macro_table_builder(next_part, as_fd, &macro_table,
+                                &macro_counter) == 1)
+                return 1;
         } else {
             macro_index = is_macro(next_part, &macro_table, macro_counter);
             if (macro_index > -1) {
@@ -294,23 +295,22 @@ int macro_parser(FILE *as_fd, char *filename) {
  * @param argv an array of arguments
  * @return 0 if the function ran successfully, 1 if an error occurred
  */
-int pre_assembler(int argc, char **argv) {
+int pre_assembler(char **in_fd) {
     unsigned int i; /* counter */
     FILE *fd; /* file pointer */
 
-    for (i = 1; i < argc; i++) {
-        /* open the file */
-        argv[i] = strcat(argv[i], ".as");
-        fd = fopen(argv[i], "r");
-        if (fd == NULL) {
-            fprintf(stderr, "Error: Could not open file %s\n", argv[i]);
-            return 1;
-        }
-
-        macro_parser(fd, argv[i]);
-        /* close the file */
-        fclose(fd);
+    *in_fd = strcat(*in_fd, ".as");
+    fd = fopen(*in_fd, "r");
+    if (fd == NULL) {
+        fprintf(stderr, "Error: Could not open file %s\n", *in_fd);
+        return 1;
     }
+
+    if (macro_parser(fd, *in_fd) == 1) {
+        fclose(fd);
+        return 1;
+    }
+    fclose(fd);
 
     return 0;
 }
