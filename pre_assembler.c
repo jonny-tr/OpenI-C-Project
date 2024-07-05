@@ -82,7 +82,7 @@ int macro_table_builder(char *next_part, FILE *as_fd, macro_ptr *macro_table_hea
     while (!feof(as_fd)) {
         if (strcmp(next_part, "endmacr") == 0) {
             /* remove previous spaces */
-            len = strlen(macro_content);
+            len = (int)strlen(macro_content);
             while (len > 0 && isspace((unsigned char)macro_content[len - 1])) {
                 macro_content[--len] = '\0';
             }
