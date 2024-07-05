@@ -41,7 +41,8 @@ char *assembler_strcat(const char *s1, const char *s2) {
  * @param macro_counter the counter of macros
  * @return 0
  */
-int macro_table_builder(char *next_part, FILE *as_fd, macro_ptr *macro_table_head, int *macro_counter) {
+int macro_table_builder(char *next_part, FILE *as_fd,
+                        macro_ptr *macro_table_head, int *macro_counter) {
     char *macro_content = NULL; /* string */
     macro_ptr new_macro; /* new macro */
     int len; /* length */
@@ -128,11 +129,10 @@ int free_macro_table(macro_ptr macro_table_head) {
 }
 
 /**
- * @brief checks if  next part is a macro
- * @param next_part the part read from the file
+ * @brief checks if the next part is a macro
+ * @param next_part the next part of the file
  * @param macro_table_head the table of macros
- * @param macro_counter the counter of macros
- * @return the index of the macro if it is a macro, 0 if it is not
+ * @return the index of the macro if it is a macro, -1 if it is not
  */
 int is_macro(char *next_part, macro_ptr macro_table_head) {
     macro_ptr current = macro_table_head;
@@ -152,6 +152,7 @@ int is_macro(char *next_part, macro_ptr macro_table_head) {
 /**
  * @brief checks if the macro name is valid
  * @param name the name of the macro
+ * @param macro_table_head the table of macros
  * @return 0 if the name is valid, 1 if it is not
  */
 int is_macro_name_valid(char *name, macro_ptr macro_table_head) {
@@ -293,9 +294,8 @@ int macro_parser(FILE *as_fd, char *filename) {
 
 
 /**
- * @brief pre-assembler function
- * @param argc the number of arguments
- * @param argv an array of arguments
+ * @brief pre-assembles the file
+ * @param in_fd the file name
  * @return 0 if the function ran successfully, 1 if an error occurred
  */
 int pre_assembler(char **in_fd) {
