@@ -45,9 +45,16 @@ int macro_table_builder(char *next_part, FILE *as_fd, Macro **macro_table,
                          int *macro_counter) {
     char *macro_content = NULL; /* string */
     Macro *temp_macro; /* macro table */
-    unsigned len; /* content length */
+    unsigned len; /* counter */
 
     read_next_part(as_fd, &next_part);
+    if (strchr(next_part, '\n') == NULL) {
+        fprintf(stderr, "Error: Extra characters after macr name\n");
+        safe_free(next_part)
+        free_macro_table(*macro_table, *macro_counter);
+        fclose(as_fd);
+        return 1;
+    }
 
     /* realloc macro_table if there are too many macros */
     if (*macro_counter % 19 == 0) {
@@ -83,7 +90,12 @@ int macro_table_builder(char *next_part, FILE *as_fd, Macro **macro_table,
             while (len > 0 && isspace((unsigned char)macro_content[len - 1])) {
                 macro_content[--len] = '\0';
             }
-            read_next_part(as_fd, &next_part);
+            read_next_part(as_fd, &next_part); /* spaces */
+            if (strchr(next_part, '\n') == NULL) {
+                fprintf(stderr, "Error: Extra characters after endmacr\n");
+                safe_free(macro_content)
+                return 1;
+            }
             break;
         }
         macro_content = assembler_strcat(macro_content, next_part);
@@ -253,7 +265,7 @@ int macro_parser(FILE *as_fd, char *filename) {
         /* save macros in the macros table */
         if (strlen(next_part) >= 4
                 && strncmp(next_part, "macr", 4) == 0) {
-            read_next_part(as_fd, &next_part);
+            read_next_part(as_fd, &next_part); /* skip spaces */
             macro_table_builder(next_part, as_fd, &macro_table,
                                 &macro_counter);
         } else {
