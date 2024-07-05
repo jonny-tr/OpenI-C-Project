@@ -101,7 +101,6 @@ int macro_table_builder(char *next_part, FILE *as_fd, macro_ptr *macro_table_hea
     new_macro->content = assembler_strdup(macro_content);
     new_macro->next = *macro_table_head;
     *macro_table_head = new_macro;
-
     safe_free(macro_content)
     ++*macro_counter;
 
