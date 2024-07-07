@@ -15,11 +15,20 @@
 #define safe_free(p) if ((p) != NULL) { free(p); (p) = NULL; }
 
 /* structures */
+typedef struct StringNode {
+    char *str;
+    struct StringNode *next;
+} StringNode;
+
+typedef StringNode *str_node_ptr;
+
+
 typedef struct Macro {
     char *name;
-    char *content;
+    StringNode *content_head;
     struct Macro *next;
 } Macro;
+
 typedef Macro *macro_ptr;
 
 /* pre_assembler functions */

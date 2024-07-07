@@ -9,6 +9,7 @@ char *assembler_strdup(const char *s) {
     char *new_str = calloc(strlen(s) + 1, sizeof(char));
 
     if (new_str == NULL) return NULL;
+
     strcpy(new_str, s);
     strcat(new_str, "\0");
 
@@ -42,11 +43,13 @@ char *assembler_strcat(const char *s1, const char *s2) {
  */
 int macro_table_builder(char *next_part, FILE *as_fd,
                         macro_ptr *macro_table_head) {
-    char *macro_content = NULL; /* string */
+    str_node_ptr macro_content_head = NULL, macro_content_tail = NULL,
+        new_node = NULL; /* linked list of strings */
     macro_ptr new_macro; /* new macro */
-    int len; /* length */
 
-    read_next_part(as_fd, &next_part);
+    if (read_next_part(as_fd, &next_part) != 0) {
+        return 1;
+    }
 
     /* Create new macro node */
     new_macro = (macro_ptr)calloc(1, sizeof(Macro));
@@ -65,44 +68,57 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             fprintf(stderr, "Error: Extra characters after macro name\n");
             safe_free(next_part)
             free_macro_table(*macro_table_head);
-            fclose(as_fd);
             return 1;
         }
         read_next_part(as_fd, &next_part); /* read next part */
     } else {
-        free(new_macro);
+        safe_free(new_macro)
         do {
             read_next_part(as_fd, &next_part); /* skip macro */
         } while (strcmp(next_part, "endmacr") != 0);
         safe_free(next_part)
+        /* file finished without endmacr */
+        if (feof(as_fd)) {
+            fprintf(stderr, "Error: Unexpected end of file\n");
+        } else {
+            read_next_part(as_fd, &next_part); /* skip spaces */
+        }
         return 1;
     }
 
     /* run until macro is finished */
     while (!feof(as_fd)) {
         if (strcmp(next_part, "endmacr") == 0) {
-            /* remove previous spaces */
-            len = (int)strlen(macro_content);
-            while (len > 0 && isspace((unsigned char)macro_content[len - 1])) {
-                macro_content[--len] = '\0';
-            }
             read_next_part(as_fd, &next_part); /* spaces */
-            if (strchr(next_part, '\n') == NULL) {
+            if (strchr(next_part, '\n') == NULL
+                    && !feof(as_fd)) {
                 fprintf(stderr, "Error: Extra characters after endmacr\n");
-                safe_free(macro_content)
                 return 1;
             }
             break;
         }
-        macro_content = assembler_strcat(macro_content, next_part);
+
+        /* add next_part to the macro content linked list */
+        new_node = (str_node_ptr)calloc(1, sizeof(str_node_ptr));
+        if (new_node == NULL) {
+            safe_free(next_part)
+            free_macro_table(*macro_table_head);
+            fclose(as_fd);
+            allocation_failure
+        }
+        new_node->str = assembler_strdup(next_part);
+        if (macro_content_tail == NULL) {
+            macro_content_head = macro_content_tail = new_node;
+        } else {
+            macro_content_tail->next = new_node;
+            macro_content_tail = new_node;
+        }
         read_next_part(as_fd, &next_part);
     }
 
-    new_macro->content = assembler_strdup(macro_content);
+    new_macro->content_head = macro_content_head;
     new_macro->next = *macro_table_head;
     *macro_table_head = new_macro;
-    safe_free(macro_content)
-    safe_free(next_part)
 
     return 0;
 }
@@ -110,16 +126,24 @@ int macro_table_builder(char *next_part, FILE *as_fd,
 /**
  * @brief frees the macro table
  * @param macro_table_head the table of macros
- * @return 0
+ * @return 0 if the function ran successfully, 1 if an error occurred
  */
 int free_macro_table(macro_ptr macro_table_head) {
     Macro *current, *next;
+    str_node_ptr current_content, *next_content;
 
-    current = macro_table_head;
+    if ((current = macro_table_head) == NULL) return 1;
+
     while (current != NULL) {
         next = current->next;
         safe_free(current->name)
-        safe_free(current->content)
+        current_content = current->content_head;
+        while (current_content != NULL) {
+            next_content = &current_content->next;
+            safe_free(current_content->str)
+            safe_free(current_content)
+            current_content = *next_content;
+        }
         safe_free(current)
         current = next;
     }
@@ -156,10 +180,10 @@ int is_macro(char *next_part, macro_ptr macro_table_head) {
  */
 int is_macro_name_valid(char *name, macro_ptr macro_table_head) {
     char *invalid[] = {".data", ".string", ".entry", ".extern",
-                      "mov", "cmp", "add", "sub", "lea",
-                      "clr", "not", "inc", "dec", "jmp",
-                      "bne", "red", "prn", "jsr", "rts",
-                      "stop"}; /* invalid names */
+                       "mov", "cmp", "add", "sub", "lea",
+                       "clr", "not", "inc", "dec", "jmp",
+                       "bne", "red", "prn", "jsr", "rts",
+                       "stop"}; /* invalid names */
     unsigned int i; /* counter */
     Macro *current = macro_table_head;
 
@@ -195,14 +219,12 @@ int read_next_part(FILE *fd, char **next_part) {
     char *temp = NULL; /* temporary pointer */
     size_t buffer = 0; /* buffer */
 
-    if (next_part == NULL || *next_part == NULL)
-        return 1;
+    if (next_part == NULL || *next_part == NULL) return 1;
 
     c = fgetc(fd);
+    if (c == EOF) return 1;
 
-    if (c == EOF)
-        return 1;
-
+    /* normalize the result of is_space */
     is_space = isspace(c) ? 1 : 0;
 
     do {
@@ -220,12 +242,9 @@ int read_next_part(FILE *fd, char **next_part) {
         c = fgetc(fd);
         if (c == EOF) break;
     } while ((isspace(c) ? 1 : 0) == is_space);
-
     (*next_part)[buffer] = '\0';
 
-    if (c != EOF) {
-        ungetc(c, fd);
-    }
+    if (c != EOF) ungetc(c, fd);
 
     return 0;
 }
@@ -237,10 +256,12 @@ int read_next_part(FILE *fd, char **next_part) {
  * @return 0 if the function ran successfully, 1 if an error occurred
  */
 int macro_parser(FILE *as_fd, char *filename) {
-    char *next_part = NULL; /* strings */
-    int macro_index, i; /* macro counter */
+    char *next_part = NULL, *content_buffer = NULL; /* strings */
+    int macro_index, i;
+    unsigned long len; /* counters */
     FILE *am_fd; /* file pointer */
-    Macro *macro_table_head = NULL; /* macro table */
+    Macro *macro_table_head = NULL, *current = NULL; /* macro table */
+    str_node_ptr content_node; /* content node */
 
     /* create a new file with the .am suffix */
     filename[strlen(filename) - 1] = 'm';
@@ -263,21 +284,35 @@ int macro_parser(FILE *as_fd, char *filename) {
         }
 
         /* save macros in the macros table */
-        if (strlen(next_part) >= 4 && strncmp(next_part, "macr", 4) == 0) {
-            read_next_part(as_fd, &next_part);
-            if (macro_table_builder(next_part, as_fd,
-                                    &macro_table_head) == 1) {
-                fclose(am_fd);
+        if (strcmp(next_part, "macr") == 0) {
+            if (read_next_part(as_fd, &next_part) != 0
+                || macro_table_builder(next_part, as_fd,
+                                       &macro_table_head) != 0) {
                 return 1;
             }
         } else {
             macro_index = is_macro(next_part, macro_table_head);
             if (macro_index > -1) {
-                Macro *current = macro_table_head;
+                current = macro_table_head;
                 for (i = 0; i < macro_index; i++) {
                     current = current->next;
                 }
-                fwrite(current->content, strlen(current->content), 1, am_fd);
+
+                content_node = current->content_head;
+                while (content_node != NULL && content_node->str != NULL) {
+                    content_buffer = assembler_strcat(content_buffer,
+                                                      content_node->str);
+                    content_node = content_node->next;
+                }
+
+                len = strlen(content_buffer);
+                while (len > 0 && content_buffer != NULL &&
+                        isspace(content_buffer[len - 1])) {
+                    content_buffer[--len] = '\0';
+                }
+
+                fwrite(content_buffer, strlen(content_buffer), 1, am_fd);
+                safe_free(content_buffer)
             } else {
                 fwrite(next_part, strlen(next_part), 1, am_fd);
             }
