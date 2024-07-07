@@ -53,6 +53,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
 
     /* Create new macro node */
     new_macro = (macro_ptr)calloc(1, sizeof(Macro));
+
     if (new_macro == NULL) {
         safe_free(next_part)
         free_macro_table(*macro_table_head);

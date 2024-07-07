@@ -28,6 +28,7 @@ typedef struct Macro {
     StringNode *content_head;
     struct Macro *next;
 } Macro;
+typedef Macro *macro_ptr;
 
 typedef Macro *macro_ptr;
 
