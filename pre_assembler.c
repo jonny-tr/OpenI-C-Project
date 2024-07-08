@@ -42,12 +42,14 @@ char *assembler_strcat(const char *s1, const char *s2) {
  * @return 0
  */
 int macro_table_builder(char *next_part, FILE *as_fd,
-                        macro_ptr *macro_table_head) {
+                        macro_ptr *macro_table_head, int *line_num,
+                        char *filename) {
     str_node_ptr macro_content_head = NULL, macro_content_tail = NULL,
         new_node = NULL; /* linked list of strings */
     macro_ptr new_macro; /* new macro */
 
     if (read_next_part(as_fd, &next_part) != 0) {
+        if (strchr(next_part, '\n') != NULL) line_num++;
         return 1;
     }
 
@@ -66,16 +68,19 @@ int macro_table_builder(char *next_part, FILE *as_fd,
         new_macro->name = assembler_strdup(next_part);
         read_next_part(as_fd, &next_part); /* skip spaces */
         if (strchr(next_part, '\n') == NULL) {
-            fprintf(stderr, "Error: Extra characters after macro name\n");
+            fprintf(stderr, "Error: Extra characters after macro name.\n"
+                            "Review line %d in %s\n", *line_num, filename);
             safe_free(next_part)
             free_macro_table(*macro_table_head);
             return 1;
-        }
+        } else line_num++;
         read_next_part(as_fd, &next_part); /* read next part */
+        if (strchr(next_part, '\n') != NULL) line_num++;
     } else {
         safe_free(new_macro)
         do {
             read_next_part(as_fd, &next_part); /* skip macro */
+            if (strchr(next_part, '\n') != NULL) line_num++;
         } while (strcmp(next_part, "endmacr") != 0);
         safe_free(next_part)
         /* file finished without endmacr */
@@ -83,6 +88,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             fprintf(stderr, "Error: Unexpected end of file\n");
         } else {
             read_next_part(as_fd, &next_part); /* skip spaces */
+            if (strchr(next_part, '\n') != NULL) line_num++;
         }
         return 1;
     }
@@ -95,7 +101,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
                     && !feof(as_fd)) {
                 fprintf(stderr, "Error: Extra characters after endmacr\n");
                 return 1;
-            }
+            } else line_num++;
             break;
         }
 
@@ -115,6 +121,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             macro_content_tail = new_node;
         }
         read_next_part(as_fd, &next_part);
+        if (strchr(next_part, '\n') != NULL) line_num++;
     }
 
     new_macro->content_head = macro_content_head;
@@ -259,7 +266,7 @@ int read_next_part(FILE *fd, char **next_part) {
 int macro_parser(FILE *as_fd, char *filename) {
     char *next_part = NULL, *content_buffer = NULL, *macro_buffer = NULL;
     /* strings */
-    int macro_index, i;
+    int macro_index, i, line_num = 1;
     unsigned long len; /* counters */
     FILE *am_fd; /* file pointer */
     Macro *macro_table_head = NULL, *current = NULL; /* macro table */
@@ -272,7 +279,7 @@ int macro_parser(FILE *as_fd, char *filename) {
         fprintf(stderr, "Error: Could not open file %s\n", filename);
         return 1;
     }
-
+    filename[strlen(filename) - 1] = 's';
     /* initial allocation */
     if (!(next_part = (char *)calloc(20, sizeof(char)))) {
         fclose(as_fd);
@@ -285,17 +292,21 @@ int macro_parser(FILE *as_fd, char *filename) {
         if (read_next_part(as_fd, &next_part) != 0) {
             break;
         }
+        if (strchr(next_part, '\n') != NULL) line_num++;
 
         /* save macros in the macros table */
         if (strcmp(next_part, "macr") == 0) {
             if (strchr(macro_buffer, '\n') == NULL) {
                 fprintf(stderr, "Error: Macro should be declared "
-                                "in a separate line.\n");
+                                "in a separate line.\n"
+                                "Review line %d in %s\n", line_num, filename);
                 return 1;
             }
             else if (read_next_part(as_fd, &next_part) != 0
                     || macro_table_builder(next_part, as_fd,
-                                       &macro_table_head) != 0) {
+                                       &macro_table_head, &line_num,
+                                       filename) != 0) {
+                if (strchr(next_part, '\n') != NULL) line_num++;
                 return 1;
             }
         } else {
