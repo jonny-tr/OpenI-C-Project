@@ -38,9 +38,9 @@ int macro_table_builder(char *next_part, FILE *as_fd,
                         macro_ptr *macro_table_head);
 char *assembler_strdup(const char *s);
 char *assembler_strcat(const char *s1, const char *s2);
-int free_macro_table(Macro *macro_table_head);
-int is_macro(char *next_part, Macro *macro_table_head);
-int is_macro_name_valid(char *name, Macro *macro_table_head);
+int free_macro_table(macro_ptr macro_table_head);
+int is_macro(char *next_part, macro_ptr macro_table_head);
+int is_macro_name_valid(char *name, macro_ptr macro_table_head);
 int read_next_part(FILE *as_fd, char **next_part);
 int macro_parser(FILE *as_fd, char *filename);
 

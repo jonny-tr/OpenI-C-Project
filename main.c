@@ -2,7 +2,6 @@
 
 /**
  * @brief Checks if any files were passed as arguments and starts the program.
- *
  * @param argc The number of arguments passed to the program.
  * @param argv The arguments passed to the program.
  * @return 0 if the program ran successfully, 1 if an error occurred.

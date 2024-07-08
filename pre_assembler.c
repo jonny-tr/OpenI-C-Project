@@ -257,7 +257,8 @@ int read_next_part(FILE *fd, char **next_part) {
  * @return 0 if the function ran successfully, 1 if an error occurred
  */
 int macro_parser(FILE *as_fd, char *filename) {
-    char *next_part = NULL, *content_buffer = NULL; /* strings */
+    char *next_part = NULL, *content_buffer = NULL, *macro_buffer = NULL;
+    /* strings */
     int macro_index, i;
     unsigned long len; /* counters */
     FILE *am_fd; /* file pointer */
@@ -280,14 +281,20 @@ int macro_parser(FILE *as_fd, char *filename) {
     }
 
     while (!feof(as_fd)) {
+        macro_buffer = assembler_strcat(macro_buffer, next_part);
         if (read_next_part(as_fd, &next_part) != 0) {
             break;
         }
 
         /* save macros in the macros table */
         if (strcmp(next_part, "macr") == 0) {
-            if (read_next_part(as_fd, &next_part) != 0
-                || macro_table_builder(next_part, as_fd,
+            if (strchr(macro_buffer, '\n') == NULL) {
+                fprintf(stderr, "Error: Macro should be declared "
+                                "in a separate line.\n");
+                return 1;
+            }
+            else if (read_next_part(as_fd, &next_part) != 0
+                    || macro_table_builder(next_part, as_fd,
                                        &macro_table_head) != 0) {
                 return 1;
             }
@@ -322,6 +329,7 @@ int macro_parser(FILE *as_fd, char *filename) {
 
     /* free memory */
     free_macro_table(macro_table_head);
+    safe_free(macro_buffer)
     safe_free(next_part)
     fclose(am_fd);
 
