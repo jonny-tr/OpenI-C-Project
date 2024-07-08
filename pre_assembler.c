@@ -68,7 +68,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
         new_macro->name = assembler_strdup(next_part);
         read_next_part(as_fd, &next_part); /* skip spaces */
         if (strchr(next_part, '\n') == NULL) {
-            fprintf(stderr, "Error: Extra characters after macro name.\n"
+            fprintf(stdout, "Error: Extra characters after macro name.\n"
                             "Review line %d in %s\n", *line_num, filename);
             safe_free(next_part)
             free_macro_table(*macro_table_head);
@@ -85,7 +85,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
         safe_free(next_part)
         /* file finished without endmacr */
         if (feof(as_fd)) {
-            fprintf(stderr, "Error: Unexpected end of file\n");
+            fprintf(stdout, "Error: Unexpected end of file.\n");
         } else {
             read_next_part(as_fd, &next_part); /* skip spaces */
             if (strchr(next_part, '\n') != NULL) line_num++;
@@ -99,7 +99,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             read_next_part(as_fd, &next_part); /* spaces */
             if (strchr(next_part, '\n') == NULL
                     && !feof(as_fd)) {
-                fprintf(stderr, "Error: Extra characters after endmacr\n");
+                fprintf(stdout, "Error: Extra characters after endmacr.\n");
                 return 1;
             } else line_num++;
             break;
@@ -198,8 +198,8 @@ int is_macro_name_valid(char *name, macro_ptr macro_table_head) {
     /* check if macro name is a saved word */
     for (i = 0; i < 20; ++i) {
         if (strcmp(name, invalid[i]) == 0) {
-            fprintf(stderr, "Error: Macro name cannot "
-                            "be a special word - %s\n", name);
+            fprintf(stdout, "Error: Macro name cannot "
+                            "be a reserved word - %s.\n", name);
             return 1;
         }
     }
@@ -207,7 +207,7 @@ int is_macro_name_valid(char *name, macro_ptr macro_table_head) {
     /* check if macro name is already taken */
     while (current != NULL) {
         if (strcmp(name, current->name) == 0) {
-            fprintf(stderr, "Error: Macro name already exists - %s\n", name);
+            fprintf(stdout, "Error: Macro name already exists - %s.\n", name);
             return 1;
         }
         current = current->next;
@@ -276,7 +276,7 @@ int macro_parser(FILE *as_fd, char *filename) {
     filename[strlen(filename) - 1] = 'm';
     am_fd = fopen(filename, "w");
     if (am_fd == NULL) {
-        fprintf(stderr, "Error: Could not open file %s\n", filename);
+        fprintf(stdout, "Error: Could not open file %s.\n", filename);
         return 1;
     }
     filename[strlen(filename) - 1] = 's';
@@ -297,9 +297,9 @@ int macro_parser(FILE *as_fd, char *filename) {
         /* save macros in the macros table */
         if (strcmp(next_part, "macr") == 0) {
             if (strchr(macro_buffer, '\n') == NULL) {
-                fprintf(stderr, "Error: Macro should be declared "
+                fprintf(stdout, "Error: Macro should be declared "
                                 "in a separate line.\n"
-                                "Review line %d in %s\n", line_num, filename);
+                                "Review line %d in %s.\n", line_num, filename);
                 return 1;
             }
             else if (read_next_part(as_fd, &next_part) != 0
@@ -359,7 +359,7 @@ int pre_assembler(char **in_fd) {
     *in_fd = strcat(*in_fd, ".as");
     as_fd = fopen(*in_fd, "r");
     if (as_fd == NULL) {
-        fprintf(stderr, "Error: Could not open file %s\n", *in_fd);
+        fprintf(stdout, "Error: Could not open file %s.\n", *in_fd);
         return 1;
     }
 

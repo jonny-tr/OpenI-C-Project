@@ -11,7 +11,7 @@ int main(int argc, char *argv[]) {
     FILE *fd; /* file pointer */
 
     if (argc < 2) {
-        fprintf(stderr, "Error: No files specified\n");
+        fprintf(stdout, "Error: No files specified.\n");
         return 1;
     }
 
