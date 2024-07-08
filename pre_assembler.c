@@ -281,7 +281,7 @@ int macro_parser(FILE *as_fd, char *filename) {
     }
 
     while (!feof(as_fd)) {
-        macro_buffer = assembler_strcat(macro_buffer, next_part);
+        macro_buffer = assembler_strdup(next_part);
         if (read_next_part(as_fd, &next_part) != 0) {
             break;
         }
