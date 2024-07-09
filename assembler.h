@@ -9,7 +9,7 @@
 
 /* macros */
 #define allocation_failure \
-            fprintf(stderr, "Memory allocation failed\n");\
+            fprintf(stdout, "Memory allocation failed\n");\
             exit(EXIT_FAILURE);
 
 #define safe_free(p) if ((p) != NULL) { free(p); (p) = NULL; }

@@ -45,11 +45,13 @@ int macro_table_builder(char *next_part, FILE *as_fd,
                         macro_ptr *macro_table_head, int *line_num,
                         char *filename) {
     str_node_ptr macro_content_head = NULL, macro_content_tail = NULL,
-        new_node = NULL; /* linked list of strings */
+                new_node = NULL; /* linked list of strings */
     macro_ptr new_macro; /* new macro */
+    int i; /* counter */
 
     if (read_next_part(as_fd, &next_part) != 0) {
-        if (strchr(next_part, '\n') != NULL) line_num++;
+        for (i = 0; i < strlen(next_part); i++)
+            if (next_part[i] == '\n') line_num++;
         return 1;
     }
 
@@ -73,14 +75,17 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             safe_free(next_part)
             free_macro_table(*macro_table_head);
             return 1;
-        } else line_num++;
+        } else for (i = 0; i < strlen(next_part); i++)
+                if (next_part[i] == '\n') line_num++;
         read_next_part(as_fd, &next_part); /* read next part */
-        if (strchr(next_part, '\n') != NULL) line_num++;
+        for (i = 0; i < strlen(next_part); i++)
+            if (next_part[i] == '\n') line_num++;;
     } else {
         safe_free(new_macro)
         do {
             read_next_part(as_fd, &next_part); /* skip macro */
-            if (strchr(next_part, '\n') != NULL) line_num++;
+            for (i = 0; i < strlen(next_part); i++)
+                if (next_part[i] == '\n') line_num++;
         } while (strcmp(next_part, "endmacr") != 0);
         safe_free(next_part)
         /* file finished without endmacr */
@@ -88,7 +93,8 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             fprintf(stdout, "Error: Unexpected end of file.\n");
         } else {
             read_next_part(as_fd, &next_part); /* skip spaces */
-            if (strchr(next_part, '\n') != NULL) line_num++;
+            for (i = 0; i < strlen(next_part); i++)
+                if (next_part[i] == '\n') line_num++;
         }
         return 1;
     }
@@ -101,7 +107,8 @@ int macro_table_builder(char *next_part, FILE *as_fd,
                     && !feof(as_fd)) {
                 fprintf(stdout, "Error: Extra characters after endmacr.\n");
                 return 1;
-            } else line_num++;
+            } else for (i = 0; i < strlen(next_part); i++)
+                    if (next_part[i] == '\n') line_num++;
             break;
         }
 
@@ -121,7 +128,8 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             macro_content_tail = new_node;
         }
         read_next_part(as_fd, &next_part);
-        if (strchr(next_part, '\n') != NULL) line_num++;
+        for (i = 0; i < strlen(next_part); i++)
+            if (next_part[i] == '\n') line_num++;
     }
 
     new_macro->content_head = macro_content_head;
@@ -292,7 +300,8 @@ int macro_parser(FILE *as_fd, char *filename) {
         if (read_next_part(as_fd, &next_part) != 0) {
             break;
         }
-        if (strchr(next_part, '\n') != NULL) line_num++;
+        for (i = 0; i < strlen(next_part); i++)
+            if (next_part[i] == '\n') line_num++;
 
         /* save macros in the macros table */
         if (strcmp(next_part, "macr") == 0) {
@@ -301,12 +310,12 @@ int macro_parser(FILE *as_fd, char *filename) {
                                 "in a separate line.\n"
                                 "Review line %d in %s.\n", line_num, filename);
                 return 1;
-            }
-            else if (read_next_part(as_fd, &next_part) != 0
-                    || macro_table_builder(next_part, as_fd,
-                                       &macro_table_head, &line_num,
-                                       filename) != 0) {
-                if (strchr(next_part, '\n') != NULL) line_num++;
+            } else if (read_next_part(as_fd, &next_part) != 0
+                        || macro_table_builder(next_part, as_fd,
+                               &macro_table_head, &line_num,
+                               filename) != 0) {
+                for (i = 0; i < strlen(next_part); i++)
+                    if (next_part[i] == '\n') line_num++;
                 return 1;
             }
         } else {
