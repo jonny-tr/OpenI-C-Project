@@ -9,7 +9,7 @@
 
 /* macros */
 #define allocation_failure \
-            fprintf(stderr, "Memory allocation failed\n");\
+            fprintf(stdout, "Memory allocation failed\n");\
             exit(EXIT_FAILURE);
 
 #define safe_free(p) if ((p) != NULL) { free(p); (p) = NULL; }
@@ -28,6 +28,7 @@ typedef struct Macro {
     StringNode *content_head;
     struct Macro *next;
 } Macro;
+
 typedef Macro *macro_ptr;
 
 typedef Macro *macro_ptr;
@@ -35,12 +36,13 @@ typedef Macro *macro_ptr;
 /* pre_assembler functions */
 int pre_assembler(char **in_fd);
 int macro_table_builder(char *next_part, FILE *as_fd,
-                        macro_ptr *macro_table_head);
+                        macro_ptr *macro_table_head, int *line_num,
+                        char *filename);
 char *assembler_strdup(const char *s);
 char *assembler_strcat(const char *s1, const char *s2);
-int free_macro_table(Macro *macro_table_head);
-int is_macro(char *next_part, Macro *macro_table_head);
-int is_macro_name_valid(char *name, Macro *macro_table_head);
+int free_macro_table(macro_ptr macro_table_head);
+int is_macro(char *next_part, macro_ptr macro_table_head);
+int is_macro_name_valid(char *name, macro_ptr macro_table_head);
 int read_next_part(FILE *as_fd, char **next_part);
 int macro_parser(FILE *as_fd, char *filename);
 

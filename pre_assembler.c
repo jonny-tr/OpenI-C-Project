@@ -42,12 +42,16 @@ char *assembler_strcat(const char *s1, const char *s2) {
  * @return 0
  */
 int macro_table_builder(char *next_part, FILE *as_fd,
-                        macro_ptr *macro_table_head) {
+                        macro_ptr *macro_table_head, int *line_num,
+                        char *filename) {
     str_node_ptr macro_content_head = NULL, macro_content_tail = NULL,
-        new_node = NULL; /* linked list of strings */
+                new_node = NULL; /* linked list of strings */
     macro_ptr new_macro; /* new macro */
+    int i; /* counter */
 
     if (read_next_part(as_fd, &next_part) != 0) {
+        for (i = 0; i < strlen(next_part); i++)
+            if (next_part[i] == '\n') line_num++;
         return 1;
     }
 
@@ -66,23 +70,31 @@ int macro_table_builder(char *next_part, FILE *as_fd,
         new_macro->name = assembler_strdup(next_part);
         read_next_part(as_fd, &next_part); /* skip spaces */
         if (strchr(next_part, '\n') == NULL) {
-            fprintf(stderr, "Error: Extra characters after macro name\n");
+            fprintf(stdout, "Error: Extra characters after macro name.\n"
+                            "Review line %d in %s\n", *line_num, filename);
             safe_free(next_part)
             free_macro_table(*macro_table_head);
             return 1;
-        }
+        } else for (i = 0; i < strlen(next_part); i++)
+                if (next_part[i] == '\n') line_num++;
         read_next_part(as_fd, &next_part); /* read next part */
+        for (i = 0; i < strlen(next_part); i++)
+            if (next_part[i] == '\n') line_num++;;
     } else {
         safe_free(new_macro)
         do {
             read_next_part(as_fd, &next_part); /* skip macro */
+            for (i = 0; i < strlen(next_part); i++)
+                if (next_part[i] == '\n') line_num++;
         } while (strcmp(next_part, "endmacr") != 0);
         safe_free(next_part)
         /* file finished without endmacr */
         if (feof(as_fd)) {
-            fprintf(stderr, "Error: Unexpected end of file\n");
+            fprintf(stdout, "Error: Unexpected end of file.\n");
         } else {
             read_next_part(as_fd, &next_part); /* skip spaces */
+            for (i = 0; i < strlen(next_part); i++)
+                if (next_part[i] == '\n') line_num++;
         }
         return 1;
     }
@@ -93,9 +105,10 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             read_next_part(as_fd, &next_part); /* spaces */
             if (strchr(next_part, '\n') == NULL
                     && !feof(as_fd)) {
-                fprintf(stderr, "Error: Extra characters after endmacr\n");
+                fprintf(stdout, "Error: Extra characters after endmacr.\n");
                 return 1;
-            }
+            } else for (i = 0; i < strlen(next_part); i++)
+                    if (next_part[i] == '\n') line_num++;
             break;
         }
 
@@ -115,6 +128,8 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             macro_content_tail = new_node;
         }
         read_next_part(as_fd, &next_part);
+        for (i = 0; i < strlen(next_part); i++)
+            if (next_part[i] == '\n') line_num++;
     }
 
     new_macro->content_head = macro_content_head;
@@ -191,8 +206,8 @@ int is_macro_name_valid(char *name, macro_ptr macro_table_head) {
     /* check if macro name is a saved word */
     for (i = 0; i < 20; ++i) {
         if (strcmp(name, invalid[i]) == 0) {
-            fprintf(stderr, "Error: Macro name cannot "
-                            "be a special word - %s\n", name);
+            fprintf(stdout, "Error: Macro name cannot "
+                            "be a reserved word - %s.\n", name);
             return 1;
         }
     }
@@ -200,7 +215,7 @@ int is_macro_name_valid(char *name, macro_ptr macro_table_head) {
     /* check if macro name is already taken */
     while (current != NULL) {
         if (strcmp(name, current->name) == 0) {
-            fprintf(stderr, "Error: Macro name already exists - %s\n", name);
+            fprintf(stdout, "Error: Macro name already exists - %s.\n", name);
             return 1;
         }
         current = current->next;
@@ -257,8 +272,9 @@ int read_next_part(FILE *fd, char **next_part) {
  * @return 0 if the function ran successfully, 1 if an error occurred
  */
 int macro_parser(FILE *as_fd, char *filename) {
-    char *next_part = NULL, *content_buffer = NULL; /* strings */
-    int macro_index, i;
+    char *next_part = NULL, *content_buffer = NULL, *macro_buffer = NULL;
+    /* strings */
+    int macro_index, i, line_num = 1;
     unsigned long len; /* counters */
     FILE *am_fd; /* file pointer */
     Macro *macro_table_head = NULL, *current = NULL; /* macro table */
@@ -268,10 +284,10 @@ int macro_parser(FILE *as_fd, char *filename) {
     filename[strlen(filename) - 1] = 'm';
     am_fd = fopen(filename, "w");
     if (am_fd == NULL) {
-        fprintf(stderr, "Error: Could not open file %s\n", filename);
+        fprintf(stdout, "Error: Could not open file %s.\n", filename);
         return 1;
     }
-
+    filename[strlen(filename) - 1] = 's';
     /* initial allocation */
     if (!(next_part = (char *)calloc(20, sizeof(char)))) {
         fclose(as_fd);
@@ -280,15 +296,26 @@ int macro_parser(FILE *as_fd, char *filename) {
     }
 
     while (!feof(as_fd)) {
+        macro_buffer = assembler_strdup(next_part);
         if (read_next_part(as_fd, &next_part) != 0) {
             break;
         }
+        for (i = 0; i < strlen(next_part); i++)
+            if (next_part[i] == '\n') line_num++;
 
         /* save macros in the macros table */
         if (strcmp(next_part, "macr") == 0) {
-            if (read_next_part(as_fd, &next_part) != 0
-                || macro_table_builder(next_part, as_fd,
-                                       &macro_table_head) != 0) {
+            if (strchr(macro_buffer, '\n') == NULL) {
+                fprintf(stdout, "Error: Macro should be declared "
+                                "in a separate line.\n"
+                                "Review line %d in %s.\n", line_num, filename);
+                return 1;
+            } else if (read_next_part(as_fd, &next_part) != 0
+                        || macro_table_builder(next_part, as_fd,
+                               &macro_table_head, &line_num,
+                               filename) != 0) {
+                for (i = 0; i < strlen(next_part); i++)
+                    if (next_part[i] == '\n') line_num++;
                 return 1;
             }
         } else {
@@ -322,6 +349,7 @@ int macro_parser(FILE *as_fd, char *filename) {
 
     /* free memory */
     free_macro_table(macro_table_head);
+    safe_free(macro_buffer)
     safe_free(next_part)
     fclose(am_fd);
 
@@ -340,7 +368,7 @@ int pre_assembler(char **in_fd) {
     *in_fd = strcat(*in_fd, ".as");
     as_fd = fopen(*in_fd, "r");
     if (as_fd == NULL) {
-        fprintf(stderr, "Error: Could not open file %s\n", *in_fd);
+        fprintf(stdout, "Error: Could not open file %s.\n", *in_fd);
         return 1;
     }
 
