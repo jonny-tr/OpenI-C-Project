@@ -31,6 +31,8 @@ typedef struct Macro {
 
 typedef Macro *macro_ptr;
 
+typedef Macro *macro_ptr;
+
 /* pre_assembler functions */
 int pre_assembler(char **in_fd);
 int macro_table_builder(char *next_part, FILE *as_fd,
