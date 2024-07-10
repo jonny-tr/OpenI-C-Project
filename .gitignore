@@ -2,4 +2,6 @@
 *.exe
 *.bkp
 executable
-*.json
+*.am
+*.as
+*.xml
