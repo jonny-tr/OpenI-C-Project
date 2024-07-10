@@ -9,6 +9,7 @@
 int main(int argc, char *argv[]) {
     unsigned int i; /* counter */
     FILE *fd; /* file pointer */
+    char *filename; /* filename */
 
     if (argc < 2) {
         fprintf(stdout, "Error: No files specified.\n");
@@ -17,8 +18,10 @@ int main(int argc, char *argv[]) {
 
     for (i = 1; i < argc; i++) {
         if (pre_assembler(&argv[i]) == 1) continue;
-        fd = fopen(strcat(argv[i], ".am"), "r");
+        filename = assembler_strcat(argv[i], ".am");
+        fd = fopen(filename, "r");
         if (fd == NULL) continue; /* skip */
+        fclose(fd);
     }
 
     return 0;
