@@ -23,8 +23,8 @@ char *assembler_strdup(const char *s) {
  * @return new string
  */
 char *assembler_strcat(const char *s1, const char *s2) {
-    const char *safe_s1 = s1 ? s1 : "";
-    const char *safe_s2 = s2 ? s2 : "";
+    const char *safe_s1 = s1 ? s1 : ""; /* if s1 is NULL, set it to "" */
+    const char *safe_s2 = s2 ? s2 : ""; /* if s2 is NULL, set it to "" */
     char *new_str = calloc(strlen(safe_s1) + strlen(safe_s2) + 1,
                            sizeof(char));
 
@@ -38,7 +38,7 @@ char *assembler_strcat(const char *s1, const char *s2) {
 /**
  * @brief checks if the command is valid
  * @param command the command
- * @return command's code if valid, 1 if it is not
+ * @return command's code if valid, -1 if it is not
  */
 int is_valid_command(char *command) {
     char *valid[] = {".data", ".string", ".entry", ".extern",
@@ -54,5 +54,5 @@ int is_valid_command(char *command) {
         }
     }
 
-    return 0;
+    return -1;
 }
