@@ -35,8 +35,8 @@ int pre_assembler(char **in_fd);
 int macro_table_builder(char *next_part, FILE *as_fd,
                         macro_ptr *macro_table_head, int *line_num,
                         char *filename);
-char *assembler_strdup(const char *s);
-char *assembler_strcat(const char *s1, const char *s2);
+char *as_strdup(const char *s);
+char *as_strcat(const char *s1, const char *s2);
 int is_valid_command(char *command);
 int free_macro_table(macro_ptr macro_table_head);
 int is_macro(char *next_part, macro_ptr macro_table_head);
