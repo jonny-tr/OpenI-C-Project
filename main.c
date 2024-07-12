@@ -7,9 +7,10 @@
  * @return 0 if the program ran successfully, 1 if an error occurred.
  */
 int main(int argc, char *argv[]) {
-    unsigned int i; /* counter */
+    int i, dc; /* counters */
     FILE *fd; /* file pointer */
     char *filename; /* filename */
+    macro_ptr macro_table = NULL; /* macro table */
 
     if (argc < 2) {
         fprintf(stdout, "Error: No files specified.\n");
@@ -17,10 +18,26 @@ int main(int argc, char *argv[]) {
     }
 
     for (i = 1; i < argc; i++) {
-        if (pre_assembler(&argv[i]) == 1) continue;
+        if (pre_assembler(&argv[i]/*, macro_table*/) == -1) continue;
         filename = assembler_strcat(argv[i], ".am");
         fd = fopen(filename, "r");
-        if (fd == NULL) continue; /* skip */
+        if (fd == NULL) {
+            fprintf(stdout, "Error: Could not open file %s.\n", filename);
+            continue; /* skip */
+        }
+
+        /*
+        if ((dc = first_step(fd, filename, macro_table)) == -1) {
+            fclose(fd);
+            free_macro_table(macro_table);
+            remove_tmp_files(filename);
+            continue;
+        } else {
+            free_macro_table(macro_table);
+        }
+        second_step(fd, filename, dc);
+        remove_tmp_files(filename);
+         */
         fclose(fd);
     }
 
