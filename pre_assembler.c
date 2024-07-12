@@ -24,13 +24,13 @@ int skip_macro(FILE *as_fd, char *filename, char *next_part, int *line_num) {
 
     if (!feof(as_fd)) {
         if (temp_flag == 1) {
-            fprintf(stdout, "Error: line %d in %s.\n"
+            fprintf(stdout, "Error: line %d in %s.\n       "
                             "'endmacr' should be declared in a separate line.\n",
                     *line_num, filename);
         }
         if (read_next_part(as_fd, &next_part) != 0) return -1; /* spaces */
         if (strchr(next_part, '\n') == NULL && !feof(as_fd)) {
-            fprintf(stdout, "Error: line %d in %s.\n"
+            fprintf(stdout, "Error: line %d in %s.\n       "
                             "Extra characters after 'endmacr'.\n",
                     *line_num, filename);
         } else {
@@ -81,7 +81,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
     /* check if macro name is valid */
     switch (is_macro_name_valid(next_part, *macro_table_head)) {
         case 1:
-            fprintf(stdout, "Error: line %d in %s.\n"
+            fprintf(stdout, "Error: line %d in %s.\n       "
                             "Macro name '%s' cannot be a saved word.\n",
                     *line_num, filename, next_part);
             error_flag = 1;
@@ -89,7 +89,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
                 return -1;
             break;
         case 2:
-            fprintf(stdout, "Error: line %d in %s.\n"
+            fprintf(stdout, "Error: line %d in %s.\n       "
                             "Macro name '%s' already exists.\n",
                     *line_num, filename, next_part);
             error_flag = 1;
@@ -98,9 +98,9 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             break;
         case 0: /* valid name */
             new_macro->name = assembler_strdup(next_part);
-            read_next_part(as_fd, &next_part); /* skip spaces */
+            if (read_next_part(as_fd, &next_part) != 0) error_flag = 1;
             if (strchr(next_part, '\n') == NULL) {
-                fprintf(stdout, "Error: line %d in %s.\n"
+                fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Extra characters after macro name.\n",
                         *line_num, filename);
                 error_flag = 1;
@@ -123,15 +123,15 @@ int macro_table_builder(char *next_part, FILE *as_fd,
     while (!feof(as_fd)) {
         if (strcmp(next_part, "endmacr") == 0) {
             if (temp_flag == 1) {
-                fprintf(stdout, "Error: line %d in %s.\n"
+                fprintf(stdout, "Error: line %d in %s.\n       "
                                 "'endmacr' should be declared in a separate "
                                 "line.\n", *line_num, filename);
                 break;
             }
-            read_next_part(as_fd, &next_part); /* spaces */
+            if (read_next_part(as_fd, &next_part) != 0) error_flag = 1;
             if (strchr(next_part, '\n') == NULL
                     && !feof(as_fd)) {
-                fprintf(stdout, "Error: line %d in %s.\n"
+                fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Extra characters after 'endmacr'.\n",
                                 *line_num, filename);
                 return 1;
@@ -164,7 +164,10 @@ int macro_table_builder(char *next_part, FILE *as_fd,
         }
         read_next_part(as_fd, &next_part);
         for (i = 0; i < strlen(next_part); i++)
-            if (next_part[i] == '\n') (*line_num)++;
+            if (next_part[i] == '\n') {
+                temp_flag = 0;
+                (*line_num)++;
+            }
     }
 
     new_macro->content_head = macro_content_head;
@@ -340,7 +343,7 @@ int macro_parser(FILE *as_fd, char *filename) {
         /* save macros in the macros table */
         if (strcmp(next_part, "macr") == 0) {
             if (strchr(macro_buffer, '\n') == NULL) {
-                fprintf(stdout, "Error: line %d in %s.\n"
+                fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Macro should be declared in a separate line."
                                 "\n", line_num, filename);
                 error_flag = 1;
