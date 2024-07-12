@@ -5,15 +5,13 @@
  * @param s a string
  * @return new string
  */
-char *assembler_strdup(const char *s) {
-    char *new_str = calloc(strlen(s) + 1, sizeof(char));
-
-    if (new_str == NULL) return NULL;
-
-    strcpy(new_str, s);
-    strcat(new_str, "\0");
-
-    return new_str;
+char *as_strdup(const char *s) {
+    size_t size = strlen(s) + 1;
+    char *p = malloc(size);
+    if (p) {
+        memcpy(p, s, size);
+    }
+    return p;
 }
 
 /**
@@ -22,7 +20,7 @@ char *assembler_strdup(const char *s) {
  * @param s2 the second string
  * @return new string
  */
-char *assembler_strcat(const char *s1, const char *s2) {
+char *as_strcat(const char *s1, const char *s2) {
     const char *safe_s1 = s1 ? s1 : ""; /* if s1 is NULL, set it to "" */
     const char *safe_s2 = s2 ? s2 : ""; /* if s2 is NULL, set it to "" */
     char *new_str = calloc(strlen(safe_s1) + strlen(safe_s2) + 1,

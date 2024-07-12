@@ -61,7 +61,8 @@ int macro_table_builder(char *next_part, FILE *as_fd,
     str_node_ptr macro_content_head = NULL, macro_content_tail = NULL,
                 new_node = NULL; /* linked list of strings */
     macro_ptr new_macro; /* new macro */
-    int i, error_flag = 0, temp_flag = 1; /* counter and flags */
+    int i, error_flag = 0; /* counter and flags */
+    char *buffer; /* buffer */
 
     if (read_next_part(as_fd, &next_part) != 0) {
         for (i = 0; i < strlen(next_part); i++)
@@ -97,8 +98,9 @@ int macro_table_builder(char *next_part, FILE *as_fd,
                 return -1;
             break;
         case 0: /* valid name */
-            new_macro->name = assembler_strdup(next_part);
+            new_macro->name = as_strdup(next_part);
             if (read_next_part(as_fd, &next_part) != 0) error_flag = 1;
+            buffer = as_strdup(next_part);
             if (strchr(next_part, '\n') == NULL) {
                 fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Extra characters after macro name.\n",
@@ -107,13 +109,6 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             } else
                 for (i = 0; i < strlen(next_part); i++)
                     if (next_part[i] == '\n') (*line_num)++;
-
-            if (read_next_part(as_fd, &next_part) != 0) error_flag = 1;
-            for (i = 0; i < strlen(next_part); i++)
-                if (next_part[i] == '\n') {
-                    (*line_num)++;
-                    temp_flag = 0;
-                }
             break;
         default:
             break;
@@ -121,20 +116,34 @@ int macro_table_builder(char *next_part, FILE *as_fd,
 
     /* run until macro is finished */
     while (!feof(as_fd)) {
+        buffer = as_strdup(next_part);
+        if (read_next_part(as_fd, &next_part) != 0) {
+            error_flag = 1;
+            break;
+        }
+        for (i = 0; i < strlen(next_part); i++) {
+            if (next_part[i] == '\n') {
+                (*line_num)++;
+            }
+        }
+
         if (strcmp(next_part, "endmacr") == 0) {
-            if (temp_flag == 1) {
+            if (strchr(buffer, '\n') == NULL) {
                 fprintf(stdout, "Error: line %d in %s.\n       "
                                 "'endmacr' should be declared in a separate "
                                 "line.\n", *line_num, filename);
+                error_flag = 1;
+            }
+            if (read_next_part(as_fd, &next_part) != 0) {
+                error_flag = 1;
                 break;
             }
-            if (read_next_part(as_fd, &next_part) != 0) error_flag = 1;
             if (strchr(next_part, '\n') == NULL
                     && !feof(as_fd)) {
                 fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Extra characters after 'endmacr'.\n",
                                 *line_num, filename);
-                return 1;
+                error_flag = 1;
             } else for (i = 0; i < strlen(next_part); i++)
                     if (next_part[i] == '\n') (*line_num)++;
             break;
@@ -148,7 +157,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             fclose(as_fd);
             allocation_failure
         }
-        new_node->str = assembler_strdup(next_part);
+        new_node->str = as_strdup(next_part);
         if (new_node->str == NULL) {
             safe_free(next_part)
             free_macro_table(*macro_table_head);
@@ -162,17 +171,13 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             macro_content_tail->next = new_node;
             macro_content_tail = new_node;
         }
-        read_next_part(as_fd, &next_part);
-        for (i = 0; i < strlen(next_part); i++)
-            if (next_part[i] == '\n') {
-                temp_flag = 0;
-                (*line_num)++;
-            }
     }
 
     new_macro->content_head = macro_content_head;
     new_macro->next = *macro_table_head;
     *macro_table_head = new_macro;
+
+    safe_free(buffer)
 
     if (error_flag) return -1;
 
@@ -326,7 +331,7 @@ int macro_parser(FILE *as_fd, char *filename) {
     }
 
     while (!feof(as_fd)) {
-        macro_buffer = assembler_strdup(next_part);
+        macro_buffer = as_strdup(next_part);
         if (macro_buffer == NULL) {
             safe_free(next_part)
             fclose(as_fd);
@@ -366,8 +371,8 @@ int macro_parser(FILE *as_fd, char *filename) {
 
                 content_node = current->content_head;
                 while (content_node != NULL && content_node->str != NULL) {
-                    content_buffer = assembler_strcat(content_buffer,
-                                                      content_node->str);
+                    content_buffer = as_strcat(content_buffer,
+                                               content_node->str);
                     content_node = content_node->next;
                 }
 
@@ -404,7 +409,7 @@ int macro_parser(FILE *as_fd, char *filename) {
  */
 int pre_assembler(char **fd) {
     FILE *as_fd; /* file pointer */
-    char *in_fd = assembler_strcat(*fd, ".as"); /* file name */
+    char *in_fd = as_strcat(*fd, ".as"); /* file name */
 
     if (in_fd == NULL) {
         allocation_failure

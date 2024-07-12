@@ -19,7 +19,7 @@ int main(int argc, char *argv[]) {
 
     for (i = 1; i < argc; i++) {
         if (pre_assembler(&argv[i]/*, macro_table*/) == -1) continue;
-        filename = assembler_strcat(argv[i], ".am");
+        filename = as_strcat(argv[i], ".am");
         fd = fopen(filename, "r");
         if (fd == NULL) {
             fprintf(stdout, "Error: Could not open file %s.\n", filename);
