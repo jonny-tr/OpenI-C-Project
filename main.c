@@ -18,8 +18,13 @@ int main(int argc, char *argv[]) {
     }
 
     for (i = 1; i < argc; i++) {
-        if (pre_assembler(&argv[i]/*, macro_table*/) == -1) continue;
         filename = as_strcat(argv[i], ".am");
+        if (pre_assembler(&argv[i]/*, macro_table*/) == -1) {
+            if (remove(filename) != 0) {
+                fprintf(stdout, "Error: Could not delete %s.\n", filename);
+            }
+            continue;
+        }
         fd = fopen(filename, "r");
         if (fd == NULL) {
             fprintf(stdout, "Error: Could not open file %s.\n", filename);
