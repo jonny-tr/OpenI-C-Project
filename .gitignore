@@ -5,6 +5,4 @@ executable
 *.am
 *.as
 *.xml
-
-
-
+*.json
