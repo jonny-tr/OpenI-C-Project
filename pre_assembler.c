@@ -9,13 +9,17 @@
  * @return line number, -1 if an error occurred
  */
 int skip_macro(FILE *as_fd, char *filename, char *next_part, int *line_num) {
-    int i, temp_flag = 0; /* counter and flag*/
+    int i, temp_flag; /* counter and flag*/
 
     do {
-        if (read_next_part(as_fd, &next_part) != 0) return -1;
-        for (i = 0; i < strlen(next_part); i++)
-            if (next_part[i] == '\n') line_num++;
         if (strchr(next_part, '\n') == NULL) temp_flag = 1;
+        if (read_next_part(as_fd, &next_part) != 0) return -1;
+        for (i = 0; i < strlen(next_part); i++) {
+            if (next_part[i] == '\n') {
+                temp_flag = 0;
+                (*line_num)++;
+            }
+        }
     } while (strcmp(next_part, "endmacr") != 0 && !feof(as_fd));
 
     if (!feof(as_fd)) {
@@ -25,15 +29,14 @@ int skip_macro(FILE *as_fd, char *filename, char *next_part, int *line_num) {
                     *line_num, filename);
         }
         if (read_next_part(as_fd, &next_part) != 0) return -1; /* spaces */
-        if (strchr(next_part, '\n') == NULL
-            && !feof(as_fd)) {
+        if (strchr(next_part, '\n') == NULL && !feof(as_fd)) {
             fprintf(stdout, "Error: line %d in %s.\n"
                             "Extra characters after 'endmacr'.\n",
                     *line_num, filename);
         } else {
             if (read_next_part(as_fd, &next_part) == -1) return 1;
             for (i = 0; i < strlen(next_part); i++)
-                if (next_part[i] == '\n') line_num++;
+                if (next_part[i] == '\n') (*line_num)++;
         }
     }
 
@@ -341,7 +344,8 @@ int macro_parser(FILE *as_fd, char *filename) {
                                 "Macro should be declared in a separate line."
                                 "\n", line_num, filename);
                 error_flag = 1;
-            } else if (read_next_part(as_fd, &next_part) != 0
+            }
+            if (read_next_part(as_fd, &next_part) != 0
                         || (error_flag = macro_table_builder(next_part, as_fd,
                                &macro_table_head, &line_num,
                                filename) != 0)) {
