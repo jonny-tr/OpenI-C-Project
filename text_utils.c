@@ -59,6 +59,12 @@ int is_valid_command(char *command) {
     return -1;
 }
 
+/**
+ * @brief reads the next line from a file
+ * @param fd the file pointer
+ * @param line the line stored
+ * @return 0 if successful, -1 if not
+ */
 int read_next_line(FILE *fd, char **line) {
     char buffer[81];
 
@@ -66,11 +72,7 @@ int read_next_line(FILE *fd, char **line) {
             && buffer[0] == ';'); /* skip comments */
 
     safe_free(*line)
-    as_strdup(line, buffer);
-
-    if (feof(fd)) {
-        return -1;
-    }
+    if (as_strdup(line, buffer) != 0) return -1;
 
     return 0;
 }

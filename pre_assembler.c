@@ -98,9 +98,19 @@ int macro_table_builder(char *next_part, FILE *as_fd,
                 return -1;
             break;
         case 0: /* valid name */
-            as_strdup(&new_macro->name, next_part);
+            if (as_strdup(&new_macro->name, next_part) != 0) {
+                safe_free(next_part)
+                free_macro_table(*macro_table_head);
+                fclose(as_fd);
+                allocation_failure
+            }
             if (read_next_part(as_fd, &next_part) != 0) error_flag = 1;
-            as_strdup(&buffer, next_part);
+            if (as_strdup(&buffer, next_part) != 0) {
+                safe_free(next_part)
+                free_macro_table(*macro_table_head);
+                fclose(as_fd);
+                allocation_failure
+            }
             if (strchr(next_part, '\n') == NULL) {
                 fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Extra characters after macro name.\n",
@@ -116,7 +126,12 @@ int macro_table_builder(char *next_part, FILE *as_fd,
 
     /* run until macro is finished */
     while (!feof(as_fd)) {
-        as_strdup(&buffer, next_part);
+        if (as_strdup(&buffer, next_part) != 0) {
+            safe_free(next_part)
+            free_macro_table(*macro_table_head);
+            fclose(as_fd);
+            allocation_failure
+        }
         if (read_next_part(as_fd, &next_part) != 0) {
             error_flag = 1;
             break;
@@ -151,14 +166,9 @@ int macro_table_builder(char *next_part, FILE *as_fd,
 
         /* add next_part to the macro content linked list */
         new_node = (str_node_ptr)calloc(1, sizeof(str_node_ptr));
-        if (new_node == NULL) {
-            safe_free(next_part)
-            free_macro_table(*macro_table_head);
-            fclose(as_fd);
-            allocation_failure
-        }
-        as_strdup(&new_node->str, next_part);
-        if (new_node->str == NULL) {
+        if (new_node == NULL
+                || (as_strdup(&new_node->str, next_part) != 0)
+                || (new_node->str == NULL)) {
             safe_free(next_part)
             free_macro_table(*macro_table_head);
             fclose(as_fd);
@@ -331,7 +341,12 @@ int macro_parser(FILE *as_fd, char *filename) {
     }
 
     while (!feof(as_fd)) {
-        as_strdup(&macro_buffer, next_part);
+        if (as_strdup(&macro_buffer, next_part) != 0) {
+            safe_free(next_part)
+            fclose(am_fd);
+            fclose(as_fd);
+            allocation_failure
+        }
 
         if (read_next_part(as_fd, &next_part) != 0) {
             break;
