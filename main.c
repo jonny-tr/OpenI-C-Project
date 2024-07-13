@@ -43,7 +43,7 @@ int main(int argc, char *argv[]) {
         }
         remove_tmp_files(filename);
          */
-        if (phase_two(fd, filename, ic, dc) != 0) {
+        if (phase_two(fd, argv[i], *symbols_list, ic, dc) != 0) {
             fclose(fd);
             continue;
         }

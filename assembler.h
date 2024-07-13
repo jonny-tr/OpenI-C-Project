@@ -30,6 +30,15 @@ typedef struct macro_t {
 
 typedef macro_t *macro_ptr;
 
+typedef struct symbol_t {
+    char *name;
+    int counter;
+    char *type;
+    struct symbol_t *next;
+} symbol_t;
+
+typedef symbol_t *symbol_ptr;
+
 /* text utils functions */
 int as_strdup(char **dest, const char *s);
 char *as_strcat(const char *s1, const char *s2);
@@ -49,6 +58,8 @@ int read_next_part(FILE *as_fd, char **next_part);
 int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head);
 
 /* phase_two functions */
-int phase_two(FILE *fd, char *filename, int ext_ic, int dc);
+int phase_two(FILE *fd, char *filename, symbol_ptr symbol_table, int ext_ic,
+              int dc);
+int entry_update(symbol_ptr symbols_list, char *next_word);
 
 #endif /* ASSEMBLER_H */
