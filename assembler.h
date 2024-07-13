@@ -9,7 +9,7 @@
 
 /* macros */
 #define allocation_failure \
-            fprintf(stdout, "Memory allocation failed\n");\
+            fprintf(stdout, "Memory allocation failed.\n");\
             exit(EXIT_FAILURE);
 
 #define safe_free(p) if ((p) != NULL) { free(p); (p) = NULL; }
@@ -46,5 +46,8 @@ int is_macro(char *next_part, macro_ptr macro_table_head);
 int is_macro_name_valid(char *name, macro_ptr macro_table_head);
 int read_next_part(FILE *as_fd, char **next_part);
 int macro_parser(FILE *as_fd, char *filename);
+
+/* phase_two functions */
+int phase_two(FILE *fd, char *filename, int ext_ic, int dc);
 
 #endif /* ASSEMBLER_H */

@@ -7,13 +7,16 @@
  * @return 0 if successful, -1 if not
  */
 int as_strdup(char **dest, const char *s) {
-    size_t size = strlen(s) + 1;
-    char *temp = (char *)realloc(*dest, size * sizeof(char));
+    size_t size = (s != NULL) ? strlen(s) + 1 : 1;
+    char *temp = NULL;
 
+    temp = (char *)realloc(*dest, size * sizeof(char));
     if (temp == NULL) return -1;
-    else *dest = temp;
 
-    memcpy(*dest, s, size);
+    *dest = temp;
+
+    if (s != NULL) memcpy(*dest, s, size);
+    else (*dest)[0] = '\0';
 
     return 0;
 }
