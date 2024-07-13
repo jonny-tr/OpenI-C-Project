@@ -66,7 +66,7 @@ int read_next_line(FILE *fd, char **line) {
             && buffer[0] == ';'); /* skip comments */
 
     safe_free(*line)
-    as_strdup(*line, buffer);
+    as_strdup(line, buffer);
 
     if (feof(fd)) {
         return -1;
