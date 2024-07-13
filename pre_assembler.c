@@ -98,9 +98,9 @@ int macro_table_builder(char *next_part, FILE *as_fd,
                 return -1;
             break;
         case 0: /* valid name */
-            new_macro->name = as_strdup(next_part);
+            as_strdup(&new_macro->name, next_part);
             if (read_next_part(as_fd, &next_part) != 0) error_flag = 1;
-            buffer = as_strdup(next_part);
+            as_strdup(&buffer, next_part);
             if (strchr(next_part, '\n') == NULL) {
                 fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Extra characters after macro name.\n",
@@ -116,7 +116,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
 
     /* run until macro is finished */
     while (!feof(as_fd)) {
-        buffer = as_strdup(next_part);
+        as_strdup(&buffer, next_part);
         if (read_next_part(as_fd, &next_part) != 0) {
             error_flag = 1;
             break;
@@ -157,7 +157,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             fclose(as_fd);
             allocation_failure
         }
-        new_node->str = as_strdup(next_part);
+        as_strdup(&new_node->str, next_part);
         if (new_node->str == NULL) {
             safe_free(next_part)
             free_macro_table(*macro_table_head);
@@ -331,13 +331,7 @@ int macro_parser(FILE *as_fd, char *filename) {
     }
 
     while (!feof(as_fd)) {
-        macro_buffer = as_strdup(next_part);
-        if (macro_buffer == NULL) {
-            safe_free(next_part)
-            fclose(as_fd);
-            fclose(am_fd);
-            allocation_failure
-        }
+        as_strdup(&macro_buffer, next_part);
 
         if (read_next_part(as_fd, &next_part) != 0) {
             break;

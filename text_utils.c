@@ -2,16 +2,20 @@
 
 /**
  * @brief duplicates a string
- * @param s a string
- * @return new string
+ * @param dest the destination string
+ * @param s the string to duplicate
+ * @return 0 if successful, -1 if not
  */
-char *as_strdup(const char *s) {
+int as_strdup(char **dest, const char *s) {
     size_t size = strlen(s) + 1;
-    char *p = malloc(size);
-    if (p) {
-        memcpy(p, s, size);
-    }
-    return p;
+    char *temp = (char *)realloc(*dest, size * sizeof(char));
+
+    if (temp == NULL) return -1;
+    else *dest = temp;
+
+    memcpy(*dest, s, size);
+
+    return 0;
 }
 
 /**
@@ -53,4 +57,20 @@ int is_valid_command(char *command) {
     }
 
     return -1;
+}
+
+int read_next_line(FILE *fd, char **line) {
+    char buffer[81];
+
+    while (fgets(buffer, 81, fd) != NULL
+            && buffer[0] == ';'); /* skip comments */
+
+    safe_free(*line)
+    as_strdup(*line, buffer);
+
+    if (feof(fd)) {
+        return -1;
+    }
+
+    return 0;
 }
