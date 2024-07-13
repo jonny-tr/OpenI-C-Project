@@ -7,7 +7,8 @@
  * @return 0 if the program ran successfully, 1 if an error occurred.
  */
 int main(int argc, char *argv[]) {
-    int i, dc; /* counters */
+    int i, dc = 30, ic = 100; /* counters */
+    /* TODO: remove dc and ic initialaizers */
     FILE *fd; /* file pointer */
     char *filename; /* filename */
     macro_ptr macro_table = NULL; /* macro table */
@@ -32,7 +33,7 @@ int main(int argc, char *argv[]) {
         }
 
         /*
-        if ((dc = first_step(fd, filename, macro_table)) == -1) {
+        if ((dc = phase_one(fd, filename, macro_table)) == -1) {
             fclose(fd);
             free_macro_table(macro_table);
             remove_tmp_files(filename);
@@ -40,9 +41,9 @@ int main(int argc, char *argv[]) {
         } else {
             free_macro_table(macro_table);
         }
-        second_step(fd, filename, dc);
         remove_tmp_files(filename);
          */
+        phase_two(fd, filename, ic, dc);
         fclose(fd);
     }
 
