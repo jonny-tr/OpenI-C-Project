@@ -35,6 +35,8 @@ int as_strdup(char **dest, const char *s);
 char *as_strcat(const char *s1, const char *s2);
 int is_valid_command(char *command);
 int read_next_line(FILE *fd, char **line);
+int read_next_word(const char line[], unsigned int *position,
+                   char **next_part);
 
 /* pre_assembler functions */
 int pre_assembler(char **in_fd);
