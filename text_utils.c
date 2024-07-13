@@ -86,8 +86,7 @@ int read_next_line(FILE *fd, char **line) {
  * @param position the position in the line
  * @return pointer to the string read, -1 if an error occurred
  */
-int read_next_word(const char line[], unsigned int *position,
-                     char **next_part) {
+int read_next_word(const char line[], int *position, char **next_part) {
     char c, *temp = NULL; /* strings */
     int buffer = 0; /* counter */
 

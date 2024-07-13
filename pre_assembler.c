@@ -197,6 +197,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
 /**
  * @brief frees the macro table
  * @param macro_table_head the table of macros
+ * @param flag whether to free also macro names
  * @return 0 if the function ran successfully, 1 if an error occurred
  */
 int free_macro_table(macro_ptr macro_table_head) {
@@ -315,13 +316,13 @@ int read_next_part(FILE *fd, char **next_part) {
  * @param filename the name of the file
  * @return 0 if the function ran successfully, 1 if an error occurred
  */
-int macro_parser(FILE *as_fd, char *filename) {
+int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head) {
     char *next_part = NULL, *content_buffer = NULL, *macro_buffer = NULL;
     /* strings */
     int i, macro_index, line_num = 1, error_flag = 0; /* counters */
     unsigned long len; /* position counter */
     FILE *am_fd; /* file pointer */
-    macro_t *macro_table_head = NULL, *current = NULL; /* macro table */
+    macro_t *current = NULL; /* macro table */
     str_node_ptr content_node; /* content node */
 
     /* create a new file with the .am suffix */
@@ -364,16 +365,16 @@ int macro_parser(FILE *as_fd, char *filename) {
             }
             if (read_next_part(as_fd, &next_part) != 0
                         || (error_flag = macro_table_builder(next_part, as_fd,
-                               &macro_table_head, &line_num,
+                               macro_table_head, &line_num,
                                filename) != 0)) {
                 for (i = 0; i < strlen(next_part); i++)
                     if (next_part[i] == '\n') line_num++;
             }
             continue;
         } else {
-            macro_index = is_macro(next_part, macro_table_head);
+            macro_index = is_macro(next_part, *macro_table_head);
             if (macro_index > -1) {
-                current = macro_table_head;
+                current = *macro_table_head;
                 for (i = 0; i < macro_index; i++) {
                     current = current->next;
                 }
@@ -400,7 +401,6 @@ int macro_parser(FILE *as_fd, char *filename) {
     }
 
     /* free memory */
-    free_macro_table(macro_table_head);
     safe_free(macro_buffer)
     safe_free(next_part)
     fclose(am_fd);
@@ -416,7 +416,7 @@ int macro_parser(FILE *as_fd, char *filename) {
  * @param in_fd the file name
  * @return 0 if the function ran successfully, -1 if an error occurred
  */
-int pre_assembler(char **fd) {
+int pre_assembler(char **fd, macro_ptr *macro_table_head) {
     FILE *as_fd; /* file pointer */
     char *in_fd = as_strcat(*fd, ".as"); /* file name */
 
@@ -430,7 +430,7 @@ int pre_assembler(char **fd) {
         return 1;
     }
 
-    switch (macro_parser(as_fd, in_fd)) {
+    switch (macro_parser(as_fd, in_fd, macro_table_head)) {
         default:
             safe_free(in_fd)
             fclose(as_fd);
