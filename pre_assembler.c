@@ -62,7 +62,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
                 new_node = NULL; /* linked list of strings */
     macro_ptr new_macro; /* new macro */
     int i, error_flag = 0; /* counter and flags */
-    char *buffer; /* buffer */
+    char *buffer = NULL; /* buffer */
 
     if (read_next_part(as_fd, &next_part) != 0) {
         for (i = 0; i < strlen(next_part); i++)
