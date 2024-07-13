@@ -30,14 +30,24 @@ typedef struct macro_t {
 
 typedef macro_t *macro_ptr;
 
+typedef struct symbol_t {
+    char *name;
+    int counter;
+    char *type;
+    struct symbol_t *next;
+} symbol_t;
+
+typedef symbol_t *symbol_ptr;
+
 /* text utils functions */
 int as_strdup(char **dest, const char *s);
 char *as_strcat(const char *s1, const char *s2);
 int is_valid_command(char *command);
 int read_next_line(FILE *fd, char **line);
+int read_next_word(const char line[], int *position, char **next_part);
 
 /* pre_assembler functions */
-int pre_assembler(char **in_fd);
+int pre_assembler(char **in_fd, macro_ptr *macro_table_head);
 int macro_table_builder(char *next_part, FILE *as_fd,
                         macro_ptr *macro_table_head, int *line_num,
                         char *filename);
@@ -45,9 +55,11 @@ int free_macro_table(macro_ptr macro_table_head);
 int is_macro(char *next_part, macro_ptr macro_table_head);
 int is_macro_name_valid(char *name, macro_ptr macro_table_head);
 int read_next_part(FILE *as_fd, char **next_part);
-int macro_parser(FILE *as_fd, char *filename);
+int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head);
 
 /* phase_two functions */
-int phase_two(FILE *fd, char *filename, int ext_ic, int dc);
+int phase_two(FILE *fd, char *filename, symbol_ptr symbol_table, int ext_ic,
+              int dc);
+int entry_update(symbol_ptr symbols_list, char *next_word);
 
 #endif /* ASSEMBLER_H */

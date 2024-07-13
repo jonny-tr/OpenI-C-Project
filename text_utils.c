@@ -79,3 +79,42 @@ int read_next_line(FILE *fd, char **line) {
 
     return 0;
 }
+
+/**
+ * @brief the function reads the next part of the line
+ * @param line the line to read from
+ * @param position the position in the line
+ * @return pointer to the string read, -1 if an error occurred
+ */
+int read_next_word(const char line[], int *position, char **next_part) {
+    char c, *temp = NULL; /* strings */
+    int buffer = 0; /* counter */
+
+    if (line[*position] == '\0') return 1;
+
+    safe_free(*next_part)
+    temp = (char *)calloc(20, sizeof(char));
+    if (temp == NULL) return -1;
+    *next_part = temp;
+
+    while (isspace(line[*position])) ++(*position); /* skip whitespaces */
+
+    while (isspace(c = line[*position]) != 0) {
+        if (buffer % 19 == 0) {
+            temp = (char *)realloc(*next_part, buffer + 21);
+            if (temp == NULL) {
+                safe_free(*next_part)
+                return -1;
+            }
+            *next_part = temp;
+        }
+
+        if (c == ',') break;
+        *next_part[buffer] = c;
+        ++buffer;
+        ++(*position);
+    }
+    *next_part[buffer] = '\0';
+
+    return 0;
+}

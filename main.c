@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
 
     for (i = 1; i < argc; i++) {
         filename = as_strcat(argv[i], ".am");
-        if (pre_assembler(&argv[i]/*, macro_table*/) == -1) {
+        if (pre_assembler(&argv[i], &macro_table) == -1) {
             if (remove(filename) != 0) {
                 fprintf(stdout, "Error: Could not delete %s.\n", filename);
             }
@@ -43,7 +43,11 @@ int main(int argc, char *argv[]) {
         }
         remove_tmp_files(filename);
          */
-        phase_two(fd, filename, ic, dc);
+        if (phase_two(fd, argv[i], *symbols_list, ic, dc) != 0) {
+            fclose(fd);
+            continue;
+        }
+        free_macro_table(macro_table);
         fclose(fd);
     }
 
