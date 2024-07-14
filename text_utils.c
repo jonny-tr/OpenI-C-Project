@@ -84,7 +84,8 @@ int read_next_line(FILE *fd, char **line) {
  * @brief the function reads the next part of the line
  * @param line the line to read from
  * @param position the position in the line
- * @return pointer to the string read, -1 if an error occurred
+ * @return pointer to the string read, 1 if line finished,
+ *          -1 if an error occurred
  */
 int read_next_word(const char line[], int *position, char **next_part) {
     char c, *temp = NULL; /* strings */

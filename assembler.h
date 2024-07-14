@@ -1,25 +1,24 @@
 #ifndef ASSEMBLER_H
 #define ASSEMBLER_H
 
-/* libraries */
+/*--------------------------------libraries----------------------------------*/
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
 
-/* macros */
+/*----------------------------------macros-----------------------------------*/
 #define allocation_failure \
             fprintf(stdout, "Memory allocation failed.\n");\
             exit(EXIT_FAILURE);
 
 #define safe_free(p) if ((p) != NULL) { free(p); (p) = NULL; }
 
-/* structures */
+/*--------------------------------structures---------------------------------*/
 typedef struct string_t {
     char *str;
     struct string_t *next;
 } string_t;
-
 typedef string_t *str_node_ptr;
 
 typedef struct macro_t {
@@ -27,26 +26,25 @@ typedef struct macro_t {
     string_t *content_head;
     struct macro_t *next;
 } macro_t;
-
 typedef macro_t *macro_ptr;
 
+typedef struct symbol_t *symbol_ptr;
 typedef struct symbol_t {
     char *name;
     int counter;
     char *type;
-    struct symbol_t *next;
+    symbol_ptr next;
 } symbol_t;
 
-typedef symbol_t *symbol_ptr;
-
-/* text utils functions */
+/*---------------------------------functions---------------------------------*/
+/* text utils */
 int as_strdup(char **dest, const char *s);
 char *as_strcat(const char *s1, const char *s2);
 int is_valid_command(char *command);
 int read_next_line(FILE *fd, char **line);
 int read_next_word(const char line[], int *position, char **next_part);
 
-/* pre_assembler functions */
+/* pre_assembler */
 int pre_assembler(char **in_fd, macro_ptr *macro_table_head);
 int macro_table_builder(char *next_part, FILE *as_fd,
                         macro_ptr *macro_table_head, int *line_num,
@@ -57,9 +55,9 @@ int is_macro_name_valid(char *name, macro_ptr macro_table_head);
 int read_next_part(FILE *as_fd, char **next_part);
 int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head);
 
-/* phase_two functions */
+/* phase_two */
 int phase_two(FILE *fd, char *filename, symbol_ptr symbol_table, int ext_ic,
               int dc);
-int entry_update(symbol_ptr symbols_list, char *next_word);
+int entry_update(symbol_ptr symbol_table, char *word);
 
 #endif /* ASSEMBLER_H */
