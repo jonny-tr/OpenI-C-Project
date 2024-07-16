@@ -6,38 +6,46 @@
  * @param filename the name of the file
  * @param next_part the next part of the file
  * @param line_num the line number
- * @return line number
+ * @return line number, -1 if an error occurred
  */
-int skip_macro(FILE *as_fd, char *filename, char *next_part, int line_num) {
-    int i; /* counter */
+int skip_macro(FILE *as_fd, char *filename, char *next_part, int *line_num) {
+    int i, temp_flag; /* counter and flag*/
 
     do {
-        read_next_part(as_fd, &next_part);
-        for (i = 0; i < strlen(next_part); i++)
-            if (next_part[i] == '\n') line_num++;
+        if (strchr(next_part, '\n') == NULL) temp_flag = 1;
+        if (read_next_part(as_fd, &next_part) != 0) return -1;
+        for (i = 0; i < strlen(next_part); i++) {
+            if (next_part[i] == '\n') {
+                temp_flag = 0;
+                (*line_num)++;
+            }
+        }
     } while (strcmp(next_part, "endmacr") != 0 && !feof(as_fd));
 
     if (!feof(as_fd)) {
-        read_next_part(as_fd, &next_part); /* spaces */
-        if (strchr(next_part, '\n') == NULL
-            && !feof(as_fd)) {
-            fprintf(stdout, "Error: line %d in %s.\n"
-                            "Extra characters after endmacr.\n",
-                    line_num, filename);
+        if (temp_flag == 1) {
+            fprintf(stdout, "Error: line %d in %s.\n       "
+                            "'endmacr' should be declared in a separate line.\n",
+                    *line_num, filename);
+        }
+        if (read_next_part(as_fd, &next_part) != 0) return -1; /* spaces */
+        if (strchr(next_part, '\n') == NULL && !feof(as_fd)) {
+            fprintf(stdout, "Error: line %d in %s.\n       "
+                            "Extra characters after 'endmacr'.\n",
+                    *line_num, filename);
         } else {
             if (read_next_part(as_fd, &next_part) == -1) return 1;
             for (i = 0; i < strlen(next_part); i++)
-                if (next_part[i] == '\n') line_num++;
+                if (next_part[i] == '\n') (*line_num)++;
         }
     }
 
-    safe_free(next_part)
     /* file finished without endmacr */
     if (feof(as_fd)) {
         fprintf(stdout, "Error: %s finished without 'endmacr'.\n",
                 filename);
     }
-    return line_num;
+    return *line_num;
 }
 
 /**
@@ -53,11 +61,12 @@ int macro_table_builder(char *next_part, FILE *as_fd,
     str_node_ptr macro_content_head = NULL, macro_content_tail = NULL,
                 new_node = NULL; /* linked list of strings */
     macro_ptr new_macro; /* new macro */
-    int i, error_flag; /* counter */
+    int i, error_flag = 0; /* counter and flags */
+    char *buffer = NULL; /* buffer */
 
     if (read_next_part(as_fd, &next_part) != 0) {
         for (i = 0; i < strlen(next_part); i++)
-            if (next_part[i] == '\n') line_num++;
+            if (next_part[i] == '\n') (*line_num)++;
         return 1;
     }
 
@@ -73,38 +82,43 @@ int macro_table_builder(char *next_part, FILE *as_fd,
     /* check if macro name is valid */
     switch (is_macro_name_valid(next_part, *macro_table_head)) {
         case 1:
-            fprintf(stdout, "Error: line %d in %s.\n"
-                            "Invalid macro name - %s.\n",
+            fprintf(stdout, "Error: line %d in %s.\n       "
+                            "Macro name '%s' cannot be a saved word.\n",
                     *line_num, filename, next_part);
-            safe_free(next_part)
-            free_macro_table(*macro_table_head);
-            safe_free(new_macro)
-            *line_num = skip_macro(as_fd, filename, next_part, *line_num);
-            return 1;
+            error_flag = 1;
+            if (skip_macro(as_fd, filename, next_part, line_num) == -1)
+                return -1;
+            break;
         case 2:
-            fprintf(stdout, "Error: line %d in %s.\n"
+            fprintf(stdout, "Error: line %d in %s.\n       "
                             "Macro name '%s' already exists.\n",
                     *line_num, filename, next_part);
-            safe_free(next_part)
-            free_macro_table(*macro_table_head);
-            *line_num = skip_macro(as_fd, filename, next_part, *line_num);
-            return 1;
-        case 0:
-            new_macro->name = assembler_strdup(next_part);
-            read_next_part(as_fd, &next_part); /* skip spaces */
-            if (strchr(next_part, '\n') == NULL) {
-                fprintf(stdout, "Error: line %d in %s.\n"
-                                "Extra characters after macro name.\n",
-                        *line_num, filename);
+            error_flag = 1;
+            if (skip_macro(as_fd, filename, next_part, line_num) == -1)
+                return -1;
+            break;
+        case 0: /* valid name */
+            if (as_strdup(&new_macro->name, next_part) != 0) {
                 safe_free(next_part)
                 free_macro_table(*macro_table_head);
+                fclose(as_fd);
+                allocation_failure
+            }
+            if (read_next_part(as_fd, &next_part) != 0) error_flag = 1;
+            if (as_strdup(&buffer, next_part) != 0) {
+                safe_free(next_part)
+                free_macro_table(*macro_table_head);
+                fclose(as_fd);
+                allocation_failure
+            }
+            if (strchr(next_part, '\n') == NULL) {
+                fprintf(stdout, "Error: line %d in %s.\n       "
+                                "Extra characters after macro name.\n",
+                        *line_num, filename);
                 error_flag = 1;
             } else
                 for (i = 0; i < strlen(next_part); i++)
-                    if (next_part[i] == '\n') line_num++;
-            read_next_part(as_fd, &next_part); /* read next part */
-            for (i = 0; i < strlen(next_part); i++)
-                if (next_part[i] == '\n') line_num++;
+                    if (next_part[i] == '\n') (*line_num)++;
             break;
         default:
             break;
@@ -112,29 +126,49 @@ int macro_table_builder(char *next_part, FILE *as_fd,
 
     /* run until macro is finished */
     while (!feof(as_fd)) {
-        if (strcmp(next_part, "endmacr") == 0) {
-            read_next_part(as_fd, &next_part); /* spaces */
-            if (strchr(next_part, '\n') == NULL
-                    && !feof(as_fd)) {
-                fprintf(stdout, "Error: line %d in %s.\n"
-                                "Extra characters after endmacr.\n",
-                                *line_num, filename);
-                return 1;
-            } else for (i = 0; i < strlen(next_part); i++)
-                    if (next_part[i] == '\n') line_num++;
-            break;
-        }
-
-        /* add next_part to the macro content linked list */
-        new_node = (str_node_ptr)calloc(1, sizeof(str_node_ptr));
-        if (new_node == NULL) {
+        if (as_strdup(&buffer, next_part) != 0) {
             safe_free(next_part)
             free_macro_table(*macro_table_head);
             fclose(as_fd);
             allocation_failure
         }
-        new_node->str = assembler_strdup(next_part);
-        if (new_node->str == NULL) {
+        if (read_next_part(as_fd, &next_part) != 0) {
+            error_flag = 1;
+            break;
+        }
+        for (i = 0; i < strlen(next_part); i++) {
+            if (next_part[i] == '\n') {
+                (*line_num)++;
+            }
+        }
+
+        if (strcmp(next_part, "endmacr") == 0) {
+            if (strchr(buffer, '\n') == NULL) {
+                fprintf(stdout, "Error: line %d in %s.\n       "
+                                "'endmacr' should be declared in a separate "
+                                "line.\n", *line_num, filename);
+                error_flag = 1;
+            }
+            if (read_next_part(as_fd, &next_part) != 0) {
+                error_flag = 1;
+                break;
+            }
+            if (strchr(next_part, '\n') == NULL
+                    && !feof(as_fd)) {
+                fprintf(stdout, "Error: line %d in %s.\n       "
+                                "Extra characters after 'endmacr'.\n",
+                                *line_num, filename);
+                error_flag = 1;
+            } else for (i = 0; i < strlen(next_part); i++)
+                    if (next_part[i] == '\n') (*line_num)++;
+            break;
+        }
+
+        /* add next_part to the macro content linked list */
+        new_node = (str_node_ptr)calloc(1, sizeof(str_node_ptr));
+        if (new_node == NULL
+                || (as_strdup(&new_node->str, next_part) != 0)
+                || (new_node->str == NULL)) {
             safe_free(next_part)
             free_macro_table(*macro_table_head);
             fclose(as_fd);
@@ -147,14 +181,13 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             macro_content_tail->next = new_node;
             macro_content_tail = new_node;
         }
-        read_next_part(as_fd, &next_part);
-        for (i = 0; i < strlen(next_part); i++)
-            if (next_part[i] == '\n') line_num++;
     }
 
     new_macro->content_head = macro_content_head;
     new_macro->next = *macro_table_head;
     *macro_table_head = new_macro;
+
+    safe_free(buffer)
 
     if (error_flag) return -1;
 
@@ -164,6 +197,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
 /**
  * @brief frees the macro table
  * @param macro_table_head the table of macros
+ * @param flag whether to free also macro names
  * @return 0 if the function ran successfully, 1 if an error occurred
  */
 int free_macro_table(macro_ptr macro_table_head) {
@@ -220,7 +254,7 @@ int is_macro_name_valid(char *name, macro_ptr macro_table_head) {
     macro_t *current = macro_table_head;
 
     /* check if macro name is a saved word */
-    if (is_valid_command(name) == -1) return 1;
+    if (is_valid_command(name) != -1) return 1;
 
     /* check if macro name is already taken */
     while (current != NULL) {
@@ -282,13 +316,13 @@ int read_next_part(FILE *fd, char **next_part) {
  * @param filename the name of the file
  * @return 0 if the function ran successfully, 1 if an error occurred
  */
-int macro_parser(FILE *as_fd, char *filename) {
+int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head) {
     char *next_part = NULL, *content_buffer = NULL, *macro_buffer = NULL;
     /* strings */
     int i, macro_index, line_num = 1, error_flag = 0; /* counters */
     unsigned long len; /* position counter */
     FILE *am_fd; /* file pointer */
-    macro_t *macro_table_head = NULL, *current = NULL; /* macro table */
+    macro_t *current = NULL; /* macro table */
     str_node_ptr content_node; /* content node */
 
     /* create a new file with the .am suffix */
@@ -296,24 +330,25 @@ int macro_parser(FILE *as_fd, char *filename) {
     am_fd = fopen(filename, "w");
     if (am_fd == NULL) {
         fprintf(stdout, "Error: Could not open file %s.\n", filename);
-        return 1;
+        return -1;
     }
     filename[strlen(filename) - 1] = 's';
-    /* initial allocation */
-    if (!(next_part = (char *)calloc(20, sizeof(char)))) {
+
+    next_part = (char *)calloc(20, sizeof(char)); /* initial allocation */
+    if (next_part == NULL) {
         fclose(as_fd);
         fclose(am_fd);
         allocation_failure
     }
 
     while (!feof(as_fd)) {
-        macro_buffer = assembler_strdup(next_part);
-        if (macro_buffer == NULL) {
+        if (as_strdup(&macro_buffer, next_part) != 0) {
             safe_free(next_part)
-            fclose(as_fd);
             fclose(am_fd);
+            fclose(as_fd);
             allocation_failure
         }
+
         if (read_next_part(as_fd, &next_part) != 0) {
             break;
         }
@@ -323,29 +358,31 @@ int macro_parser(FILE *as_fd, char *filename) {
         /* save macros in the macros table */
         if (strcmp(next_part, "macr") == 0) {
             if (strchr(macro_buffer, '\n') == NULL) {
-                fprintf(stdout, "Error: line %d in %s.\n"
+                fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Macro should be declared in a separate line."
                                 "\n", line_num, filename);
                 error_flag = 1;
-            } else if (read_next_part(as_fd, &next_part) != 0
+            }
+            if (read_next_part(as_fd, &next_part) != 0
                         || (error_flag = macro_table_builder(next_part, as_fd,
-                               &macro_table_head, &line_num,
+                               macro_table_head, &line_num,
                                filename) != 0)) {
                 for (i = 0; i < strlen(next_part); i++)
                     if (next_part[i] == '\n') line_num++;
             }
+            continue;
         } else {
-            macro_index = is_macro(next_part, macro_table_head);
+            macro_index = is_macro(next_part, *macro_table_head);
             if (macro_index > -1) {
-                current = macro_table_head;
+                current = *macro_table_head;
                 for (i = 0; i < macro_index; i++) {
                     current = current->next;
                 }
 
                 content_node = current->content_head;
                 while (content_node != NULL && content_node->str != NULL) {
-                    content_buffer = assembler_strcat(content_buffer,
-                                                      content_node->str);
+                    content_buffer = as_strcat(content_buffer,
+                                               content_node->str);
                     content_node = content_node->next;
                 }
 
@@ -364,12 +401,11 @@ int macro_parser(FILE *as_fd, char *filename) {
     }
 
     /* free memory */
-    free_macro_table(macro_table_head);
     safe_free(macro_buffer)
     safe_free(next_part)
     fclose(am_fd);
 
-    if (error_flag) return 1;
+    if (error_flag) return -1;
 
     return 0;
 }
@@ -378,11 +414,11 @@ int macro_parser(FILE *as_fd, char *filename) {
 /**
  * @brief pre-assembles the file
  * @param in_fd the file name
- * @return 0 if the function ran successfully, 1 if an error occurred
+ * @return 0 if the function ran successfully, -1 if an error occurred
  */
-int pre_assembler(char **fd) {
+int pre_assembler(char **fd, macro_ptr *macro_table_head) {
     FILE *as_fd; /* file pointer */
-    char *in_fd = assembler_strcat(*fd, ".as"); /* file name */
+    char *in_fd = as_strcat(*fd, ".as"); /* file name */
 
     if (in_fd == NULL) {
         allocation_failure
@@ -394,13 +430,13 @@ int pre_assembler(char **fd) {
         return 1;
     }
 
-    switch (macro_parser(as_fd, in_fd)) {
+    switch (macro_parser(as_fd, in_fd, macro_table_head)) {
         default:
             safe_free(in_fd)
             fclose(as_fd);
         case 0:
             return 0;
-        case 1:
-            return 1;
+        case -1:
+            return -1;
     }
 }
