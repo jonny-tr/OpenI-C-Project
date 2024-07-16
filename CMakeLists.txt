@@ -29,6 +29,9 @@ add_executable(${PROJECT_NAME} ${SRCS})
 # Add include directories (headers)
 include_directories(${CMAKE_SOURCE_DIR})
 
+# Link math library
+target_link_libraries(${PROJECT_NAME} m)
+
 # Custom target for clean
 add_custom_target(clean-all
         COMMAND ${CMAKE_BUILD_TOOL} clean
