@@ -1,6 +1,7 @@
 # Compiler
 CC = gcc
 CFLAGS = -Wall -ansi -pedantic -ggdb3 -std=c89
+LDFLAGS = -lm
 SRCS = ${shell ls *.c}
 OBJS = $(SRCS:.c=.o)
 LIB = ${shell ls *.h} 
@@ -17,7 +18,7 @@ all: $(TARGET)
 
 # Link object files into executable
 $(TARGET): $(OBJS) $(LIB)
-	$(CC) $(CFLAGS) $(OBJS) -o $@
+	$(CC) $(CFLAGS) $(OBJS) -o $@ $(LDFLAGS)
 
 # Remove up object files and executable
 clean:
