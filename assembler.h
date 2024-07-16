@@ -6,6 +6,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <math.h>
 
 /*----------------------------------macros-----------------------------------*/
 #define allocation_failure \

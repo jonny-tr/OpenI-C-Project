@@ -6,20 +6,29 @@
             break;\
             }
 
-int binary_to_octal(char *line) {
-    int octal_num = 0, i = 1, j, binary_digit;
+/**
+ * @brief the function converts binary strings to octal
+ * @param line the binary string
+ * @return octal integer
+ */
+int binstr_to_octal(char *line) {
+    int oct = 0, dec = 0, bin, i = 0; /* numbers and counterit */
 
-    for (j = strlen(line) - 1; j >= 0; j--) {
-        binary_digit = line[j] - '0';
-        octal_num += binary_digit * i;
-        i *= 2;
-        if (i == 8) {
-            octal_num *= 10000;
-            i = 1;
-        }
+    bin = atoi(line);
+
+    while (bin != 0) {
+        dec += (bin % 10) * pow(2, i);
+        ++i;
+        bin /= 10;
     }
+    i = 1;
 
-    return octal_num;
+    while (dec != 0) {
+        oct += (dec % 8) * i;
+        dec /= 8;
+        i *= 10;
+    }
+    return oct;
 }
 
 /**
@@ -31,7 +40,7 @@ int binary_to_octal(char *line) {
 int build_ob(FILE *ob_fd, char *filename) {
     char *line = NULL, *octal_line = NULL,
         *tmp_file = as_strcat(filename, ".tmp");
-    int error_flag = 0;
+    int error_flag = 0, tmp_num;
     FILE *tmp_fd = fopen(tmp_file, "r");
 
     if (tmp_fd == NULL) {
@@ -45,13 +54,14 @@ int build_ob(FILE *ob_fd, char *filename) {
             error_flag = 1;
             break;
         }
-        binary_to_octal(line);
+        tmp_num = atoi(line);
     }
 
     if (tmp_fd != NULL && remove(tmp_file) != 0) {
         fprintf(stdout, "Error: Could not delete %s.\n", tmp_file);
         error_flag = 1;
     }
+
     safe_free(tmp_file)
 
     if (error_flag) return -1;
