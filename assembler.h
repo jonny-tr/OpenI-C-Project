@@ -15,7 +15,16 @@
 
 #define safe_free(p) if ((p) != NULL) { free(p); (p) = NULL; }
 
-
+/*---------------------------------enums-------------------------------------*/
+enum word_type_e{
+    ERROR=-1,
+    LABEL=0,
+    DATA=1,
+    STRING=2,
+    ENTRY=3,
+    EXTERN=4,
+    COMMAND=5   
+};
 /*--------------------------------structures---------------------------------*/
 typedef struct string_t {
     char *str;

@@ -1,14 +1,6 @@
 #include "assembler.h"
 
-enum word_type_e{ /*word type enum*/
-    ERROR=-1,
-    LABEL=0,
-    DATA=1,
-    STRING=2,
-    ENTRY=3,
-    EXTERN=4,
-    COMMAND=5   
-};
+
 /**
  * @brief duplicates a string
  * @param dest the destination string
@@ -127,35 +119,23 @@ void get_word(char *position, char *word) { /*position is the line*/
     }
     word[i] = '\0'; /* null terminate the word */
 }
-int get_word_type(char *position) {
+int get_word_type(char *word) {
     /*comment for future shahar: 
     this function should be called after get_word,
     it needs to be changed to itterate over the word and not the line
     add check if there is a space before ":" to add the proper error message*/
-    char *word;
-    enum word_type_e word_type;
     int i=0;
-        while (isspace(position[i])){
-            i++;
-        } /*skip whitespace*/
-        
     
+    if(strcmp(word,".data")==0) return DATA;
+    if(strcmp(word,".string")==0) return STRING;
+    if(strcmp(word,".entry")==0) return ENTRY;
+    if(strcmp(word,".extern")==0) return EXTERN;
     if(position[i]=="."){
-        word_type= DATA; /*.data or .string or .entry or .extern*/
+        fprintf(stdout, "Invalid command\n");
+        return ERROR;
     }
-    while (position[i] != ' ' && position[i] != ',' && position[i] != '\t' && position[i] != '\0') {
-        word[i] = position[i];
-        i++;
-    }
-    word[i] = '\0';
-    if(word_type==DATA){
-        if(strcmp(word,".data")==0) return DATA;
-        if(strcmp(word,".string")==0) return STRING;
-        if(strcmp(word,".entry")==0) return ENTRY;
-        if(strcmp(word,".extern")==0) return EXTERN;
-        /*case: invalid command, error message*/
-    }
-    if(word[i]==":") return 0;
+    while (word[i] != '\0') i++;
+    if(word[i]==":") return LABEL;
     if(is_valid_command(word)!=-1) return COMMAND;
     return ERROR;
 }
