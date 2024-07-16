@@ -6,3 +6,4 @@ executable
 *.as
 *.xml
 *.json
+*.dtmp
