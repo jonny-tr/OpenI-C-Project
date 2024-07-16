@@ -30,6 +30,27 @@ typedef struct macro_t {
 
 typedef macro_t *macro_ptr;
 
+typedef struct symbols_list {
+    char *name; /*label*/
+    int counter; /*IC or NULL*/
+    char *type; /*data/external/entry*/
+    struct symbols_list *next;
+} symbols_list;
+
+typedef symbols_list *symbols_ptr;
+
+typedef struct variable_list {
+    char *content; 
+    int counter; /*DC*/
+    struct variables_list *next;
+} variable_list;
+
+typedef variable_list *variable_list_ptr;
+   
+    
+
+
+
 /* pre_assembler functions */
 int pre_assembler(char **in_fd);
 int macro_table_builder(char *next_part, FILE *as_fd,
