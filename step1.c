@@ -2,10 +2,6 @@
 
 #define LINE_SIZE 81
 
-/*function declarations*/
-int is_valid_label(char *word);
-void remove_colon(char *label);
-
 char line[LINE_SIZE]; /*buffer*/
 char word[LINE_SIZE];
 char label_temp[LINE_SIZE];
@@ -24,6 +20,10 @@ int step1(char **fd) {
         /*before is_valid_label, use get_word_type*/
     };
 
+    /*before sending a variable, if it is int convernt to string*/
+
+    /*if there is a lable and a variable, need to make sure DC is only incremented after adding 
+    to both lists*/
     return DC;
 }
 
@@ -34,7 +34,7 @@ int step1(char **fd) {
  * uses the macro and the symbols tables, needs access
  * @return -1 if command, -2 if label already exists, -3 if macro, -4 if register, 0 if valid
  */
-int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_table_head,){
+int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_table_head){
     remove_colon(*word);
     /*is it a command*/
     if(is_valid_command(word) != -1) return -1;
@@ -79,7 +79,7 @@ void remove_colon(char *label){
  * @param head A pointer to the head of the symbol table linked list.
  * @param name The name of the symbol.
  * @param counter IC.
- * @param type The type of the symbol: external / entry / data
+ * @param type The type of the symbol: external / entry / data / code 
  *
  */
 void add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
@@ -97,6 +97,36 @@ void add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
         *head = new_node;
     } else {
         symbols_ptr temp = *head;
+        while (temp->next != NULL) {
+            temp = temp->next;
+        }
+        temp->next = new_node;
+    }
+}
+
+/**
+ * Adds a new variable to the variable linked list or initializes if needed.
+ *
+ * @param head A pointer to the head of the variable linked list.
+ * @param content The content of the variable.
+ * @param counter DC
+ * @return void
+ *
+ */
+void add_variable(variable_t *head, char *content, int counter) {
+    variable_ptr new_node = (variable_ptr)malloc(sizeof(variable_ptr));
+    if (new_node == NULL) {
+        fprintf(stdout, "Memory allocation for new variable failed\n");
+        return;
+    }
+    new_node->content = strdup(content);
+    new_node->counter = counter; /*DC*/
+    new_node->next = NULL;
+
+    if (*head == NULL) { /*initialize the list*/
+        *head = new_node;
+    } else {
+        variable_ptr temp = *head;
         while (temp->next != NULL) {
             temp = temp->next;
         }
