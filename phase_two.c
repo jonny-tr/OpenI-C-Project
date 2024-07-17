@@ -6,30 +6,6 @@
             break;\
             }
 
-/**
- * @brief the function converts binary strings to octal
- * @param line the binary string
- * @return octal integer
- */
-int binstr_to_octal(char *line) {
-    int oct = 0, dec = 0, bin, i = 0; /* numbers and counterit */
-
-    bin = atoi(line);
-
-    while (bin != 0) {
-        dec += (bin % 10) * pow(2, i);
-        ++i;
-        bin /= 10;
-    }
-    i = 1;
-
-    while (dec != 0) {
-        oct += (dec % 8) * i;
-        dec /= 8;
-        i *= 10;
-    }
-    return oct;
-}
 
 /**
  * @brief builds the object file
@@ -40,7 +16,7 @@ int binstr_to_octal(char *line) {
 int build_ob(FILE *ob_fd, char *filename) {
     char *line = NULL, *octal_line = NULL,
         *tmp_file = as_strcat(filename, ".tmp");
-    int error_flag = 0, tmp_num;
+    int error_flag = 0;
     FILE *tmp_fd = fopen(tmp_file, "r");
 
     if (tmp_fd == NULL) {
@@ -54,7 +30,6 @@ int build_ob(FILE *ob_fd, char *filename) {
             error_flag = 1;
             break;
         }
-        tmp_num = atoi(line);
     }
 
     if (tmp_fd != NULL && remove(tmp_file) != 0) {
@@ -151,8 +126,8 @@ int phase_two(FILE *fd, char *filename, symbol_ptr symbol_table,
         }
         fprintf(ob_fd, "%d %d\n", ic, dc);
         build_ob(ob_fd, filename);
-        build_ext(ext_fd, symbol_table);
-        build_ent(ent_fd, symbol_table);
+        /*build_ext(ext_fd, symbol_table);
+        build_ent(ent_fd, symbol_table);*/
     }
 
     cleanup:
