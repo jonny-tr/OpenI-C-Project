@@ -23,7 +23,8 @@ enum word_type_e{
     STRING=2,
     ENTRY=3,
     EXTERN=4,
-    COMMAND=5   
+    COMMAND=5,
+    OPERAND=6  
 };
 /*--------------------------------structures---------------------------------*/
 typedef struct string_t {
@@ -54,6 +55,13 @@ typedef struct variable_t {
     struct variables_list *next;
 } variable_t;
 typedef variable_t *variable_ptr;
+
+typedef struct {
+    unsigned int are : 3; /*bits 02-00*/
+    unsigned int dest_addr : 4; /*bits 06-03*/
+    unsigned int src_addr : 4;  /*bits 10-07*/
+    unsigned int opcode : 4;  /*bits 14-11*/
+} command_word;
    
 /*---------------------------------functions---------------------------------*/
 /* text utils */

@@ -4,9 +4,11 @@
 
 /*move to their funtions*/
 char line[LINE_SIZE], word[LINE_SIZE], label_temp[LINE_SIZE];
+char * word_ptr, * string_ptr;
 int label_flag=0; /*1 = label, 0=no label*/
 int IC=0, DC=0; /* instruction counter and data counter*/
-int len; /*line length*/
+int len; /*line length, do i need it?*/
+int i;
 int word_type;
 
 /*@brief
@@ -15,11 +17,11 @@ int word_type;
 
 @return DC
 */
-int step1(char **fd){
+int step1(char **fd){ /*do i still need len?*/
     while ((len = read_next_line(fd, &line)) != -1 || !feof(fd)){
-        while (len > 0){
-            get_word(&line, &word);
-            len -= strlen(word);
+        word_ptr=line;
+        while (get_next_word(&line, &word, &word_ptr) != -1){
+            /*len -= strlen(word);*/
             word_type = get_word_type(&word);
             switch (word_type){
             case LABEL:
@@ -47,11 +49,11 @@ int step1(char **fd){
                     label_flag = 0;
                     add_symbol(symbol_table, label_temp, DC, "data");    
                 }
-                while(word[0] != '\0'){
-                    get_word(&line, &word);
+                while(get_next_word(&line, &word, &word_ptr) != -1 && word[0] != '\0'){
+                    /*need to check if operands are not commands, labels etc*/
                     add_variable(&variable_table, get_data_int(word), DC);
                     DC++;
-                    /*add an error if between two variables there is a space and not a comma*/
+                    /*add an error if between two variables there is a space and not a comma?*/
                 }
                 break;
                 
@@ -60,39 +62,53 @@ int step1(char **fd){
                     label_flag = 0;
                     add_symbol(symbol_table, label_temp, DC, "data");    
                 }
+                if(get_next_word(&line, &word, &word_ptr) != -1 && word[0] != '\0'){
+                    if(word[0]=='"' && word[strlen(word)-1]=='"')
+                        for(i=1; i<strlen(word-1); i++){ /*add the string without the quotes*/
+                            add_variable(&variable_table, word[i], DC);
+                            DC++;
+                        }
+                    else {
+                        fprintf(stdout, "Invalid string\n");
+                        break;
+                    }   
+                }
+                break;
+            case EXTERN:
+                while(get_next_word(&line, &word, &word_ptr) != -1 && word[0] != '\0'){
+                    add_symbol(symbol_table, word, NULL, "external");
+                }
+                break;
+            case ENTRY:
+                if(is_valid_label(get_next_word(&line, &word, &word_ptr), *symbol_table, *macro_table) == 0){
+                    add_symbol(symbol_table, word, IC+100, "code");
+                    IC++;
+                }
+                else fprintf(stdout, "Invalid label for Entry\n");
+                break;
+
             case COMMAND:
+                if(is_valid_command(word) == -1){
+                    fprintf(stdout, "%s: invalid command\n", word);
+                    break;
+                }
                 if(label_flag == 1){
                     label_flag = 0;
-                    add_symbol(symbol_table, label_temp, (IC+100), "code");    
+                    add_symbol(symbol_table, label_temp, (IC+100), "code"); 
+                    IC++;   
                 }
+
+
 
             default:
                 break;
             }
-        }
-    }
-    if (next_word[strlen(next_word) - 1] == ':')
-        continue;
-    if ((strcmp(next_word, ".data") == 0) || (strcmp(next_word, ".string") == 0) || (strcmp(next_word, ".extern") == 0))
-        continue;
+        } /*end of line while*/
+        label_flag=0;
 
-    if (strcmp(next_word, ".entry") == 0)
-    {
-        while (temp_flag == 0)
-        {
-            next_check if (strcmp(next_word, ".end") == 0)
-            {
-                temp_flag = 1;
-                continue;
-            }
-            if (entry_update(symbol_table, next_word) == -1)
-            {
-                error_flag = 1;
-                break;
-            }
-        }
-        continue;
     }
+    
+    
 
 /*before sending a variable, if it is int convernt to string*/
 
@@ -100,6 +116,139 @@ int step1(char **fd){
 /*if there is a lable and a variable, need to make sure DC is only incremented after adding
 to both lists*/
 return DC;
+}
+
+int command_table(int cmnd){
+    switch (cmnd) {
+        case 0: /*mov*/
+        case 1: /*cmp*/
+        case 2: /*add*/
+        case 3: /*sub*/
+        case 4: /*lea*/
+        case 5: /*clr*/
+        case 6: /*not*/
+        case 7: /*inc*/
+        case 8: /*dec*/
+        case 9: /*jmp*/
+        case 10: /*bne*/
+        case 11: /*red*/
+        case 12: /*prn*/
+        case 13: /*jsr*/
+        case 14: /*rts*/
+        case 15: /*stop*/
+        default:
+    }
+
+}
+
+int calc_l(command_word *field, int cmnd){
+    if(cmnd==14 || cmnd==15) return 1; /*command without operands*/
+    else if(cmnd>=5 && cmnd<=13) return 2; /*command with one operand*/
+
+    /*commands with two operands*/
+    /*check if both operands are registers: 0100 or 1000*/
+    else if ((field->src_addr == 0b0100 || field->src_addr == 0b1000) && 
+            (field->dest_addr == 0b0100 || field->dest_addr == 0b1000)) {
+            return 2;
+        } else return 3;
+
+    
+}
+
+/**
+ * Sets the opcode of a command_word.
+ *
+ * @param field Pointer to a command_word.
+ * @param command The command afer is_valid_command, determine opcode from.
+ * @return void
+ *
+ */
+void set_command_opcode(command_word *field, int command) {
+    if (command == 0) field->opcode = 0b0000;       /*mov*/
+    else if (command == 1) field->opcode = 0b0001;  /*cmp*/
+    else if (command == 2) field->opcode = 0b0010;  /*add*/
+    else if (command == 3) field->opcode = 0b0011;  /*sub*/
+    else if (command == 4) field->opcode = 0b0100;  /*lea*/
+    else if (command == 5) field->opcode = 0b0101;  /*clr*/
+    else if (command == 6) field->opcode = 0b0110;  /*not*/
+    else if (command == 7) field->opcode = 0b0111;  /*inc*/
+    else if (command == 8) field->opcode = 0b1000;  /*dec*/
+    else if (command == 9) field->opcode = 0b1001;  /*jmp*/
+    else if (command == 10) field->opcode = 0b1010; /*bne*/
+    else if (command == 11) field->opcode = 0b1011; /*red*/
+    else if (command == 12) field->opcode = 0b1100; /*prn*/
+    else if (command == 13) field->opcode = 0b1101; /*jsr*/
+    else if (command == 14) field->opcode = 0b1110; /*rts*/
+    else if (command == 15) field->opcode = 0b1111; /*stop*/
+   /* else field->opcode = 0; // Invalid command, set to 0 */
+}
+
+/**
+ * Parses the operand and sets the addressing method and ARE fields in the command_word.
+ *
+ * @param operand The operand to be parsed.
+ * @param field Pointer to the command_word struct.
+ * @param src_dest 1 if source, 2 if destination .
+ */
+void set_addressing_method_and_are (char *operand, command_word *field, int src_dest) {
+    if(src_dest==1){ /*source operand*/
+
+        /* Immediate addressing*/
+        if (operand[0] == '#') {
+            field->src_addr = 0b0001;
+            field->are = 0b100;
+        }
+
+        /*Indirect register addressing */
+        else if (operand[0] == '*') {
+            if(!(strncmp(operand, "r", 2) == 0 && strlen(operand) == 3 && operand[2] >= '0' && operand[2] <= '7')) {
+                fprintf(stdout, "%s is not a valid register\n", operand);
+            }
+            field->src_addr = 0b0100;
+            field->are = 0b100; 
+        }
+        
+        /* Direct register addressing */
+         else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2 && operand[1] >= '0' && operand[1] <= '7') {
+            field->src_addr = 0b1000;
+            field->are = 0b100;
+        } 
+        
+        /*Direct addressing (label)*/
+        else {            
+            field->src_addr = 0b0010;
+            *are = 0b001; /*depends if label is extern or not*/
+        }
+    }
+    else if(src_dest==2){ /*destination operand*/
+
+        /* Immediate addressing*/
+        if (operand[0] == '#') {
+            field->dest_addr = 0b0001;
+            field->are = 0b100;
+        }
+
+        /*Indirect register addressing */
+        else if (operand[0] == '*') {
+            if(!(strncmp(operand, "r", 2) == 0 && strlen(operand) == 3 && operand[2] >= '0' && operand[2] <= '7')) {
+                fprintf(stdout, "%s is not a valid register\n", operand);
+            }
+            field->dest_addr = 0b0100;
+            field->are = 0b100; 
+        }
+        
+        /* Direct register addressing */
+         else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2 && operand[1] >= '0' && operand[1] <= '7') {
+            field->dest_addr = 0b1000;
+            field->are = 0b100;
+        } 
+        
+        /*Direct addressing (label)*/
+        else {
+            field->dest_addr = 0b0010;
+            *are = 0b001; /*depends if label is extern or not*/
+        }
+    }
 }
 
 /**

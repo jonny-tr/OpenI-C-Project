@@ -1,4 +1,6 @@
 #include "assembler.h"
+#include <stdio.h>
+#include <ctype.h>
 
 
 /**
@@ -71,23 +73,21 @@ int is_valid_command(char *command) {
  * @return The length of the line read, excluding the newline character. If the end of file is reached or only comments are found, returns 0.
  *
  */
-    int read_next_line(FILE *file, char *line, int max_length) {
-        int len = 0;
-        while (fgets(line, max_length, file) != NULL) {
-            /*Remove newline character if present*/
-            len = strlen(line);
-            if (len > 0 && line[len - 1] == '\n') {
-                line[len - 1] = '\0';
-                len--;
-            }
-
-            /*Check if the line is not a comment*/
-            if (line[0] != ';') {
-                return len;
-            }
+int read_next_line(FILE *file, char *line, int max_length){
+    int len = 0;
+    while (fgets(line, max_length, file) != NULL){
+        /*Remove newline character if present*/
+        len = strlen(line);
+        if (len > 0 && line[len - 1] == '\n') {
+            line[len - 1] = '\0';
+            len--;
         }
-        return 0;  /*Return 0 if end of file is reached or only comments are found*/
+
+        /*Check if the line is not a comment*/
+        if (line[0] != ';') return len;
     }
+    return 0; /*Return 0 if end of file is reached or only comments are found*/
+}
 
 /**
  * @brief checks if the next character is a comma
@@ -119,10 +119,36 @@ void get_word(char *position, char *word) { /*position is the line*/
     }
     word[i] = '\0'; /* null terminate the word */
 }
+
+
+int get_next_word(char *line, char *word, char **word_ptr) {
+    char *p = *word_ptr;
+    char *w = word;
+
+    /*Skip whitespaces*/
+    while (*p == ' ' || *p == '\t' || *p == ',' || *p == '\0') {
+        if (*p == '\0') {
+            return -1; /*End of line*/
+        }
+        p++;
+    }
+
+    /*Get the word*/
+    while (*p && *p != ' ' && *p != '\t' && *p != ',' && *p != '\0') {
+        *w++ = *p++;
+    }
+
+    *w = '\0';
+
+    /*Update the pointer*/
+    *word_ptr = p;
+
+    /*There is a word*/
+    return 0;
+}
+
 int get_word_type(char *word) {
     /*comment for future shahar: 
-    this function should be called after get_word,
-    it needs to be changed to itterate over the word and not the line
     add check if there is a space before ":" to add the proper error message*/
     int i=0;
     
@@ -136,7 +162,7 @@ int get_word_type(char *word) {
     }
     while (word[i] != '\0') i++;
     if(word[i]==":") return LABEL;
-    if(is_valid_command(word)!=-1) return COMMAND;
-    return ERROR;
+    /*if(is_valid_command(word)!=-1)*/ return COMMAND;
+    /*return OPERAND;*/
 }
 
