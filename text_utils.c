@@ -56,7 +56,7 @@ int is_valid_command(char *command) {
                      "stop"}; /* valid commands */
     int i; /* counter */
 
-    for (i = 0; i < 20; ++i) {
+    for (i = 0; i < 20; i++) {
         if (strcmp(command, valid[i]) == 0) {
             return i;
         }
@@ -94,6 +94,7 @@ int read_next_line(FILE *file, char *line, int max_length){
  * @param line line to check
  * @param position the position in the command
  * @return amount of commas, 0 if there is no comma
+
  */
 int comma_checker(char *line, int *position) {
     int commas = 0; /* counter */
@@ -166,3 +167,27 @@ int get_word_type(char *word) {
     /*return OPERAND;*/
 }
 
+/**
+ * @brief the function converts binary strings to octal
+ * @param line the binary string
+ * @return octal integer
+ */
+int binstr_to_octal(char *line) {
+    int oct = 0, dec = 0, bin, i = 0; /* numbers and counterit */
+
+    bin = atoi(line);
+
+    while (bin != 0) {
+        dec += (bin % 10) * pow(2, i);
+        ++i;
+        bin /= 10;
+    }
+    i = 1;
+
+    while (dec != 0) {
+        oct += (dec % 8) * i;
+        dec /= 8;
+        i *= 10;
+    }
+    return oct;
+}
