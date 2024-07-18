@@ -197,8 +197,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
 /**
  * @brief frees the macro table
  * @param macro_table_head the table of macros
- * @param flag whether to free also macro names
- * @return 0 if the function ran successfully, 1 if an error occurred
+ * @return 0 if the function ran successfully, 1 if macro_table_head is NULL
  */
 int free_macro_table(macro_ptr macro_table_head) {
     macro_t *current, *next;
@@ -312,6 +311,7 @@ int read_next_part(FILE *fd, char **next_part) {
  * @brief parses the macros in the file
  * @param as_fd the file pointer
  * @param filename the name of the file
+ * @param macro_table_head the start of macros table
  * @return 0 if the function ran successfully, 1 if an error occurred
  */
 int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head) {
@@ -422,7 +422,8 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head) {
 
 /**
  * @brief pre-assembles the file
- * @param in_fd the file name
+ * @param fd the file name
+ * @param macro_table_head the head of macros table
  * @return 0 if the function ran successfully, -1 if an error occurred
  */
 int pre_assembler(char **fd, macro_ptr macro_table_head) {
