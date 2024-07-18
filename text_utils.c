@@ -1,4 +1,7 @@
 #include "assembler.h"
+#include <stdio.h>
+#include <ctype.h>
+
 
 /**
  * @brief duplicates a string
@@ -63,62 +66,105 @@ int is_valid_command(char *command) {
 }
 
 /**
- * @brief reads the next line from a file
- * @param fd the file pointer
- * @param line the line stored
- * @return 0 if successful, -1 if not
+ * @brief Reads a line from the file and stores it in the given buffer.
+ * @param file The file pointer to read from.
+ * @param line The buffer to store the line.
+ * @param max_length The maximum length of the line buffer.
+ * @return The length of the line read, excluding the newline character. If the end of file is reached or only comments are found, returns 0.
+ *
  */
-int read_next_line(FILE *fd, char **line) {
-    char buffer[81];
+int read_next_line(FILE *file, char *line, int max_length){
+    int len = 0;
+    while (fgets(line, max_length, file) != NULL){
+        /*Remove newline character if present*/
+        len = strlen(line);
+        if (len > 0 && line[len - 1] == '\n') {
+            line[len - 1] = '\0';
+            len--;
+        }
 
-    while (fgets(buffer, 81, fd) != NULL
-            && buffer[0] == ';'); /* skip comments */
-
-    safe_free(*line)
-    if (as_strdup(line, buffer) != 0) return -1;
-
-    return 0;
+        /*Check if the line is not a comment*/
+        if (line[0] != ';') return len;
+    }
+    return 0; /*Return 0 if end of file is reached or only comments are found*/
 }
 
 /**
- * @brief the function reads the next part of the line
- * @param line the line to read from
- * @param position the position in the line
- * @param next_part the string to store the next part
- * @return pointer to the string read, 1 if line finished,
- *          -1 if an error occurred
+ * @brief checks if the next character is a comma
+ * @param line line to check
+ * @param position the position in the command
+ * @return amount of commas, 0 if there is no comma
+
  */
-int read_next_word(const char line[], int *position, char **next_part) {
-    char c, *temp = NULL; /* strings */
-    int buffer = 0; /* counter */
+int comma_checker(char *line, int *position) {
+    int commas = 0; /* counter */
 
-    if (line[*position] == '\0') return 1;
-
-    safe_free(*next_part)
-    temp = (char *)calloc(20, sizeof(char));
-    if (temp == NULL) return -1;
-    *next_part = temp;
-
-    while (isspace(line[*position])) ++(*position); /* skip whitespaces */
-
-    while (isspace(c = line[*position]) != 0) {
-        if (buffer % 19 == 0) {
-            temp = (char *)realloc(*next_part, buffer + 21);
-            if (temp == NULL) {
-                safe_free(*next_part)
-                return -1;
-            }
-            *next_part = temp;
-        }
-
-        if (c == ',') break;
-        *next_part[buffer] = c;
-        ++buffer;
+    /* Skip whitespaces */
+    while (line[*position] == ' ' || line[*position] == '\t') {
         ++(*position);
     }
-    *next_part[buffer] = '\0';
 
+    while (line[*position] == ',') {
+        ++(*position);
+        ++commas;
+    }
+
+    return commas;
+}
+
+void get_word(char *position, char *word) { /*position is the line*/
+    int i = 0;
+    while (position[i] != ' ' && position[i] != ',' && position[i] != '\t' && position[i] != '\0') {
+        word[i] = position[i];
+        i++;
+    }
+    word[i] = '\0'; /* null terminate the word */
+}
+
+
+int get_next_word(char *line, char *word, char **word_ptr) {
+    char *p = *word_ptr;
+    char *w = word;
+
+    /*Skip whitespaces*/
+    while (*p == ' ' || *p == '\t' || *p == ',' || *p == '\0') {
+        if (*p == '\0') {
+            return -1; /*End of line*/
+        }
+        p++;
+    }
+
+    /*Get the word*/
+    while (*p && *p != ' ' && *p != '\t' && *p != ',' && *p != '\0') {
+        *w++ = *p++;
+    }
+
+    *w = '\0';
+
+    /*Update the pointer*/
+    *word_ptr = p;
+
+    /*There is a word*/
     return 0;
+}
+
+int get_word_type(char *word) {
+    /*comment for future shahar: 
+    add check if there is a space before ":" to add the proper error message*/
+    int i=0;
+    
+    if(strcmp(word,".data")==0) return DATA;
+    if(strcmp(word,".string")==0) return STRING;
+    if(strcmp(word,".entry")==0) return ENTRY;
+    if(strcmp(word,".extern")==0) return EXTERN;
+    if(position[i]=="."){
+        fprintf(stdout, "Invalid command\n");
+        return ERROR;
+    }
+    while (word[i] != '\0') i++;
+    if(word[i]==":") return LABEL;
+    /*if(is_valid_command(word)!=-1)*/ return COMMAND;
+    /*return OPERAND;*/
 }
 
 /**
