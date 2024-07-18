@@ -1,6 +1,4 @@
 #include "assembler.h"
-#include <stdio.h>
-#include <ctype.h>
 
 
 /**
@@ -69,32 +67,28 @@ int is_valid_command(char *command) {
  * @brief Reads a line from the file and stores it in the given buffer.
  * @param file The file pointer to read from.
  * @param line The buffer to store the line.
- * @param max_length The maximum length of the line buffer.
- * @return The length of the line read, excluding the newline character. If the end of file is reached or only comments are found, returns 0.
- *
+ * @return 0 if successful, -1 otherwise.
  */
-int read_next_line(FILE *file, char *line, int max_length){
-    int len = 0;
-    while (fgets(line, max_length, file) != NULL){
-        /*Remove newline character if present*/
-        len = strlen(line);
-        if (len > 0 && line[len - 1] == '\n') {
-            line[len - 1] = '\0';
-            len--;
-        }
+int read_next_line(FILE *file, char **line) {
+    char buffer[81];
 
-        /*Check if the line is not a comment*/
-        if (line[0] != ';') return len;
-    }
-    return 0; /*Return 0 if end of file is reached or only comments are found*/
+    while (fgets(buffer, 81, file) != NULL
+           && buffer[0] == ';'); /* skip comments */
+
+    if (buffer[strlen(buffer) - 1] == '\n')
+        buffer[strlen(buffer) - 1] = '\0';
+
+    safe_free(*line)
+    if (as_strdup(line, buffer) != 0) return -1;
+
+    return 0;
 }
 
 /**
  * @brief checks if the next character is a comma
  * @param line line to check
  * @param position the position in the command
- * @return amount of commas, 0 if there is no comma
-
+ * @return amount of commas, 0 if there are no commas
  */
 int comma_checker(char *line, int *position) {
     int commas = 0; /* counter */
@@ -168,26 +162,13 @@ int get_word_type(char *word) {
 }
 
 /**
- * @brief the function converts binary strings to octal
- * @param line the binary string
- * @return octal integer
+ * @brief returns the command as a number
+ * @param cmd the command
+ * @return the command as a number
  */
-int binstr_to_octal(char *line) {
-    int oct = 0, dec = 0, bin, i = 0; /* numbers and counterit */
+int command_to_num(command_word cmd) {
+    int full_bits = (cmd.opcode << 11) | (cmd.src_addr << 7) |
+                             (cmd.dest_addr << 3) | cmd.are;
 
-    bin = atoi(line);
-
-    while (bin != 0) {
-        dec += (bin % 10) * pow(2, i);
-        ++i;
-        bin /= 10;
-    }
-    i = 1;
-
-    while (dec != 0) {
-        oct += (dec % 8) * i;
-        dec /= 8;
-        i *= 10;
-    }
-    return oct;
+    return full_bits;
 }
