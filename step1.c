@@ -26,7 +26,7 @@ int step1(char **fd){ /*do i still need len?*/
             switch (word_type){
             case LABEL:
                 switch (is_valid_label(word, *symbol_table, *macro_table)){
-                case -1:
+                case -1: /* TODO: I think errors need to include the file they were found in and the line number -yoni */
                     fprintf(stdout, "Cannot use a command as a label\n");
                     break;
                 case -2:
