@@ -38,6 +38,9 @@ int step1(char **fd){ /*do i still need len?*/
                 case -4:
                     fprintf(stdout, "Cannot use a register as a label\n");
                     break;
+                case -5:
+                    fprintf(stdout, "Label must start with a letter\n");
+                    break;
                 case 0: /*valid*/
                     label_flag = 1;
                     strdup(label_temp, word);
@@ -124,6 +127,7 @@ int command_table(int cmnd){
         case 1: /*cmp*/
         case 2: /*add*/
         case 3: /*sub*/
+
         case 4: /*lea*/
         case 5: /*clr*/
         case 6: /*not*/
@@ -134,8 +138,10 @@ int command_table(int cmnd){
         case 11: /*red*/
         case 12: /*prn*/
         case 13: /*jsr*/
+            break;
         case 14: /*rts*/
         case 15: /*stop*/
+
         default:
     }
 
@@ -150,8 +156,8 @@ int calc_l(command_word *field, int cmnd){
     else if ((field->src_addr == 0b0100 || field->src_addr == 0b1000) && 
             (field->dest_addr == 0b0100 || field->dest_addr == 0b1000)) {
             return 2;
-        } else return 3;
-
+        }
+        else return 3;
     
 }
 
@@ -183,83 +189,87 @@ void set_command_opcode(command_word *field, int command) {
    /* else field->opcode = 0; // Invalid command, set to 0 */
 }
 
+void set_a_are(command_word *field) {
+    field->are = 0b100;
+}
+
 /**
- * Parses the operand and sets the addressing method and ARE fields in the command_word.
+ * Parses the operand and sets the addressing method in the command_word.
  *
- * @param operand The operand to be parsed.
+ * @param operand The operand to be parsed, NULL if it is a command without operands.
  * @param field Pointer to the command_word struct.
  * @param src_dest 1 if source, 2 if destination .
  */
-void set_addressing_method_and_are (char *operand, command_word *field, int src_dest) {
-    if(src_dest==1){ /*source operand*/
-
-        /* Immediate addressing*/
-        if (operand[0] == '#') {
-            field->src_addr = 0b0001;
-            field->are = 0b100;
+void set_addressing_method(char *operand, command_word *field, int src_dest) {
+    if (src_dest == 1) { /* source operand */
+        if (operand == NULL) {
+            field->src_addr = 0b0000;
         }
 
-        /*Indirect register addressing */
+        /* Immediate addressing */
+        else if (operand[0] == '#') {
+            field->src_addr = 0b0001;
+        }
+
+        /* Indirect register addressing */
         else if (operand[0] == '*') {
-            if(!(strncmp(operand, "r", 2) == 0 && strlen(operand) == 3 && operand[2] >= '0' && operand[2] <= '7')) {
+            if (!(strncmp(operand, "r", 2) == 0 && strlen(operand) == 3 && operand[2] >= '0' && operand[2] <= '7')) {
                 fprintf(stdout, "%s is not a valid register\n", operand);
             }
             field->src_addr = 0b0100;
-            field->are = 0b100; 
         }
-        
+
         /* Direct register addressing */
-         else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2 && operand[1] >= '0' && operand[1] <= '7') {
+        else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2 && operand[1] >= '0' && operand[1] <= '7') {
             field->src_addr = 0b1000;
-            field->are = 0b100;
-        } 
-        
-        /*Direct addressing (label)*/
-        else {            
+        }
+
+        /* Direct addressing (label) */
+        else {
             field->src_addr = 0b0010;
-            *are = 0b001; /*depends if label is extern or not*/
         }
-    }
-    else if(src_dest==2){ /*destination operand*/
 
-        /* Immediate addressing*/
-        if (operand[0] == '#') {
+
+    } else if (src_dest == 2) { /* destination operand */
+        if (operand == NULL) {
+            field->dest_addr = 0b0000;
+        }
+
+        /* Immediate addressing */
+        else if (operand[0] == '#') {
             field->dest_addr = 0b0001;
-            field->are = 0b100;
         }
 
-        /*Indirect register addressing */
+        /* Indirect register addressing */
         else if (operand[0] == '*') {
-            if(!(strncmp(operand, "r", 2) == 0 && strlen(operand) == 3 && operand[2] >= '0' && operand[2] <= '7')) {
+            if (!(strncmp(operand, "r", 2) == 0 && strlen(operand) == 3 && operand[2] >= '0' && operand[2] <= '7')) {
                 fprintf(stdout, "%s is not a valid register\n", operand);
             }
             field->dest_addr = 0b0100;
-            field->are = 0b100; 
         }
-        
+
         /* Direct register addressing */
-         else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2 && operand[1] >= '0' && operand[1] <= '7') {
+        else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2 && operand[1] >= '0' && operand[1] <= '7') {
             field->dest_addr = 0b1000;
-            field->are = 0b100;
-        } 
-        
-        /*Direct addressing (label)*/
+        }
+
+        /* Direct addressing (label) */
         else {
             field->dest_addr = 0b0010;
-            *are = 0b001; /*depends if label is extern or not*/
         }
     }
 }
 
+
 /**
  * @brief checks if the label name is valid
  * @param name the name of the label
- * switches the label flag to 1 if valid
  * uses the macro and the symbols tables, needs access
- * @return -1 if command, -2 if label already exists, -3 if macro, -4 if register, 0 if valid
+ * @return -1 if command, -2 if label already exists, -3 if macro, -4 if register, -5 if doesn't start with a letter, 0 if valid
  */
 int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_table_head){
     remove_colon(*word);
+
     /*is it a command*/
     if(is_valid_command(word) != -1) return -1;
 
@@ -281,8 +291,10 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_t
     for (i = 0; i < 8; i++) {
         if (strcmp(word, register[i]) == 0) return -4;
     }
-    
-    label_flag =1;
+
+    /*does it start with a non-alpha character*/
+    if(isalpha(word[0]) == 0) return -5;
+
     return 0; /*valid*/
 }
 
@@ -325,6 +337,20 @@ void add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
             temp = temp->next;
         }
         temp->next = new_node;
+    }
+}
+
+/**
+ * Updates the counter of all data symbols with IC+100.
+ *
+ * @param head A pointer to the head of the symbol linked list.
+ * @param IC IC
+ */
+void end_phase_one_update_counter(symbols_ptr *head, int IC) {
+    symbols_ptr temp = *head;
+    while (temp != NULL) {
+        if(temp->type =="data") (temp->counter)+=(IC+100);
+        temp = temp->next;
     }
 }
 
