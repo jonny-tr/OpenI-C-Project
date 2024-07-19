@@ -7,3 +7,4 @@ executable
 *.xml
 *.json
 *.dtmp
+/cmake-build-debug
