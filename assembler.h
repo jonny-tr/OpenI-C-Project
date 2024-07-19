@@ -49,7 +49,7 @@ typedef struct symbols_list {
 typedef symbols_list *symbols_ptr;
 
 typedef struct variable_t {
-    char *content; 
+    int content : 15;
     int counter; /* DC */
     struct variable_t *next;
 } variable_t;
@@ -76,6 +76,7 @@ int read_next_word(const char line[], int *position, char **next_part);
 int get_word(char *position, char *word);
 int get_word_type(char *position);
 int command_to_num(command_word cmd);
+int twos_complement(int num);
 
 /* pre_assembler */
 int pre_assembler(char **in_fd, macro_ptr macro_table_head);
@@ -95,7 +96,6 @@ void add_symbol(symbols_ptr *head, char *name, int counter, char *type);
 int calc_l(command_word *field, int cmnd);
 
 /* phase_two */
-int twos_complement(int num);
 int build_ent(FILE *ent_fd, symbols_ptr symbol_table);
 int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
              int ic, int dc);
