@@ -12,7 +12,7 @@ int main(int argc, char *argv[]) {
     FILE *fd; /* file pointer */
     char *filename, *tmp_file = NULL; /* filename */
     macro_ptr macro_table = NULL; /* macro table */
-    symbol_ptr symbols_list = NULL;
+    symbols_ptr symbols_list = NULL;
 
     if (argc < 2) {
         fprintf(stdout, "Error: No files specified.\n");
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
 
         */
 
-        phase_two(fd, argv[i], symbols_list, ic, dc);
+        phase_two(fd, argv[i], symbols_list, cmd_list, ic, dc);
 
         free_macro_table(macro_table);
         fclose(fd);

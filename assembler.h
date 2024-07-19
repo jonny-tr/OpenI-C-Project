@@ -73,6 +73,8 @@ int is_valid_command(char *command);
 int read_next_line(FILE *fd, char **line);
 int read_next_word(const char line[], int *position, char **next_part);
  /*add from shahar's changes*/
+int get_word(char *position, char *word);
+int get_word_type(char *position);
  int command_to_num(command_word cmd);
 
 /* pre_assembler */
@@ -85,8 +87,6 @@ macro_ptr is_macro(char *next_part, macro_ptr macro_table_head);
 int is_macro_name_valid(char *name, macro_ptr macro_table_head);
 int read_next_part(FILE *as_fd, char **next_part);
 int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head);
-int get_word(char *position, char *word);
-int get_word_type(char *position);
 
 
 /* phase_one */
@@ -96,10 +96,11 @@ void add_symbol(symbols_ptr *head, char *name, int counter, char *type);
 int calc_l(command_word *field, int cmnd);
 
 /* phase_two */
+int twos_complement(int num);
 int build_ent(FILE *ent_fd, symbols_ptr symbol_table);
-int build_ob(FILE *ob_fd, commant_ptr command_head, int ic, int dc);
-int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table, int ext_ic,
-              int dc);
+int build_ob(FILE *ob_fd, command_ptr command_head, int ic, int dc);
+int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
+              command_ptr cmd_list_head, int ext_ic, int dc);
 int entry_update(symbols_ptr symbol_table, char *word);
 
 #endif /* ASSEMBLER_H */

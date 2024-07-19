@@ -147,14 +147,13 @@ int command_table(int cmnd) {
 
 int calc_l(command_word *field, int cmnd) {
     if (cmnd == 14 || cmnd == 15) return 1; /*command without operands*/
-    else if (cmnd >= 5 && cmnd <= 13) return 2; /*command with one operand*/
-
-        /*commands with two operands*/
-        /*check if both operands are registers: 0100 or 1000*/
-    else if ((field->src_addr == 0b0100 || field->src_addr == 0b1000) &&
-             (field->dest_addr == 0b0100 || field->dest_addr == 0b1000)) {
+    else if (5 <= cmnd && cmnd <= 13) return 2; /*command with one operand*/
+    /* other commands are with two operands,
+     * check if both operands are registers: 0b0100 or 0b1000 */
+    else if ((field->src_addr == 4 || field->src_addr == 8) &&
+             (field->dest_addr == 4 || field->dest_addr == 8))
         return 2;
-    } else return 3;
+    else return 3;
 
 }
 
