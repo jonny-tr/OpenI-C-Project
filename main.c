@@ -48,10 +48,14 @@ int main(int argc, char *argv[]) {
         }
 
         */
-
+        /* TODO: need to create and send a command_list and a var_list */
         phase_two(fd, argv[i], symbols_list, cmd_list, ic, dc);
 
         free_macro_table(macro_table);
+        /* TODO: create these function: */
+        free_symbols_table(symbols_list);
+        free_var_list(var_list);
+        free_cmd_list(cmd_list);
         fclose(fd);
     }
 
