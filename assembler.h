@@ -51,7 +51,7 @@ typedef symbols_list *symbols_ptr;
 typedef struct variable_t {
     char *content; 
     int counter; /* DC */
-    struct variables_t *next;
+    struct variable_t *next;
 } variable_t;
 typedef variable_t *variable_ptr;
 
