@@ -1,3 +1,7 @@
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunknown-pragmas"
+#pragma ide diagnostic ignored "cert-err34-c"
+/* TODO: remove this pragma in the end*/
 #include "assembler.h"
 
 #define next_word_check if (read_next_word(line, position, &next_word) \
@@ -6,18 +10,6 @@
             error_flag = 1;\
             break;\
             }
-
-/**
- * @brief the function converts a number to twos complement
- * @param num a number to convert
- * @return the converted number
- */
-int twos_complement(int num) {
-    int mask = 0x1FFF; /* 13 bits */
-
-    return (~num + 1) | (~mask);
-}
-
 /**
  * @brief builds the ent file
  * @param ent_fd a pointer to the ent file
@@ -45,40 +37,56 @@ int build_ent(FILE *ent_fd, symbols_ptr symbol_table) {
  * @param dc the data counter
  * @return 0 if successful, -1 otherwise
  */
-int build_ob(FILE *ob_fd, command_ptr command_head, int ic, int dc) {
-    int i, error_flag = 0; /* counter and error flag */
-    command_ptr current = command_head;
+int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
+             int ic, int dc) {
+    int i; /* counter */
+    command_ptr current_cmd = command_head;
+    variable_ptr current_var = variable_head;
 
     fprintf(ob_fd, "   %d %d\n", ic, dc);
 
     for (i = 100; i <= ic + 100; i++) {
-        fprintf(ob_fd, "%04d %05o\n", i, command_to_num(current));
-        if (error_flag == 1) break;
-        current = current->next;
+        fprintf(ob_fd, "%04d %05o\n", i, command_to_num(*current_cmd));
+        current_cmd = current_cmd->next;
     }
 
-    if (current->next != NULL) error_flag = 1;
-    if (error_flag) return -1;
+    if (current_cmd->next != NULL) return -1;
+
+    for (i = 100; i <= dc + 100; i++) {
+        fprintf(ob_fd, "%04d %05o\n", current_var->counter,
+                current_var->content); /* TODO: twos_complement? double check value printed */
+        current_var = current_var->next;
+    }
+
+    if (current_var->next != NULL) return -1;
 
     return 0;
 }
 
 /**
- * @brief checks if the symbol is in the symbol table and returns its counter
+ * @brief checks if the symbol is in the symbol table and returns its counter,
+ *        prints external symbols to the specified external file
  * @param name name of the symbol to be checked
  * @param symbols_head a pointer to the symbol table
- * @return the counter of the symbol, -1 if not found
+ * @return the counter of the symbol, -1 if an error occurred
  */
 int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
-              FILE *ext_fd) {
+              FILE **ext_fd, char *ext_file, const int line_num) {
     symbols_ptr current = symbols_head;
 
     while (current != NULL) {
         if (strcmp(name, current->name) == 0) {
             if (strcmp(current->type, "entry") == 0) are->are = 2;
             else if (strcmp(current->type, "external") == 0) {
-                if (ext_fd == NULL) ext_fd = fopen(ext_file, "w");
-                fprintf(ext_fd, "%3s %04d\n", current->name, line_num);
+                if (*ext_fd == NULL) {
+                    *ext_fd = fopen(ext_file, "w");
+                    if (*ext_fd == NULL) {
+                        fprintf(stdout, "Error: Failed to open %s.\n",
+                                ext_file);
+                        return -1;
+                    }
+                }
+                fprintf(*ext_fd, "%3s %04d\n", current->name, line_num);
                 are->are = 1;
             }
             return current->counter;
@@ -101,7 +109,8 @@ int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
  */
 int update_command_list(command_ptr command_list, char *word, char *line,
                         int *position, char *filename,
-                        symbols_ptr symbols_head, FILE *ext_fd) {
+                        symbols_ptr symbols_head, FILE **ext_fd,
+                        char *ext_file, const int line_num) {
     int num;
     char *next_word = NULL;
     command_ptr current = command_list, new_node = NULL;
@@ -138,7 +147,8 @@ int update_command_list(command_ptr command_list, char *word, char *line,
             new_node->opcode = (num >> 8);
             break;
         case 2: /* direct address */
-            if ((num = is_symbol(word, symbols_head, new_node, ext_fd)) == -1)
+            if ((num = is_symbol(word, symbols_head, new_node, ext_fd,
+                                 ext_file, line_num)) == -1)
                 return -1;
             new_node->dest_addr = num;
             new_node->src_addr = (num >> 4);
@@ -167,7 +177,8 @@ int update_command_list(command_ptr command_list, char *word, char *line,
             new_node->opcode = (num >> 8);
             break;
         case 2: /* direct address */
-            if ((num = is_symbol(word, symbols_head, new_node)) == -1)
+            if ((num = is_symbol(word, symbols_head, new_node, ext_fd,
+                                 ext_file, line_num)) == -1)
                 return -1;
             new_node->dest_addr = num;
             new_node->src_addr = (num >> 4);
@@ -218,7 +229,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
               command_ptr cmd_list_head, int ext_ic, int dc) {
     char *line = NULL, *next_word = NULL, *ob_file = NULL, *ext_file = NULL,
         *ent_file = NULL; /* strings and filenames */
-    int i, ic = 0, *position = 0, error_flag = 0, allocation_flag = 0;
+    int line_num = 0, ic = 0, *position = 0, error_flag = 0, allocation_flag = 0;
         /* counters and flags */
     FILE *ob_fd = NULL, *ext_fd = NULL, *ent_fd = NULL; /* file pointers */
     command_ptr cmd_list = cmd_list_head, tmp_cmd = NULL; /* pointers */
@@ -230,6 +241,8 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
     while (read_next_line(fd, &line) != -1
            || !feof(fd)
            || cmd_list->next != NULL) {
+        line_num++;
+        position = 0;
         next_word_check
 
         if (next_word[strlen(next_word) - 1] == ':') {
@@ -239,10 +252,8 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
         if ((strcmp(next_word, ".data") == 0)
             || (strcmp(next_word, ".string") == 0)
             || (strcmp(next_word, ".extern") == 0)) {
-            continue;
-        } /* skip line */
-
-        if (strcmp(next_word, ".entry") == 0) {
+            continue; /* skip */
+        } else if (strcmp(next_word, ".entry") == 0) {
             /* upsate labels in the symbol table */
             while (read_next_word(line, position, &next_word) != 1) {
                 if (entry_update(symbol_table, next_word) == -1) {
@@ -252,17 +263,17 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
             }
             continue;
         } else {
-            /* update command list */
             ic += cmd_list->l;
             if (cmd_list->l == 1) continue;
             tmp_cmd = cmd_list->next;
             next_word_check
-            update_command_list(cmd_list, next_word, line, position,
-                                filename, symbol_table, ext_fd);
+            /* add new nodes to the command list */
+            if (update_command_list(cmd_list, next_word, line, position,
+                                filename, symbol_table, &ext_fd, ext_file,
+                                line_num) == -1) error_flag = 1;
             cmd_list->next = tmp_cmd;
             cmd_list = cmd_list->next;
         }
-        /* TODO: extern label check */
     }
 
     if (ic != ext_ic) {
@@ -280,12 +291,11 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
             error_flag = 1;
             goto cleanup;
         }
-        if (build_ob(ob_fd, filename, ic, dc) == -1) {
+        if (build_ob(ob_fd, ob_file, ic, dc) == -1) {
             error_flag = 1;
             allocation_flag = 1;
             goto cleanup;
         }
-        /*build_ext(ext_fd, symbol_table);*/
         build_ent(ent_fd, symbol_table);
     }
 
@@ -311,6 +321,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
         allocation_failure
     }
 
-
     return 0;
 }
+
+#pragma clang diagnostic pop
