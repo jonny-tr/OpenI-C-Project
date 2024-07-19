@@ -187,16 +187,16 @@ int get_word_type(char *word) {
     add check if there is a space before ":" to add the proper error message*/
     int i=0;
     
-    if(strcmp(word,".data")==0) return DATA;
-    if(strcmp(word,".string")==0) return STRING;
-    if(strcmp(word,".entry")==0) return ENTRY;
-    if(strcmp(word,".extern")==0) return EXTERN;
-    if(position[i]=="."){
+    if (strcmp(word,".data")==0) return DATA;
+    if (strcmp(word,".string")==0) return STRING;
+    if (strcmp(word,".entry")==0) return ENTRY;
+    if (strcmp(word,".extern")==0) return EXTERN;
+    if (position[i]=="."){
         fprintf(stdout, "Invalid command\n");
         return ERROR;
     }
     while (word[i] != '\0') i++;
-    if(word[i]==":") return LABEL;
+    if (word[i] == ":") return LABEL;
     /*if(is_valid_command(word)!=-1)*/ return COMMAND;
     /*return OPERAND;*/
 }
@@ -211,4 +211,15 @@ int command_to_num(command_word cmd) {
                              (cmd.dest_addr << 3) | cmd.are;
 
     return full_bits;
+}
+
+/**
+ * @brief the function converts a number to twos complement
+ * @param num a number to convert
+ * @return the converted number
+ */
+int twos_complement(int num) {
+    int mask = 0x7FFF; /* 15 bits mask */
+
+    return (~num + 1) | (~mask);
 }
