@@ -100,7 +100,7 @@ int build_ent(FILE *ent_fd, symbols_ptr symbol_table);
 int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
              int ic, int dc);
 int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
-              FILE **ext_fd, char *ext_file, const int line_num):
+              FILE **ext_fd, char *ext_file, const int line_num);
 int update_command_list(command_ptr command_list, char *word, char *line,
                         int *position, char *filename,
                         symbols_ptr symbols_head, FILE **ext_fd,
