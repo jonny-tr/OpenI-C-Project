@@ -1,7 +1,3 @@
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wunknown-pragmas"
-#pragma ide diagnostic ignored "cert-err34-c"
-/* TODO: remove this pragma in the end*/
 #include "assembler.h"
 
 #define next_word_check if (read_next_word(line, position, &next_word) \
@@ -226,7 +222,8 @@ int entry_update(symbols_ptr symbol_table_head, char *word) {
  * @return 0 if successful, -1 otherwise
  */
 int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
-              command_ptr cmd_list_head, int ext_ic, int dc) {
+              command_ptr cmd_list_head, variable_ptr variable_head,
+              int ext_ic, int dc) {
     char *line = NULL, *next_word = NULL, *ob_file = NULL, *ext_file = NULL,
         *ent_file = NULL; /* strings and filenames */
     int line_num = 0, ic = 0, *position = 0, error_flag = 0, allocation_flag = 0;
@@ -291,7 +288,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
             error_flag = 1;
             goto cleanup;
         }
-        if (build_ob(ob_fd, ob_file, ic, dc) == -1) {
+        if (build_ob(ob_fd, cmd_list_head, variable_head, ic, dc) == -1) {
             error_flag = 1;
             allocation_flag = 1;
             goto cleanup;
@@ -323,5 +320,3 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
 
     return 0;
 }
-
-#pragma clang diagnostic pop
