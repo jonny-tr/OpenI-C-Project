@@ -90,10 +90,20 @@ int read_next_part(FILE *as_fd, char **next_part);
 int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head);
 
 /* phase_one */
+int phase_one (FILE *fd, int IC, int DC, 
+            symbols_ptr symbol_table, variable_ptr variable_table,
+            command_ptr command_table, macro_ptr macro_table)
 int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_table_head);
-void remove_colon(char *label);
+int is_valid_operand(char *word, macro_ptr macro_table);
 void add_symbol(symbols_ptr *head, char *name, int counter, char *type);
+void add_variable(variable_t *head, char *content, int counter);
+void init_command_word(command_ptr *head, command_ptr *ptr);
+void set_command_opcode(command_word *field, int command);
+void set_addressing_method(char *operand, command_word *field, int src_dest);
 int calc_l(command_word *field, int cmnd);
+void end_phase_one_update_counter(symbols_ptr *head, int IC);
+int get_data_int(char *word);
+
 
 /* phase_two */
 int build_ent(FILE *ent_fd, symbols_ptr symbol_table);
