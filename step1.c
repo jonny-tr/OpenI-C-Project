@@ -31,6 +31,72 @@ int phase_one (FILE *fd, int IC, int DC,
         word_ptr = line;
         while (get_next_word(&line, &word, &word_ptr) != -1) {
             word_type = get_word_type(&word);
+            switch (word_type){
+            case LABEL:
+                switch (is_valid_label(word, *symbol_table, *macro_table)){
+                case -1: /* TODO: I think errors need to include the file they were found in and the line number -yoni */
+                    fprintf(stdout, "Cannot use a command as a label\n");
+                    break;
+                case -2:
+                    fprintf(stdout, "Label already exists\n");
+                    break;
+                case -3:
+                    fprintf(stdout, "Cannot use a macro as a label\n");
+                    break;
+                case -4:
+                    fprintf(stdout, "Cannot use a register as a label\n");
+                    break;
+                case -5:
+                    fprintf(stdout, "Label must start with a letter\n");
+                    break;
+                case 0: /*valid*/
+                    label_flag = 1;
+                    strdup(label_temp, word);
+                    break;
+                }
+            
+            case DATA:
+                if(label_flag == 1){
+                    label_flag = 0;
+                    add_symbol(symbol_table, label_temp, DC, "data");    
+                }
+                while(get_next_word(&line, &word, &word_ptr) != -1 && word[0] != '\0'){
+                    /*need to check if operands are not commands, labels etc*/
+                    add_variable(&variable_table, get_data_int(word), DC);
+                    DC++;
+                    /*add an error if between two variables there is a space and not a comma?*/
+                }
+                break;
+                
+            case STRING:
+                if(label_flag == 1){
+                    label_flag = 0;
+                    add_symbol(symbol_table, label_temp, DC, "data");    
+                }
+                if(get_next_word(&line, &word, &word_ptr) != -1 && word[0] != '\0'){
+                    if(word[0]=='"' && word[strlen(word)-1]=='"')
+                        for(i=1; i<strlen(word-1); i++){ /*add the string without the quotes*/
+                            add_variable(&variable_table, word[i], DC);
+                            DC++;
+                        }
+                    else {
+                        fprintf(stdout, "Invalid string\n");
+                        break;
+                    }   
+                }
+                break;
+            case EXTERN:
+                while(get_next_word(&line, &word, &word_ptr) != -1 && word[0] != '\0'){
+                    add_symbol(symbol_table, word, NULL, "external");
+                }
+                break;
+            case ENTRY:
+                if(is_valid_label(get_next_word(&line, &word, &word_ptr), *symbol_table, *macro_table) == 0){
+                    add_symbol(symbol_table, word, IC+100, "code");
+                    IC++;
+                }
+                else fprintf(stdout, "Invalid label for Entry\n");
+                break;
             switch (word_type) {
                 case LABEL:
                     switch (is_valid_label(word, *symbol_table, *macro_table)) {
@@ -524,3 +590,4 @@ int get_data_int(char *word) {
     }
     return sign * result;
 }
+
