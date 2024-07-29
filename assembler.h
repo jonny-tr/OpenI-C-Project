@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <math.h>
+#include <limits.h>
 
 /*----------------------------------macros-----------------------------------*/
 #define allocation_failure \
@@ -73,10 +74,11 @@ int is_valid_command(char *command);
 int read_next_line(FILE *fd, char **line);
 int read_next_word(const char line[], int *position, char **next_part);
  /*add from shahar's changes*/
-int get_word(char *position, char *word);
+int get_word(char *position, char *word); /*you don't need this, right yoni? I made this shit?*/
 int get_word_type(char *position);
 int command_to_num(command_word cmd);
 int twos_complement(int num);
+int comma_checker(char *line, char **word_ptr);
 
 /* pre_assembler */
 int pre_assembler(char **in_fd, macro_ptr macro_table_head);
@@ -95,12 +97,15 @@ int phase_one (FILE *fd, int IC, int DC,
             command_ptr command_table, macro_ptr macro_table)
 int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_table_head);
 int is_valid_operand(char *word, macro_ptr macro_table);
-void add_symbol(symbols_ptr *head, char *name, int counter, char *type);
-void add_variable(variable_t *head, char *content, int counter);
-void init_command_word(command_ptr *head, command_ptr *ptr);
+int add_symbol(symbols_ptr *head, char *name, int counter, char *type);
+int free_symbols_list(symbols_ptr *head);
+int add_variable(variable_t *head, char *content, int counter);
+int free_variables_list(variable_ptr *head);
+int init_command_word(command_ptr *head, command_ptr *ptr);
 void set_command_opcode(command_word *field, int command);
 void set_addressing_method(char *operand, command_word *field, int src_dest);
 int calc_l(command_word *field, int cmnd);
+int free_command_words_list(command_ptr *head);
 void end_phase_one_update_counter(symbols_ptr *head, int IC);
 int get_data_int(char *word);
 

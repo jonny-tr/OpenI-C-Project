@@ -1,6 +1,4 @@
 #include "assembler.h"
-include <limits.h>
-
 
 #define LINE_SIZE 81
 #define MAX_LABEL_LENGTH 31
@@ -12,8 +10,6 @@ include <limits.h>
         (error_flag) = 1; \
         break; \
     }
-/*added check for commas where necessary, handling multiple .data and .extern in the same line, 
-    check valid data, check for lable length (31)*/
 
 /*@brief phase_one does builds the symbold and variables tables
 
@@ -36,11 +32,7 @@ int phase_one (FILE *fd, int IC, int DC,
     int i, cmnd, word_type, data_temp, commas;
     int char_type; /* -1 line end, 0 word, 1 comma */
     command_ptr new_field = (command_ptr *) malloc(sizeof(command_ptr));
-    if (new_field == NULL) {
-        fprintf(stdout, "Memory allocation for new command_word failed\n");
-        return -1; /*TODO: need to free memory and what yoni said */
-    }
-
+    if (new_field == NULL) allocation_failure;
     while (read_next_line(fd, (char **)&line) != -1) {
         word_ptr = line;
         while ((char_type = get_next_word(&line, &word, &word_ptr)) != -1) {
@@ -87,12 +79,12 @@ int phase_one (FILE *fd, int IC, int DC,
                                 as_strdup(label_temp, word);
                             }
                             break;
-                    }
+                    } /*end label switch*/
 
                 case DATA:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        add_symbol(symbol_table, label_temp, DC, "data");
+                        if(add_symbol(symbol_table, label_temp, DC, "data")==-1) allocation_failure;
                     }
                     expect_comma = 0;
                     while ((char_type=get_next_word(&line, &word, &word_ptr)) != -1 && word[0] != '\0') {
@@ -116,7 +108,7 @@ int phase_one (FILE *fd, int IC, int DC,
                             error_flag = 1;
                             break;
                         }
-                        add_variable(&variable_table, data_tmp, DC);
+                        if(add_variable(&variable_table, data_tmp, DC)==-1) allocation_failure;
                         DC++;
                         expect_comma = 1;
                     }
@@ -125,12 +117,12 @@ int phase_one (FILE *fd, int IC, int DC,
                 case STRING:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        add_symbol(symbol_table, label_temp, DC, "data");
+                        if(add_symbol(symbol_table, label_temp, DC, "data")==-1) allocation_failure;
                     }
                     if (get_next_word(&line, &word, &word_ptr) != -1 && word[0] != '\0') {
                         if (word[0] == '"' && word[strlen(word) - 1] == '"')
                             for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
-                                add_variable(&variable_table, word[i], DC);
+                                if(add_variable(&variable_table, word[i], DC)==-1) allocation_failure;
                                 DC++;
                             }
                         else {
@@ -157,13 +149,15 @@ int phase_one (FILE *fd, int IC, int DC,
                             }
                             else expect_comma=0;
                         }
-                        add_symbol(symbol_table, word, NULL, "external");
+                        if(add_symbol(symbol_table, word, NULL, "external")==-1) allocation_failure;
+                        /*continue adding allocation faliur for ass_symbol and then for add_variable
+                        write free symbols and variable*/
                         expect_comma = 1;
                     }
                     break;
                 case ENTRY:
                     if (is_valid_label(get_next_word(&line, &word, &word_ptr), *symbol_table, *macro_table) == 0) {
-                        add_symbol(symbol_table, word, IC + 100, "code");
+                        if(add_symbol(symbol_table, word, IC + 100, "code")==-1) allocation_failure;
                         IC++;
                     } else {
                         fprintf(stdout, "Invalid label for Entry\n");
@@ -180,11 +174,11 @@ int phase_one (FILE *fd, int IC, int DC,
                     }
                     if (label_flag == 1) {
                         label_flag = 0;
-                        add_symbol(symbol_table, label_temp, (IC + 100), "code");
+                        if(add_symbol(symbol_table, label_temp, (IC + 100), "code")==-1) allocation_failure;
                         IC++;
                     }
                     /*initialize new command_word*/
-                    init_command_word(&command_table, new_field);
+                    if(init_command_word(&command_table, new_field)==-1) allocation_failure;
                     set_command_opcode(new_field, cmnd);
                     switch (cmnd) {
                             /*two operands*/
@@ -217,7 +211,6 @@ int phase_one (FILE *fd, int IC, int DC,
                                 
                                 /*second oeprand*/
                                 if((char_type=get_next_word(&line, &word, &word_ptr)) != -1){
-                                    CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                                     if (is_valid_operand(word, macro_table))
                                         set_addressing_method(word, new_field, 2);
                                     else{
@@ -281,13 +274,13 @@ int phase_one (FILE *fd, int IC, int DC,
  * @param head A pointer to the head of the linked list.
  * @param ptr A pointer to the newly created command word.
  *
- * @return void
+ * @return 0 on success, -1 on failure.
  */
-void init_command_word(command_ptr *head, command_ptr *ptr) {
+int init_command_word(command_ptr *head, command_ptr *ptr) {
     command_ptr new_node = (command_ptr) malloc(sizeof(command_word));
     if (new_node == NULL) {
         fprintf(stderr, "Memory allocation for new command_word failed\n");
-        return;
+        return -1;
     }
     new_node->are = 0b100; /* automatically sets ARE to be 100 (only A) */
     new_node->dest_addr = 0b0000;
@@ -306,6 +299,7 @@ void init_command_word(command_ptr *head, command_ptr *ptr) {
         temp->next = new_node;
     }
     *ptr = new_node;
+    return 0;
 }
 
 /**
@@ -399,6 +393,28 @@ void set_addressing_method(char *operand, command_word *field, int src_dest) {
         else field->dest_addr = 0b0010;
     }
 }
+
+/**
+ * Frees the memory allocated for the linked list of command words.
+ *
+ * @param head A pointer to the head of the linked list.
+ * @return 0 if the function ran successfully, 1 if the head is NULL.
+ */
+int free_command_words_list(command_ptr *head) {
+    command_ptr current, next;
+
+    if (*head == NULL) return 1; /*nothing to free*/
+
+    current = *head;
+    while (current != NULL) {
+        next = current->next;
+        safe_free(current);
+        current = next;
+    }
+    *head = NULL;
+    return 0;
+}
+
 
 /**
  * Checks if the given word is a valid operand.
@@ -512,13 +528,14 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_t
  * @param name The name of the symbol.
  * @param counter IC or DC.
  * @param type The type of the symbol: external / entry / data / code 
+ * @return 0 on success, -1 on failure.
  *
  */
-void add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
+int add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
     symbols_ptr new_node = (symbols_ptr) malloc(sizeof(symbols_list));
     if (new_node == NULL) {
         fprintf(stdout, "Memory allocation for new symbol failed\n");
-        return;
+        return -1;
     }
     as_strdup(&new_node->name, name);
     as_strdup(&new_node->type, type);
@@ -534,6 +551,30 @@ void add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
         }
         temp->next = new_node;
     }
+    return 0;
+}
+
+/**
+ * Frees the memory allocated for the linked list of symbols.
+ *
+ * @param head A pointer to the head of the linked list.
+ * @return 0 if the function ran successfully, 1 if the head is NULL.
+ */
+int free_symbols_list(symbols_ptr *head) {
+    symbols_ptr current, next;
+    if (*head == NULL) return 1; /*nothing to free*/
+
+    current = *head;
+    while (current != NULL) {
+        next = current->next;
+        safe_free(current->name);
+        safe_free(current->type);
+        safe_free(current);
+        current = next;
+    }
+    *head = NULL;
+
+    return 0;
 }
 
 /**
@@ -556,14 +597,14 @@ void end_phase_one_update_counter(symbols_ptr *head, int IC) {
  * @param head A pointer to the head of the variable linked list.
  * @param content The content of the variable.
  * @param counter DC
- * @return void
+ * @return 0 on success, -1 on failure.
  *
  */
-void add_variable(variable_t *head, char *content, int counter) {
+int add_variable(variable_t *head, char *content, int counter) {
     variable_ptr new_node = (variable_ptr) malloc(sizeof(variable_ptr));
     if (new_node == NULL) {
         fprintf(stdout, "Memory allocation for new variable failed\n");
-        return;
+        return -1;
     }
     as_strdup(&new_node->content, content);
     new_node->counter = counter; /*DC*/
@@ -578,7 +619,25 @@ void add_variable(variable_t *head, char *content, int counter) {
         }
         temp->next = new_node;
     }
+    return 0;
 }
+
+int free_variables_list(variable_ptr *head) {
+    variable_ptr current, next;
+    if (*head == NULL) return 1; /*nothing to free*/
+
+    current = *head;
+    while (current != NULL) {
+        next = current->next;
+        safe_free(current->content);
+        safe_free(current);
+        current = next;
+    }
+    *head = NULL;
+
+    return 0;
+}
+
 
 /**
  * Parses a string and returns the integer value of the number it represents.

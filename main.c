@@ -12,7 +12,10 @@ int main(int argc, char *argv[]) {
     FILE *fd; /* file pointer */
     char *filename, *tmp_file = NULL; /* filename */
     macro_ptr macro_table = NULL; /* macro table */
-    symbols_ptr symbols_list = NULL;
+    symbols_ptr symbols_list = NULL; /* symbol list */
+    variable_ptr variable_list = NULL; /* variable list */
+    command_ptr command_list = NULL; /* command list */
+
 
     if (argc < 2) {
         fprintf(stdout, "Error: No files specified.\n");
@@ -34,16 +37,19 @@ int main(int argc, char *argv[]) {
             continue; /* skip */
         }
 
-        /*
-        if ((dc = phase_one(fd, filename, macro_table)) == -1) {
+        /*shahar continued working on this, HATZILU*/
+        if ((phase_one(fd, ic, dc, symbols_list, variable_list, command_list, macro_table)) == -1) {
             fclose(fd);
             free_macro_table(macro_table);
-            if (remove(tmp_file) != 0) {
+            free_symbols_list(symbols_list);
+            free_variables_list(variable_list);
+            free_command_words_list(command_list);
+            /*if (remove(tmp_file) != 0) {
                 fprintf(stdout, "Error: Could not delete %s.\n", filename);
                 fclose(fd);
-            }
+            }shahar: we're not using this anymore, right? you can delete it*/
             continue;
-        } else {
+        } else { /*shahar: yoni you don't need the macro table? (your wrote the free here)*/
             free_macro_table(macro_table);
         }
 
@@ -52,8 +58,9 @@ int main(int argc, char *argv[]) {
         phase_two(fd, argv[i], symbols_list, cmd_list, ic, dc);
 
         free_macro_table(macro_table);
-        /* TODO: create these function: */
-        free_symbols_table(symbols_list);
+        /* TODO: create these function:
+        msg_from_shahar: I wrote them in phase_one.c, they are named a bit differently #sorrynotsorry */
+        free_symbols_table(symbols_list);*/
         free_var_list(var_list);
         free_cmd_list(cmd_list);
         fclose(fd);
