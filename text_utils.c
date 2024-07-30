@@ -236,3 +236,12 @@ int twos_complement(int num) {
 
     return (~num + 1) | (~mask);
 }
+
+/**
+ * @brief returns the ASCII value of a character.
+ * @param ch The character to convert.
+ * @return The ASCII value.
+ */
+int get_ascii_value(char ch) {
+    return (int)ch;
+}

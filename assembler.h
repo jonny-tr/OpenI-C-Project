@@ -15,6 +15,7 @@
             exit(EXIT_FAILURE);
 
 #define safe_free(p) if ((p) != NULL) { free(p); (p) = NULL; }
+#define INVALID_INT INT_MIN /*substitute for NULL*/
 
 /*---------------------------------enums-------------------------------------*/
 enum word_type_e{
@@ -74,11 +75,14 @@ int is_valid_command(char *command);
 int read_next_line(FILE *fd, char **line);
 int read_next_word(const char line[], int *position, char **next_part);
  /*add from shahar's changes*/
+ 
+int get_next_word(char *line, char *word, char **word_ptr);
 int get_word(char *position, char *word); /*you don't need this, right yoni? I made this shit?*/
 int get_word_type(char *position);
 int command_to_num(command_word cmd);
 int twos_complement(int num);
 int comma_checker(char *line, char **word_ptr);
+int get_ascii_value(char ch);
 
 /* pre_assembler */
 int pre_assembler(char **in_fd, macro_ptr macro_table_head);
@@ -92,14 +96,14 @@ int read_next_part(FILE *as_fd, char **next_part);
 int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head);
 
 /* phase_one */
-int phase_one (FILE *fd, int IC, int DC, 
+int phase_one(FILE *fd, int IC, int DC, 
             symbols_ptr symbol_table, variable_ptr variable_table,
-            command_ptr command_table, macro_ptr macro_table)
+            command_ptr command_table, macro_ptr macro_table);
 int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_table_head);
 int is_valid_operand(char *word, macro_ptr macro_table);
 int add_symbol(symbols_ptr *head, char *name, int counter, char *type);
 int free_symbols_list(symbols_ptr *head);
-int add_variable(variable_t *head, char *content, int counter);
+int add_variable(variable_t **head, int content, int counter);
 int free_variables_list(variable_ptr *head);
 int init_command_word(command_ptr *head, command_ptr *ptr);
 void set_command_opcode(command_word *field, int command);
