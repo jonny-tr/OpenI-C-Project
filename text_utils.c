@@ -74,6 +74,8 @@ int read_next_line(FILE *file, char **line) {
 
     while (fgets(buffer, 81, file) != NULL
            && buffer[0] == ';'); /* skip comments */
+    
+    if (feof(file)) return -1;  
 
     if (buffer[strlen(buffer) - 1] == '\n')
         buffer[strlen(buffer) - 1] = '\0';
@@ -171,6 +173,8 @@ int get_next_word(char *line, char *word, char **word_ptr) {
     /*Get the word*/
     while (*p && *p != ' ' && *p != '\t' && *p != ',' && *p != '\0') {
         *w++ = *p++;
+        if (*(p - 1) == ':') break; /* label */
+
     }
 
     *w = '\0';
