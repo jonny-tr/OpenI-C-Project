@@ -195,34 +195,6 @@ int macro_table_builder(char *next_part, FILE *as_fd,
 }
 
 /**
- * @brief frees the macro table
- * @param macro_table_head the table of macros
- * @return 0 if the function ran successfully, 1 if macro_table_head is NULL
- */
-int free_macro_table(macro_ptr macro_table_head) {
-    macro_t *current, *next;
-    str_node_ptr current_content, *next_content;
-
-    if ((current = macro_table_head) == NULL) return 1;
-
-    while (current != NULL) {
-        next = current->next;
-        safe_free(current->name)
-        current_content = current->content_head;
-        while (current_content != NULL) {
-            next_content = &current_content->next;
-            safe_free(current_content->str)
-            safe_free(current_content)
-            current_content = *next_content;
-        }
-        safe_free(current)
-        current = next;
-    }
-
-    return 0;
-}
-
-/**
  * @brief checks if the next part is a macro
  * @param next_part the next part of the file
  * @param macro_table_head the table of macros
