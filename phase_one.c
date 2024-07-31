@@ -11,7 +11,7 @@
         break; \
     }
 
-/*@brief phase_one does builds the symbold and variables tables
+/*@brief phase_one does the first pass on the file and builds the symbold and variables tables
 
 @param fd the file after pre_assembler
 @param symbol_table the symbol table
