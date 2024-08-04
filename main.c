@@ -28,16 +28,15 @@ int main(int argc, char *argv[]) {
             if (remove(filename) != 0) {
                 fprintf(stdout, "Error: Could not delete %s.as.\n", argv[i]);
             }
-            continue;
+            goto cleanup;
         }
 
         fd = fopen(filename, "r");
         if (fd == NULL) {
             fprintf(stdout, "Error: Could not open file %s.\n", filename);
-            continue; /* skip */
+            goto cleanup; /* skip */
         }
 
-        /*shahar continued working on this, HATZILU*/
         if ((phase_one(fd, ic, dc, symbols_list, variable_list, command_list, macro_table)) == -1) {
             fclose(fd);
             /*free_macro_table(macro_table);
@@ -49,20 +48,22 @@ int main(int argc, char *argv[]) {
                 fclose(fd);
             }shahar: we're not using this anymore, right? you can delete it*/
             continue;
-        } else { /*shahar: yoni you don't need the macro table? (your wrote the free here)*/
-            free_macro_table(macro_table);
-        }
 
-       
         /* TODO: need to create and send a command_list and a var_list */
-        phase_two(fd, argv[i], symbols_list, command_list, ic, dc);
+        phase_two(fd, argv[i], symbols_list, variable_head, cmd_list, ic, dc);
 
+        cleanup:
         free_macro_table(macro_table);
         /* TODO: create these function:
         msg_from_shahar: I wrote them in phase_one.c, they are named a bit differently #sorrynotsorry */
         /*free_symbols_table(symbols_list);
         free_var_list(var_list);
         free_cmd_list(cmd_list);*/
+
+        free_symbols_table(symbols_list);
+        free_variable_list(var_list);
+        free_command_list(cmd_list);
+
         fclose(fd);
     }
 

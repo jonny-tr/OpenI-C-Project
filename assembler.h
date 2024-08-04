@@ -89,7 +89,6 @@ int pre_assembler(char **in_fd, macro_ptr macro_table_head);
 int macro_table_builder(char *next_part, FILE *as_fd,
                         macro_ptr *macro_table_head, int *line_num,
                         char *filename);
-int free_macro_table(macro_ptr macro_table_head);
 macro_ptr is_macro(char *next_part, macro_ptr macro_table_head);
 int is_macro_name_valid(char *name, macro_ptr macro_table_head);
 int read_next_part(FILE *as_fd, char **next_part);
@@ -126,6 +125,13 @@ int update_command_list(command_ptr command_list, char *word, char *line,
                         char *ext_file, int line_num);
 int entry_update(symbols_ptr symbol_table, char *word);
 int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
-              command_ptr cmd_list_head, int ext_ic, int dc);
+              command_ptr cmd_list_head, variable_ptr variable_head,
+              int ext_ic, int dc);
+
+/* cleanup */
+int free_macro_table(macro_ptr macro_table_head);
+int free_symbols_table(symbols_ptr symbols_list_head);
+int free_command_list(command_ptr command_list_head);
+int free_variable_list(variable_ptr variable_head);
 
 #endif /* ASSEMBLER_H */
