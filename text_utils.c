@@ -11,7 +11,7 @@ int as_strdup(char **dest, const char *s) {
     size_t size = (s != NULL) ? strlen(s) + 1 : 1;
     char *temp = NULL;
 
-    temp = (char *)realloc(*dest, size * sizeof(char));
+    temp = (char *) realloc(*dest, size * sizeof(char));
     if (temp == NULL) return -1;
 
     *dest = temp;
@@ -74,8 +74,8 @@ int read_next_line(FILE *file, char **line) {
 
     while (fgets(buffer, 81, file) != NULL
            && buffer[0] == ';'); /* skip comments */
-    
-    if (feof(file)) return -1;  
+
+    if (feof(file)) return -1;
 
     if (buffer[strlen(buffer) - 1] == '\n')
         buffer[strlen(buffer) - 1] = '\0';
@@ -100,7 +100,7 @@ int read_next_word(const char line[], int *position, char **next_part) {
     if (line[*position] == '\0') return 1;
 
     safe_free(*next_part)
-    temp = (char *)calloc(20, sizeof(char));
+    temp = (char *) calloc(20, sizeof(char));
     if (temp == NULL) return -1;
     *next_part = temp;
 
@@ -108,7 +108,7 @@ int read_next_word(const char line[], int *position, char **next_part) {
 
     while (isspace(c = line[*position]) != 0) {
         if (buffer % 19 == 0) {
-            temp = (char *)realloc(*next_part, buffer + 21);
+            temp = (char *) realloc(*next_part, buffer + 21);
             if (temp == NULL) {
                 safe_free(*next_part)
                 return -1;
@@ -146,16 +146,6 @@ int comma_checker(char *line, char **word_ptr) {
     return commas;
 }
 
-/*shahar: i don't think i need this function, for deletion*/
-void get_word(char *position, char *word) { /*position is the line*/
-    int i = 0;
-    while (position[i] != ' ' && position[i] != ',' && position[i] != '\t' && position[i] != '\0') {
-        word[i] = position[i];
-        i++;
-    }
-    word[i] = '\0'; /* null terminate the word */
-}
-
 /**
  * Get the next word from a line of text.
  *
@@ -177,7 +167,7 @@ int get_next_word(char *line, char *word, char **word_ptr) {
     }
 
     /*Check for commas*/
-    if (*p == ','){
+    if (*p == ',') {
         *word_ptr = p;
         return 1;
     }
@@ -198,18 +188,18 @@ int get_next_word(char *line, char *word, char **word_ptr) {
 int get_word_type(char *word) {
     /*comment for future shahar: 
     add check if there is a space before ":" to add the proper error message*/
-    int i=0;
-    
-    if (strcmp(word,".data")==0) return DATA;
-    if (strcmp(word,".string")==0) return STRING;
-    if (strcmp(word,".entry")==0) return ENTRY;
-    if (strcmp(word,".extern")==0) return EXTERN;
-    if (position[i]=="."){
+    int i = 0;
+
+    if (strcmp(word, ".data") == 0) return DATA;
+    if (strcmp(word, ".string") == 0) return STRING;
+    if (strcmp(word, ".entry") == 0) return ENTRY;
+    if (strcmp(word, ".extern") == 0) return EXTERN;
+    if (word[i] == '.') {
         fprintf(stdout, "Invalid command\n");
         return ERROR;
     }
     while (word[i] != '\0') i++;
-    if (word[i] == ":") return LABEL;
+    if (word[i] == ':') return LABEL;
     /*if(is_valid_command(word)!=-1)*/ return COMMAND;
     /*return OPERAND;*/
 }
@@ -221,7 +211,7 @@ int get_word_type(char *word) {
  */
 int command_to_num(command_word cmd) {
     int full_bits = (cmd.opcode << 11) | (cmd.src_addr << 7) |
-                             (cmd.dest_addr << 3) | cmd.are;
+                    (cmd.dest_addr << 3) | cmd.are;
 
     return full_bits;
 }
@@ -243,5 +233,5 @@ int twos_complement(int num) {
  * @return The ASCII value.
  */
 int get_ascii_value(char ch) {
-    return (int)ch;
+    return (int) ch;
 }

@@ -7,10 +7,9 @@
  * @return 0 if the program ran successfully, 1 if an error occurred
  */
 int main(int argc, char *argv[]) {
-    int i, dc = 30, ic = 100; /* counters */
-    /* TODO: remove dc and ic initialaizers */
+    int i, dc = 0, ic = 0; /* counters */
     FILE *fd; /* file pointer */
-    char *filename, *tmp_file = NULL; /* filename */
+    char *filename; /* filename */
     macro_ptr macro_table = NULL; /* macro table */
     symbols_ptr symbols_list = NULL; /* symbol list */
     variable_ptr variable_list = NULL; /* variable list */
@@ -37,32 +36,19 @@ int main(int argc, char *argv[]) {
             goto cleanup; /* skip */
         }
 
-        if ((phase_one(fd, ic, dc, symbols_list, variable_list, command_list, macro_table)) == -1) {
-            fclose(fd);
-            /*free_macro_table(macro_table);
-            free_symbols_list(symbols_list);
-            free_variables_list(variable_list);
-            free_command_words_list(command_list);*/
-            /*if (remove(tmp_file) != 0) {
-                fprintf(stdout, "Error: Could not delete %s.\n", filename);
-                fclose(fd);
-            }shahar: we're not using this anymore, right? you can delete it*/
-            continue;
+        if ((phase_one(fd, ic, dc, symbols_list, variable_list, command_list,
+                       macro_table)) == -1) {
+            goto cleanup;
+        }
 
-        /* TODO: need to create and send a command_list and a var_list */
-        phase_two(fd, argv[i], symbols_list, variable_head, cmd_list, ic, dc);
+        phase_two(fd, argv[i], symbols_list, variable_list, command_list,
+                  ic, dc);
 
         cleanup:
         free_macro_table(macro_table);
-        /* TODO: create these function:
-        msg_from_shahar: I wrote them in phase_one.c, they are named a bit differently #sorrynotsorry */
-        /*free_symbols_table(symbols_list);
-        free_var_list(var_list);
-        free_cmd_list(cmd_list);*/
-
         free_symbols_table(symbols_list);
-        free_variable_list(var_list);
-        free_command_list(cmd_list);
+        free_variable_list(variable_list);
+        free_command_list(command_list);
 
         fclose(fd);
     }

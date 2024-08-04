@@ -222,7 +222,7 @@ int entry_update(symbols_ptr symbol_table_head, char *word) {
  * @return 0 if successful, -1 otherwise
  */
 int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
-              command_ptr cmd_list_head, variable_ptr variable_head,
+              variable_ptr variable_head, command_ptr cmd_list_head,
               int ext_ic, int dc) {
     char *line = NULL, *next_word = NULL, *ob_file = NULL, *ext_file = NULL,
         *ent_file = NULL; /* strings and filenames */
