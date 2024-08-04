@@ -33,7 +33,7 @@ int phase_one(FILE *fd, int IC, int DC,
 
     if (new_field == NULL) { allocation_failure };
 
-    while (read_next_line(fd, (char **) &line) != -1) {
+    while (read_next_line(fd, line) != -1) {
         word_ptr = line;
         while ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
             CHECK_UNEXPECTED_COMMA(char_type, error_flag);
