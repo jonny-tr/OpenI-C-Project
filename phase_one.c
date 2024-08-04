@@ -11,29 +11,28 @@
         break; \
     }
 
-/*@brief phase_one does the first pass on the file and builds the symbold and variables tables
-
-@param fd the file after pre_assembler
-@param symbol_table the symbol table
-@param cmd_list_head the head of the command list
-@param macro_table the macro table from pre_assembler
-@param IC needs to be 0
-@param DC needs to be 0
-
-@return 0 on success, -1 on failure;
+/** @brief phase_one does the first pass on the file
+ *         and builds the symbold and variables tables
+ * @param fd the file after pre_assembler
+ * @param symbol_table the symbol table
+ * @param cmd_list_head the head of the command list
+ * @param macro_table the macro table from pre_assembler
+ * @param IC needs to be 0
+ * @param DC needs to be 0
+ * @return 0 on success, -1 on failure;
 */
-int phase_one (FILE *fd, int IC, int DC, 
-            symbols_ptr symbol_table, variable_ptr variable_table,
-            command_ptr command_table, macro_ptr macro_table) {
+int phase_one(FILE *fd, int IC, int DC,
+              symbols_ptr symbol_table, variable_ptr variable_table,
+              command_ptr command_table, macro_ptr macro_table) {
 
     char line[LINE_SIZE], word[LINE_SIZE], label_temp[LINE_SIZE];
     char *word_ptr, *label_temp_ptr = label_temp;
-    int label_flag = 0, error_flag=0, expect_comma ; /*1 = on, 0 = off*/
+    int label_flag = 0, error_flag = 0, expect_comma; /*1 = on, 0 = off*/
     int i, cmnd, word_type, data_tmp, commas;
     int char_type; /* -1 line end, 0 word, 1 comma */
     command_ptr new_field = (command_ptr) malloc(sizeof(command_word));
-    if (new_field == NULL) {allocation_failure};
-    while (read_next_line(fd, (char **)&line) != -1) {
+    if (new_field == NULL) { allocation_failure };
+    while (read_next_line(fd, (char **) &line) != -1) {
         word_ptr = line;
         while ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
             CHECK_UNEXPECTED_COMMA(char_type, error_flag);
@@ -70,11 +69,10 @@ int phase_one (FILE *fd, int IC, int DC,
                             error_flag = 1;
                             break;
                         case 0: /*valid label*/
-                            if(label_flag==1) {
+                            if (label_flag == 1) {
                                 fprintf(stdout, "Cannot use two labels at once");
                                 error_flag = 1;
-                            }
-                            else{
+                            } else {
                                 label_flag = 1;
                                 as_strdup(&label_temp_ptr, word);
                             }
@@ -84,23 +82,21 @@ int phase_one (FILE *fd, int IC, int DC,
                 case DATA:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if(add_symbol(&symbol_table, label_temp, DC, "data")==-1) {allocation_failure};
+                        if (add_symbol(&symbol_table, label_temp, DC, "data") == -1) { allocation_failure };
                     }
                     expect_comma = 0;
-                    while ((char_type=get_next_word(line, word, &word_ptr)) != -1 && word[0] != '\0') {
-                        if(expect_comma==1){
-                            commas=comma_checker(line, &word_ptr);
-                            if(commas==0){
+                    while ((char_type = get_next_word(line, word, &word_ptr)) != -1 && word[0] != '\0') {
+                        if (expect_comma == 1) {
+                            commas = comma_checker(line, &word_ptr);
+                            if (commas == 0) {
                                 fprintf(stdout, "Missing comma\n");
                                 error_flag = 1;
                                 break;
-                            }
-                            else if(commas>1){
+                            } else if (commas > 1) {
                                 fprintf(stdout, "Too many commas\n");
                                 error_flag = 1;
                                 break;
-                            }
-                            else expect_comma=0;
+                            } else expect_comma = 0;
                         }
                         data_tmp = get_data_int(word);
                         if (data_tmp == INVALID_INT) {
@@ -108,7 +104,7 @@ int phase_one (FILE *fd, int IC, int DC,
                             error_flag = 1;
                             break;
                         }
-                        if(add_variable(&variable_table, twos_complement(data_tmp), DC)==-1) {allocation_failure};
+                        if (add_variable(&variable_table, twos_complement(data_tmp), DC) == -1) { allocation_failure };
                         DC++;
                         expect_comma = 1;
                     }
@@ -117,12 +113,13 @@ int phase_one (FILE *fd, int IC, int DC,
                 case STRING:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if(add_symbol(&symbol_table, label_temp, DC, "data")==-1) {allocation_failure};
+                        if (add_symbol(&symbol_table, label_temp, DC, "data") == -1) { allocation_failure };
                     }
                     if (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
                         if (word[0] == '"' && word[strlen(word) - 1] == '"')
                             for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
-                                if(add_variable(&variable_table, get_ascii_value(word[i]), DC)==-1) {allocation_failure};
+                                if (add_variable(&variable_table, get_ascii_value(word[i]), DC) ==
+                                    -1) { allocation_failure };
                                 DC++;
                             }
                         else {
@@ -135,33 +132,30 @@ int phase_one (FILE *fd, int IC, int DC,
                 case EXTERN:
                     expect_comma = 0;
                     while (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
-                        if(expect_comma==1){
-                            commas=comma_checker(line, &word_ptr);
-                            if(commas==0){
+                        if (expect_comma == 1) {
+                            commas = comma_checker(line, &word_ptr);
+                            if (commas == 0) {
                                 fprintf(stdout, "Missing comma\n");
                                 error_flag = 1;
                                 break;
-                            }
-                            else if(commas>1){
+                            } else if (commas > 1) {
                                 fprintf(stdout, "Too many commas\n");
                                 error_flag = 1;
                                 break;
-                            }
-                            else expect_comma=0;
+                            } else expect_comma = 0;
                         }
-                        if(add_symbol(&symbol_table, word, INVALID_INT, "external")==-1) {allocation_failure};
+                        if (add_symbol(&symbol_table, word, INVALID_INT, "external") == -1) { allocation_failure };
                         /*continue adding allocation faliur for add_symbol and then for add_variable
                         write free symbols and variable*/
                         expect_comma = 1;
                     }
                     break;
                 case ENTRY:
-                    if(get_next_word(line, word, &word_ptr)==0){
-                        if(is_valid_label(word, symbol_table, macro_table)==0){
-                            if(add_symbol(&symbol_table, word, IC + 100, "code")==-1) {allocation_failure};
+                    if (get_next_word(line, word, &word_ptr) == 0) {
+                        if (is_valid_label(word, symbol_table, macro_table) == 0) {
+                            if (add_symbol(&symbol_table, word, IC + 100, "code") == -1) { allocation_failure };
                             IC++;
-                        }
-                        else {
+                        } else {
                             fprintf(stdout, "Invalid label for Entry\n");
                             error_flag = 1;
                         }
@@ -172,7 +166,7 @@ int phase_one (FILE *fd, int IC, int DC,
                     break;
 
                 case COMMAND:
-                    cmnd=is_valid_command(word);
+                    cmnd = is_valid_command(word);
                     if (cmnd == -1) {
                         fprintf(stdout, "%s: invalid command\n", word);
                         error_flag = 1;
@@ -180,89 +174,86 @@ int phase_one (FILE *fd, int IC, int DC,
                     }
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if(add_symbol(&symbol_table, label_temp, (IC + 100), "code")==-1) {allocation_failure};
+                        if (add_symbol(&symbol_table, label_temp, (IC + 100), "code") == -1) { allocation_failure };
                         IC++;
                     }
                     /*initialize new command_word*/
-                    if(init_command_word(&command_table, &new_field)==-1) {allocation_failure};
+                    if (init_command_word(&command_table, &new_field) == -1) { allocation_failure };
                     set_command_opcode(new_field, cmnd);
                     switch (cmnd) {
-                            /*two operands*/
-                            case 0: /*mov*/
-                            case 1: /*cmp*/
-                            case 2: /*add*/
-                            case 3: /*sub*/
-                            case 4: /*lea*/
-                                /*first operand*/
-                                if((char_type=get_next_word(line, word, &word_ptr)) != -1){
-                                    CHECK_UNEXPECTED_COMMA(char_type, error_flag);
-                                    if (is_valid_operand(word, macro_table))
-                                        set_addressing_method(word, new_field, 1);
-                                    else {
-                                        error_flag = 1;
-                                        break;
-                                    }
-                                }
-                                else{
-                                    fprintf(stdout, "Missing operands\n");
-                                    error_flag = 1;
-                                    break;
-                                }
-                                /*check for propper commas*/
-                                if(comma_checker(line, &word_ptr) != 1){
-                                    error_flag = 1;
-                                    fprintf(stdout, "Invalid comma use\n");
-                                    break;
-                                }
-                                
-                                /*second oeprand*/
-                                if((char_type=get_next_word(line, word, &word_ptr)) != -1){
-                                    if (is_valid_operand(word, macro_table))
-                                        set_addressing_method(word, new_field, 2);
-                                    else{
-                                        error_flag = 1;
-                                        break;
-                                    }
-                                }
+                        /*two operands*/
+                        case 0: /*mov*/
+                        case 1: /*cmp*/
+                        case 2: /*add*/
+                        case 3: /*sub*/
+                        case 4: /*lea*/
+                            /*first operand*/
+                            if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
+                                CHECK_UNEXPECTED_COMMA(char_type, error_flag);
+                                if (is_valid_operand(word, macro_table))
+                                    set_addressing_method(word, new_field, 1);
                                 else {
-                                    fprintf(stdout, "Missing destination operand\n");
                                     error_flag = 1;
                                     break;
                                 }
+                            } else {
+                                fprintf(stdout, "Missing operands\n");
+                                error_flag = 1;
                                 break;
+                            }
+                            /*check for propper commas*/
+                            if (comma_checker(line, &word_ptr) != 1) {
+                                error_flag = 1;
+                                fprintf(stdout, "Invalid comma use\n");
+                                break;
+                            }
+
+                            /*second oeprand*/
+                            if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
+                                if (is_valid_operand(word, macro_table))
+                                    set_addressing_method(word, new_field, 2);
+                                else {
+                                    error_flag = 1;
+                                    break;
+                                }
+                            } else {
+                                fprintf(stdout, "Missing destination operand\n");
+                                error_flag = 1;
+                                break;
+                            }
+                            break;
 
                             /*one operand*/
-                            case 5: /*clr*/
-                            case 6: /*not*/
-                            case 7: /*inc*/
-                            case 8: /*dec*/
-                            case 9: /*jmp*/
-                            case 10: /*bne*/
-                            case 11: /*red*/
-                            case 12: /*prn*/
-                            case 13: /*jsr*/
-                                /*only destination operand*/
-                                if((char_type=get_next_word(line, word, &word_ptr)) != -1){
-                                    CHECK_UNEXPECTED_COMMA(char_type, error_flag);
-                                    if (is_valid_operand(word, macro_table))
-                                        set_addressing_method(word, new_field, 2);
-                                    else {
-                                        error_flag = 1;
-                                        break;
-                                    }
-                                }
+                        case 5: /*clr*/
+                        case 6: /*not*/
+                        case 7: /*inc*/
+                        case 8: /*dec*/
+                        case 9: /*jmp*/
+                        case 10: /*bne*/
+                        case 11: /*red*/
+                        case 12: /*prn*/
+                        case 13: /*jsr*/
+                            /*only destination operand*/
+                            if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
+                                CHECK_UNEXPECTED_COMMA(char_type, error_flag);
+                                if (is_valid_operand(word, macro_table))
+                                    set_addressing_method(word, new_field, 2);
                                 else {
-                                    fprintf(stdout, "Missing operand\n");
                                     error_flag = 1;
                                     break;
                                 }
+                            } else {
+                                fprintf(stdout, "Missing operand\n");
+                                error_flag = 1;
                                 break;
+                            }
+                            break;
 
-                            /*no operands - already taken care of*/    
-                            case 14: /*rts*/
-                            case 15: /*stop*/
-                                break;
-                        }
+                            /*no operands - already taken care of*/
+                        case 14: /*rts*/
+                        case 15: /*stop*/
+                            break;
+                    }
                     new_field->l = calc_l(new_field, cmnd);
                     IC += new_field->l;
             } /*end of switch*/
@@ -270,7 +261,7 @@ int phase_one (FILE *fd, int IC, int DC,
         /***label_flag = 0;?***/
     }
     end_phase_one_update_counter(&symbol_table, IC);
-    if(error_flag == 1) return -1;
+    if (error_flag == 1) return -1;
     return 0;
 }
 
@@ -317,18 +308,17 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
  *
  * @return the value of 'l' based on the command
  */
-int calc_l(command_word *field, int cmnd){
-    if(cmnd==14 || cmnd==15) return 0; /*command without operands*/
-    else if(cmnd>=5 && cmnd<=13) return 1; /*command with one operand*/
+int calc_l(command_word *field, int cmnd) {
+    if (cmnd == 14 || cmnd == 15) return 0; /*command without operands*/
+    else if (cmnd >= 5 && cmnd <= 13) return 1; /*command with one operand*/
 
-    /*commands with two operands*/
-    /*check if both operands are registers: 0100 or 1000*/
+        /*commands with two operands*/
+        /*check if both operands are registers: 0100 or 1000*/
     else if ((field->src_addr == 0x4 || field->src_addr == 0x8) && /*0b0100||0b1000*/
-         (field->dest_addr == 0x4 || field->dest_addr == 0x8)) { /*0b0100||0b1000*/
-            return 1;
-        }
-        else return 2;
-    
+             (field->dest_addr == 0x4 || field->dest_addr == 0x8)) { /*0b0100||0b1000*/
+        return 1;
+    } else return 2;
+
 }
 
 /**
@@ -369,33 +359,33 @@ void set_addressing_method(char *operand, command_word *field, int src_dest) {
     if (src_dest == 1) { /* source operand */
         if (operand == NULL) field->src_addr = 0x0;
 
-        /* Immediate addressing */
-        else if (operand[0] == '#') field->src_addr = 0x1;    
+            /* Immediate addressing */
+        else if (operand[0] == '#') field->src_addr = 0x1;
 
-        /* Indirect register addressing */
+            /* Indirect register addressing */
         else if (operand[0] == '*') field->src_addr = 0x4; /*0b0100*/
 
-        /* Direct register addressing */
+            /* Direct register addressing */
         else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2 && operand[1] >= '0' && operand[1] <= '7')
             field->src_addr = 0x8; /*0b1000*/
 
-        /* Direct addressing (label) */
-        else field->src_addr =0x2; /*0b0010*/
+            /* Direct addressing (label) */
+        else field->src_addr = 0x2; /*0b0010*/
 
     } else if (src_dest == 2) { /* destination operand */
-        if (operand == NULL) field->dest_addr = 0x0;    
+        if (operand == NULL) field->dest_addr = 0x0;
 
-        /* Immediate addressing */
+            /* Immediate addressing */
         else if (operand[0] == '#') field->dest_addr = 0x1; /*0b0001*/
 
-        /* Indirect register addressing */
+            /* Indirect register addressing */
         else if (operand[0] == '*') field->dest_addr = 0x1;
-           
-        /* Direct register addressing */
+
+            /* Direct register addressing */
         else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2 && operand[1] >= '0' && operand[1] <= '7')
             field->dest_addr = 0x8; /*0b1000*/
 
-        /* Direct addressing (label) */
+            /* Direct addressing (label) */
         else field->dest_addr = 0x2; /*0b0010*/
     }
 }
@@ -412,14 +402,14 @@ void set_addressing_method(char *operand, command_word *field, int src_dest) {
 
     if (*head == NULL) return 1; /*nothing to free*/
 
-  /*  current = *head;
-    while (current != NULL) {
-        next = current->next;
-        safe_free(current);
-        current = next;
-    }
-    *head = NULL;
-    return 0;
+/*  current = *head;
+  while (current != NULL) {
+      next = current->next;
+      safe_free(current);
+      current = next;
+  }
+  *head = NULL;
+  return 0;
 }*/
 
 
@@ -433,36 +423,31 @@ void set_addressing_method(char *operand, command_word *field, int src_dest) {
  */
 int is_valid_operand(char *word, macro_ptr macro_table) {
     int i;
-    if(is_valid_command(word)!=-1) {
+    if (is_valid_command(word) != -1) {
         fprintf(stdout, "A command cannot be used as an operand");
         return 0; /*it is a command*/
-    }
-    else if(word[0]=='#'){ /*needs to be a number constant*/
-    /* Check for optional +- */
-        i=1;
+    } else if (word[0] == '#') { /*needs to be a number constant*/
+        /* Check for optional +- */
+        i = 1;
         if (word[1] == '-' || word[1] == '+') i = 2;
         for (; word[i] != '\0'; i++)
             if (!isdigit(word[i])) {
                 fprintf(stdout, "Invalid immediate operand, it after # must be a number\n");
                 return 0;
             }
-        if(i==2 && !isdigit(word[2])){
+        if (i == 2 && !isdigit(word[2])) {
             fprintf(stdout, "Invalid immediate operand, it after # must be a number\n");
             return 0;
         }
-    }
-
-    else if (word[0] == '*'){ /*needs to be a valid register*/
+    } else if (word[0] == '*') { /*needs to be a valid register*/
         if (!(strncmp(word, "r", 2) == 0 && strlen(word) == 3 && word[2] >= '0' && word[2] <= '7')) {
             fprintf(stdout, "%s is not a valid register\n", word);
             return 0;
         }
-    }
-    else if (is_macro_name_valid(word, macro_table) == 2) {
+    } else if (is_macro_name_valid(word, macro_table) == 2) {
         fprintf(stdout, "%s is a macro, invalid operand\n", word);
         return 0;
-    }
-    else { /*needs to be a valid label*/
+    } else { /*needs to be a valid label*/
         if (isalpha(word[0]) == 0) {
             fprintf(stdout, "%s is not a valid label, must start with a letter\n", word);
             return 0;
@@ -487,7 +472,7 @@ int is_valid_operand(char *word, macro_ptr macro_table) {
  */
 int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_table_head) {
     int i = 0;
-    char *used_registers[] = { "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7" }; /* register names */
+    char *used_registers[] = {"r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7"}; /* register names */
     symbols_list *current = symbols_table_head;
 
     /*remove colon*/
@@ -498,7 +483,7 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_t
         i++;
     }
     /*is it too long*/
-    if(i>MAX_LABEL_LENGTH) return -7;
+    if (i > MAX_LABEL_LENGTH) return -7;
 
     /*is it a command*/
     if (is_valid_command(word) != -1) return -1;
@@ -578,17 +563,17 @@ int add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
     symbols_ptr current, next;
     if (*head == NULL) return 1; /*nothing to free*/
 
- /*   current = *head;
-    while (current != NULL) {
-        next = current->next;
-        safe_free(current->name);
-        safe_free(current->type);
-        safe_free(current);
-        current = next;
-    }
-    *head = NULL;
+/*   current = *head;
+   while (current != NULL) {
+       next = current->next;
+       safe_free(current->name);
+       safe_free(current->type);
+       safe_free(current);
+       current = next;
+   }
+   *head = NULL;
 
-    return 0;
+   return 0;
 }*/
 
 /**
