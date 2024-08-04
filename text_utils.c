@@ -138,7 +138,7 @@ int comma_checker(char *line, char **word_ptr) {
     int commas = 0;
 
     /* Count commas, including those separated by whitespaces */
-    while (*p == ',' || *p == ' ' || *p == '\t') {
+    while (*p == ',' || isspace(*p)) {
         if (*p == ',') commas++;
         p++;
     }
@@ -152,36 +152,39 @@ int comma_checker(char *line, char **word_ptr) {
  * @param line The line of text to search for the next word.
  * @param word A pointer to a character array where the word will be stored.
  * @param word_ptr A pointer to a pointer to the current position in the line.
- * @return 0 if a word was found, -1 if the end of the line was reached, 1 if comma before word
+ *
+ * @return 0 if a word was found, -1 if the end of the line was reached,
+ *         1 if comma before word
  */
 int get_next_word(char *line, char *word, char **word_ptr) {
     char *p = *word_ptr;
     char *w = word;
 
-    /*Skip whitespaces*/
-    while (*p == ' ' || *p == '\t' || *p == '\0') {
-        if (*p == '\0') {
-            return -1; /*End of line*/
+    /* Skip whitespaces */
+    while (isspace(*p)) {
+        if (*p == '\n') {
+            return -1; /* End of line */
         }
         p++;
     }
 
-    /*Check for commas*/
+    /* Check if comma */
     if (*p == ',') {
         *word_ptr = p;
         return 1;
     }
 
     /*Get the word*/
-    while (*p && *p != ' ' && *p != '\t' && *p != ',' && *p != '\0') {
+    while (*p && !isspace(*p) && *p != ',') {
         *w++ = *p++;
         /*if (*(p - 1) == ':') break; /* label */
         /*depends on error handling, if there is no space after the label is that an error?*/
-
+        /* I think it is -yoni 04/08/24 */
     }
 
     *w = '\0';
     *word_ptr = p;
+
     return 0;
 }
 
