@@ -69,7 +69,7 @@ int is_valid_command(char *command) {
  * @param line The buffer to store the line.
  * @return 0 if successful, -1 otherwise.
  */
-int read_next_line(FILE *file, char **line) {
+int read_next_line(FILE *file, char *line) {
     char buffer[81];
 
     while (fgets(buffer, 81, file) != NULL
@@ -80,8 +80,8 @@ int read_next_line(FILE *file, char **line) {
     if (buffer[strlen(buffer) - 1] == '\n')
         buffer[strlen(buffer) - 1] = '\0';
 
-    safe_free(*line)
-    if (as_strdup(line, buffer) != 0) return -1;
+    safe_free(line)
+    if (as_strdup(&line, buffer) != 0) return -1;
 
     return 0;
 }
