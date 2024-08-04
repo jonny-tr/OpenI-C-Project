@@ -217,13 +217,13 @@ int entry_update(symbols_ptr symbol_table_head, char *word) {
  * @param fd pointer to the file
  * @param filename name of the file
  * @param symbol_table pointer to the symbol table
- * @param ext_ic expected ic value
+ * @param expected_ic expected ic value
  * @param dc value of dc
  * @return 0 if successful, -1 otherwise
  */
 int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
               variable_ptr variable_head, command_ptr cmd_list_head,
-              int ext_ic, int dc) {
+              int expected_ic, int dc) {
     char *line = NULL, *next_word = NULL, *ob_file = NULL, *ext_file = NULL,
         *ent_file = NULL; /* strings and filenames */
     int line_num = 0, ic = 0, *position = 0, error_flag = 0, allocation_flag = 0;
@@ -235,7 +235,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
     ext_file = as_strcat(filename, ".ext");
     ent_file = as_strcat(filename, ".ent");
 
-    while (read_next_line(fd, &line) != -1
+    while (read_next_line(fd, line) != -1
            || !feof(fd)
            || cmd_list->next != NULL) {
         line_num++;
@@ -273,7 +273,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
         }
     }
 
-    if (ic != ext_ic) {
+    if (ic != expected_ic) {
         fprintf(stdout, "Unknown error encountered during execution.\n"
                         "Review file %s.\n", filename);
         error_flag = 1;
