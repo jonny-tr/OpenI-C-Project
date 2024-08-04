@@ -1,10 +1,8 @@
 #include "assembler.h"
-include <limits.h>
-
 
 #define LINE_SIZE 81
 #define MAX_LABEL_LENGTH 31
-#define INVALID_INT INT_MIN
+
 
 #define CHECK_UNEXPECTED_COMMA(char_type, error_flag) \
     if ((char_type) == 1) { \
@@ -12,10 +10,8 @@ include <limits.h>
         (error_flag) = 1; \
         break; \
     }
-/*added check for commas where necessary, handling multiple .data and .extern in the same line, 
-    check valid data, check for lable length (31)*/
 
-/*@brief phase_one does builds the symbold and variables tables
+/*@brief phase_one does the first pass on the file and builds the symbold and variables tables
 
 @param fd the file after pre_assembler
 @param symbol_table the symbol table
@@ -31,24 +27,20 @@ int phase_one (FILE *fd, int IC, int DC,
             command_ptr command_table, macro_ptr macro_table) {
 
     char line[LINE_SIZE], word[LINE_SIZE], label_temp[LINE_SIZE];
-    char *word_ptr;
+    char *word_ptr, *label_temp_ptr = label_temp;
     int label_flag = 0, error_flag=0, expect_comma ; /*1 = on, 0 = off*/
-    int i, cmnd, word_type, data_temp, commas;
+    int i, cmnd, word_type, data_tmp, commas;
     int char_type; /* -1 line end, 0 word, 1 comma */
-    command_ptr new_field = (command_ptr *) malloc(sizeof(command_ptr));
-    if (new_field == NULL) {
-        fprintf(stdout, "Memory allocation for new command_word failed\n");
-        return -1; /*TODO: need to free memory and what yoni said */
-    }
-
+    command_ptr new_field = (command_ptr) malloc(sizeof(command_word));
+    if (new_field == NULL) {allocation_failure};
     while (read_next_line(fd, (char **)&line) != -1) {
         word_ptr = line;
-        while ((char_type = get_next_word(&line, &word, &word_ptr)) != -1) {
+        while ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
             CHECK_UNEXPECTED_COMMA(char_type, error_flag);
-            word_type = get_word_type(&word);
+            word_type = get_word_type(word);
             switch (word_type) {
                 case LABEL: /* TODO: I think errors need to include the file they were found in and the line number -yoni */
-                    switch (is_valid_label(word, *symbol_table, *macro_table)) {
+                    switch (is_valid_label(word, symbol_table, macro_table)) {
                         case -1:
                             fprintf(stdout, "Cannot use a command as a label\n");
                             error_flag = 1;
@@ -84,18 +76,18 @@ int phase_one (FILE *fd, int IC, int DC,
                             }
                             else{
                                 label_flag = 1;
-                                as_strdup(label_temp, word);
+                                as_strdup(&label_temp_ptr, word);
                             }
                             break;
-                    }
+                    } /*end label switch*/
 
                 case DATA:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        add_symbol(symbol_table, label_temp, DC, "data");
+                        if(add_symbol(&symbol_table, label_temp, DC, "data")==-1) {allocation_failure};
                     }
                     expect_comma = 0;
-                    while ((char_type=get_next_word(&line, &word, &word_ptr)) != -1 && word[0] != '\0') {
+                    while ((char_type=get_next_word(line, word, &word_ptr)) != -1 && word[0] != '\0') {
                         if(expect_comma==1){
                             commas=comma_checker(line, &word_ptr);
                             if(commas==0){
@@ -110,13 +102,13 @@ int phase_one (FILE *fd, int IC, int DC,
                             }
                             else expect_comma=0;
                         }
-                        data_temp = get_data_int(word);
-                        if (data_temp == INVALID_INT) {
+                        data_tmp = get_data_int(word);
+                        if (data_tmp == INVALID_INT) {
                             fprintf(stdout, "Invalid data\n");
                             error_flag = 1;
                             break;
                         }
-                        add_variable(&variable_table, data_tmp, DC);
+                        if(add_variable(&variable_table, twos_complement(data_tmp), DC)==-1) {allocation_failure};
                         DC++;
                         expect_comma = 1;
                     }
@@ -125,12 +117,12 @@ int phase_one (FILE *fd, int IC, int DC,
                 case STRING:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        add_symbol(symbol_table, label_temp, DC, "data");
+                        if(add_symbol(&symbol_table, label_temp, DC, "data")==-1) {allocation_failure};
                     }
-                    if (get_next_word(&line, &word, &word_ptr) != -1 && word[0] != '\0') {
+                    if (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
                         if (word[0] == '"' && word[strlen(word) - 1] == '"')
                             for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
-                                add_variable(&variable_table, word[i], DC);
+                                if(add_variable(&variable_table, get_ascii_value(word[i]), DC)==-1) {allocation_failure};
                                 DC++;
                             }
                         else {
@@ -142,7 +134,7 @@ int phase_one (FILE *fd, int IC, int DC,
                     break;
                 case EXTERN:
                     expect_comma = 0;
-                    while (get_next_word(&line, &word, &word_ptr) != -1 && word[0] != '\0') {
+                    while (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
                         if(expect_comma==1){
                             commas=comma_checker(line, &word_ptr);
                             if(commas==0){
@@ -157,16 +149,24 @@ int phase_one (FILE *fd, int IC, int DC,
                             }
                             else expect_comma=0;
                         }
-                        add_symbol(symbol_table, word, NULL, "external");
+                        if(add_symbol(&symbol_table, word, INVALID_INT, "external")==-1) {allocation_failure};
+                        /*continue adding allocation faliur for add_symbol and then for add_variable
+                        write free symbols and variable*/
                         expect_comma = 1;
                     }
                     break;
                 case ENTRY:
-                    if (is_valid_label(get_next_word(&line, &word, &word_ptr), *symbol_table, *macro_table) == 0) {
-                        add_symbol(symbol_table, word, IC + 100, "code");
-                        IC++;
+                    if(get_next_word(line, word, &word_ptr)==0){
+                        if(is_valid_label(word, symbol_table, macro_table)==0){
+                            if(add_symbol(&symbol_table, word, IC + 100, "code")==-1) {allocation_failure};
+                            IC++;
+                        }
+                        else {
+                            fprintf(stdout, "Invalid label for Entry\n");
+                            error_flag = 1;
+                        }
                     } else {
-                        fprintf(stdout, "Invalid label for Entry\n");
+                        fprintf(stdout, "Missing label for Entry\n");
                         error_flag = 1;
                     }
                     break;
@@ -180,11 +180,11 @@ int phase_one (FILE *fd, int IC, int DC,
                     }
                     if (label_flag == 1) {
                         label_flag = 0;
-                        add_symbol(symbol_table, label_temp, (IC + 100), "code");
+                        if(add_symbol(&symbol_table, label_temp, (IC + 100), "code")==-1) {allocation_failure};
                         IC++;
                     }
                     /*initialize new command_word*/
-                    init_command_word(&command_table, new_field);
+                    if(init_command_word(&command_table, &new_field)==-1) {allocation_failure};
                     set_command_opcode(new_field, cmnd);
                     switch (cmnd) {
                             /*two operands*/
@@ -194,7 +194,7 @@ int phase_one (FILE *fd, int IC, int DC,
                             case 3: /*sub*/
                             case 4: /*lea*/
                                 /*first operand*/
-                                if((char_type=get_next_word(&line, &word, &word_ptr)) != -1){
+                                if((char_type=get_next_word(line, word, &word_ptr)) != -1){
                                     CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                                     if (is_valid_operand(word, macro_table))
                                         set_addressing_method(word, new_field, 1);
@@ -209,15 +209,14 @@ int phase_one (FILE *fd, int IC, int DC,
                                     break;
                                 }
                                 /*check for propper commas*/
-                                if(comma_checker(&line, &word_ptr) != 1){
+                                if(comma_checker(line, &word_ptr) != 1){
                                     error_flag = 1;
                                     fprintf(stdout, "Invalid comma use\n");
                                     break;
                                 }
                                 
                                 /*second oeprand*/
-                                if((char_type=get_next_word(&line, &word, &word_ptr)) != -1){
-                                    CHECK_UNEXPECTED_COMMA(char_type, error_flag);
+                                if((char_type=get_next_word(line, word, &word_ptr)) != -1){
                                     if (is_valid_operand(word, macro_table))
                                         set_addressing_method(word, new_field, 2);
                                     else{
@@ -243,7 +242,7 @@ int phase_one (FILE *fd, int IC, int DC,
                             case 12: /*prn*/
                             case 13: /*jsr*/
                                 /*only destination operand*/
-                                if((char_type=get_next_word(&line, &word, &word_ptr)) != -1){
+                                if((char_type=get_next_word(line, word, &word_ptr)) != -1){
                                     CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                                     if (is_valid_operand(word, macro_table))
                                         set_addressing_method(word, new_field, 2);
@@ -264,13 +263,13 @@ int phase_one (FILE *fd, int IC, int DC,
                             case 15: /*stop*/
                                 break;
                         }
-                    new_field->l = calc_l(new_field, word);
+                    new_field->l = calc_l(new_field, cmnd);
                     IC += new_field->l;
             } /*end of switch*/
         } /*end of line while*/
         /***label_flag = 0;?***/
     }
-    end_phase_one_update_counter(symbol_table_head, IC);
+    end_phase_one_update_counter(&symbol_table, IC);
     if(error_flag == 1) return -1;
     return 0;
 }
@@ -281,19 +280,20 @@ int phase_one (FILE *fd, int IC, int DC,
  * @param head A pointer to the head of the linked list.
  * @param ptr A pointer to the newly created command word.
  *
- * @return void
+ * @return 0 on success, -1 on failure.
  */
-void init_command_word(command_ptr *head, command_ptr *ptr) {
+int init_command_word(command_ptr *head, command_ptr *ptr) {
     command_ptr new_node = (command_ptr) malloc(sizeof(command_word));
     if (new_node == NULL) {
         fprintf(stderr, "Memory allocation for new command_word failed\n");
-        return;
+        return -1;
     }
-    new_node->are = 0b100; /* automatically sets ARE to be 100 (only A) */
-    new_node->dest_addr = 0b0000;
-    new_node->src_addr = 0b0000;
-    new_node->opcode = 0b0000;
-    new_node->l = 0;
+
+    new_node->are = 0x4; /* 0b100 in binary *//* automatically sets ARE to be 100 (only A) */
+    new_node->dest_addr = 0x0; /* 0b0000 in binary */
+    new_node->src_addr = 0x0;  /* 0b0000 in binary */
+    new_node->opcode = 0x0;  /* 0b0000 in binary */
+    new_node->l = 0x0; /* 0b000 in binary */
     new_node->next = NULL;
 
     if (*head == NULL) { /* initialize the list */
@@ -306,6 +306,7 @@ void init_command_word(command_ptr *head, command_ptr *ptr) {
         temp->next = new_node;
     }
     *ptr = new_node;
+    return 0;
 }
 
 /**
@@ -322,8 +323,8 @@ int calc_l(command_word *field, int cmnd){
 
     /*commands with two operands*/
     /*check if both operands are registers: 0100 or 1000*/
-    else if ((field->src_addr == 0b0100 || field->src_addr == 0b1000) && 
-            (field->dest_addr == 0b0100 || field->dest_addr == 0b1000)) {
+    else if ((field->src_addr == 0x4 || field->src_addr == 0x8) && /*0b0100||0b1000*/
+         (field->dest_addr == 0x4 || field->dest_addr == 0x8)) { /*0b0100||0b1000*/
             return 1;
         }
         else return 2;
@@ -339,23 +340,22 @@ int calc_l(command_word *field, int cmnd){
  *
  */
 void set_command_opcode(command_word *field, int command) {
-    if (command == 0) field->opcode = 0b0000;       /*mov*/
-    else if (command == 1) field->opcode = 0b0001;  /*cmp*/
-    else if (command == 2) field->opcode = 0b0010;  /*add*/
-    else if (command == 3) field->opcode = 0b0011;  /*sub*/
-    else if (command == 4) field->opcode = 0b0100;  /*lea*/
-    else if (command == 5) field->opcode = 0b0101;  /*clr*/
-    else if (command == 6) field->opcode = 0b0110;  /*not*/
-    else if (command == 7) field->opcode = 0b0111;  /*inc*/
-    else if (command == 8) field->opcode = 0b1000;  /*dec*/
-    else if (command == 9) field->opcode = 0b1001;  /*jmp*/
-    else if (command == 10) field->opcode = 0b1010; /*bne*/
-    else if (command == 11) field->opcode = 0b1011; /*red*/
-    else if (command == 12) field->opcode = 0b1100; /*prn*/
-    else if (command == 13) field->opcode = 0b1101; /*jsr*/
-    else if (command == 14) field->opcode = 0b1110; /*rts*/
-    else if (command == 15) field->opcode = 0b1111; /*stop*/
-    /* else field->opcode = 0; // Invalid command, set to 0 */
+    if (command == 0) field->opcode = 0x0;       /* mov */
+    else if (command == 1) field->opcode = 0x1;  /* cmp */
+    else if (command == 2) field->opcode = 0x2;  /* add */
+    else if (command == 3) field->opcode = 0x3;  /* sub */
+    else if (command == 4) field->opcode = 0x4;  /* lea */
+    else if (command == 5) field->opcode = 0x5;  /* clr */
+    else if (command == 6) field->opcode = 0x6;  /* not */
+    else if (command == 7) field->opcode = 0x7;  /* inc */
+    else if (command == 8) field->opcode = 0x8;  /* dec */
+    else if (command == 9) field->opcode = 0x9;  /* jmp */
+    else if (command == 10) field->opcode = 0xA; /* bne */
+    else if (command == 11) field->opcode = 0xB; /* red */
+    else if (command == 12) field->opcode = 0xC; /* prn */
+    else if (command == 13) field->opcode = 0xD; /* jsr */
+    else if (command == 14) field->opcode = 0xE; /* rts */
+    else if (command == 15) field->opcode = 0xF; /* stop */
 }
 
 /**
@@ -367,69 +367,98 @@ void set_command_opcode(command_word *field, int command) {
  */
 void set_addressing_method(char *operand, command_word *field, int src_dest) {
     if (src_dest == 1) { /* source operand */
-        if (operand == NULL) field->src_addr = 0b0000;
+        if (operand == NULL) field->src_addr = 0x0;
 
         /* Immediate addressing */
-        else if (operand[0] == '#') field->src_addr = 0b0001;    
+        else if (operand[0] == '#') field->src_addr = 0x1;    
 
         /* Indirect register addressing */
-        else if (operand[0] == '*') field->src_addr = 0b0100;
+        else if (operand[0] == '*') field->src_addr = 0x4; /*0b0100*/
 
         /* Direct register addressing */
         else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2 && operand[1] >= '0' && operand[1] <= '7')
-            field->src_addr = 0b1000;
+            field->src_addr = 0x8; /*0b1000*/
 
         /* Direct addressing (label) */
-        else field->src_addr = 0b0010;
+        else field->src_addr =0x2; /*0b0010*/
 
     } else if (src_dest == 2) { /* destination operand */
-        if (operand == NULL) field->dest_addr = 0b0000;    
+        if (operand == NULL) field->dest_addr = 0x0;    
 
         /* Immediate addressing */
-        else if (operand[0] == '#') field->dest_addr = 0b0001;
+        else if (operand[0] == '#') field->dest_addr = 0x1; /*0b0001*/
 
         /* Indirect register addressing */
-        else if (operand[0] == '*') field->dest_addr = 0b0100;
+        else if (operand[0] == '*') field->dest_addr = 0x1;
            
         /* Direct register addressing */
         else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2 && operand[1] >= '0' && operand[1] <= '7')
-            field->dest_addr = 0b1000;
+            field->dest_addr = 0x8; /*0b1000*/
 
         /* Direct addressing (label) */
-        else field->dest_addr = 0b0010;
+        else field->dest_addr = 0x2; /*0b0010*/
     }
 }
+
+/**
+ * Frees the memory allocated for the linked list of command words.
+ *
+ * @param head A pointer to the head of the linked list.
+ * @return 0 if the function ran successfully, 1 if the head is NULL.
+ */
+/*yoni you wrote this in cleanup yeah?- shahar 30/07/24*/
+/*int free_command_words_list(command_ptr *head) {
+    command_ptr current, next;
+
+    if (*head == NULL) return 1; /*nothing to free*/
+
+  /*  current = *head;
+    while (current != NULL) {
+        next = current->next;
+        safe_free(current);
+        current = next;
+    }
+    *head = NULL;
+    return 0;
+}*/
+
 
 /**
  * Checks if the given word is a valid operand.
  *
  * @param word The word to be checked.
- * @return 0 if the word is a valid operand, -1 otherwise.
+ * @return 1 if the word is a valid operand, 0 otherwise.
  *
  * @throws None.
  */
 int is_valid_operand(char *word, macro_ptr macro_table) {
+    int i;
     if(is_valid_command(word)!=-1) {
         fprintf(stdout, "A command cannot be used as an operand");
         return 0; /*it is a command*/
     }
     else if(word[0]=='#'){ /*needs to be a number constant*/
     /* Check for optional +- */
+        i=1;
         if (word[1] == '-' || word[1] == '+') i = 2;
-        for (; operand[i] != '\0'; i++)
-            if (!isdigit(operand[i])) {
+        for (; word[i] != '\0'; i++)
+            if (!isdigit(word[i])) {
                 fprintf(stdout, "Invalid immediate operand, it after # must be a number\n");
                 return 0;
             }
-    }
-
-    else if (operand[0] == '*') /*needs to be a valid register*/
-        if (!(strncmp(operand, "r", 2) == 0 && strlen(operand) == 3 && operand[2] >= '0' && operand[2] <= '7')) {
-            fprintf(stdout, "%s is not a valid register\n", operand);
+        if(i==2 && !isdigit(word[2])){
+            fprintf(stdout, "Invalid immediate operand, it after # must be a number\n");
             return 0;
         }
+    }
 
-    else if (is_macro_name_valid(*word, macro_table_head) == 2) {
+    else if (word[0] == '*'){ /*needs to be a valid register*/
+        if (!(strncmp(word, "r", 2) == 0 && strlen(word) == 3 && word[2] >= '0' && word[2] <= '7')) {
+            fprintf(stdout, "%s is not a valid register\n", word);
+            return 0;
+        }
+    }
+    else if (is_macro_name_valid(word, macro_table) == 2) {
         fprintf(stdout, "%s is a macro, invalid operand\n", word);
         return 0;
     }
@@ -457,11 +486,14 @@ int is_valid_operand(char *word, macro_ptr macro_table) {
  *  0 if valid
  */
 int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_table_head) {
-    /*remove colon*/
     int i = 0;
-    while (label[i] != '\0') {
-        if (label[i] == ':') {
-            label[i] = '\0';
+    char *used_registers[] = { "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7" }; /* register names */
+    symbols_list *current = symbols_table_head;
+
+    /*remove colon*/
+    while (word[i] != '\0') {
+        if (word[i] == ':') {
+            word[i] = '\0';
         }
         i++;
     }
@@ -472,22 +504,19 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_t
     if (is_valid_command(word) != -1) return -1;
 
     /*is it an existing label*/
-    symbols_list *current = symbols_table_head;
     while (current != NULL) {
-        if (strcmp(name, current->name) == 0) {
+        if (strcmp(word, current->name) == 0) {
             return -2;
         }
         current = current->next;
     }
 
     /*is it a macro*/
-    if (is_macro_name_valid(*word, macro_table_head) == 2) return -3;
+    if (is_macro_name_valid(word, macro_table_head) == 2) return -3;
 
     /*is it a register*/
-    char *register[] = { "r0", "r1", "r2", "r3", "r4", "r5", "r6", "r7" }; /* register names */
-    int i;
     for (i = 0; i < 8; i++) {
-        if (strcmp(word, register[i]) == 0) return -4;
+        if (strcmp(word, used_registers[i]) == 0) return -4;
     }
 
     /*does it start with a non-alpha character*/
@@ -512,17 +541,18 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_t
  * @param name The name of the symbol.
  * @param counter IC or DC.
  * @param type The type of the symbol: external / entry / data / code 
+ * @return 0 on success, -1 on failure.
  *
  */
-void add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
+int add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
     symbols_ptr new_node = (symbols_ptr) malloc(sizeof(symbols_list));
     if (new_node == NULL) {
         fprintf(stdout, "Memory allocation for new symbol failed\n");
-        return;
+        return -1;
     }
     as_strdup(&new_node->name, name);
     as_strdup(&new_node->type, type);
-    new_node->counter = (strcmp(type, "external") == 0) ? NULL : counter; /*IC or DC*/
+    new_node->counter = (strcmp(type, "external") == 0) ? INVALID_INT : counter; /*IC or DC*/
     new_node->next = NULL;
 
     if (*head == NULL) { /*initialize the list*/
@@ -534,7 +564,32 @@ void add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
         }
         temp->next = new_node;
     }
+    return 0;
 }
+
+/**
+ * Frees the memory allocated for the linked list of symbols.
+ *
+ * @param head A pointer to the head of the linked list.
+ * @return 0 if the function ran successfully, 1 if the head is NULL.
+ */
+/*yoni you wrote this in cleanup yeah?- shahar 30/07/24*/
+/*int free_symbols_list(symbols_ptr *head) {
+    symbols_ptr current, next;
+    if (*head == NULL) return 1; /*nothing to free*/
+
+ /*   current = *head;
+    while (current != NULL) {
+        next = current->next;
+        safe_free(current->name);
+        safe_free(current->type);
+        safe_free(current);
+        current = next;
+    }
+    *head = NULL;
+
+    return 0;
+}*/
 
 /**
  * Updates the counter of all data symbols with IC+100.
@@ -545,7 +600,7 @@ void add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
 void end_phase_one_update_counter(symbols_ptr *head, int IC) {
     symbols_ptr temp = *head;
     while (temp != NULL) {
-        if (temp->type == "data") (temp->counter) += (IC + 100);
+        if (strcmp(temp->type, "data") == 0) temp->counter += IC + 100;
         temp = temp->next;
     }
 }
@@ -556,16 +611,16 @@ void end_phase_one_update_counter(symbols_ptr *head, int IC) {
  * @param head A pointer to the head of the variable linked list.
  * @param content The content of the variable.
  * @param counter DC
- * @return void
+ * @return 0 on success, -1 on failure.
  *
  */
-void add_variable(variable_t *head, char *content, int counter) {
+int add_variable(variable_t **head, int content, int counter) {
     variable_ptr new_node = (variable_ptr) malloc(sizeof(variable_ptr));
     if (new_node == NULL) {
         fprintf(stdout, "Memory allocation for new variable failed\n");
-        return;
+        return -1;
     }
-    as_strdup(&new_node->content, content);
+    new_node->content = content;
     new_node->counter = counter; /*DC*/
     new_node->next = NULL;
 
@@ -578,7 +633,26 @@ void add_variable(variable_t *head, char *content, int counter) {
         }
         temp->next = new_node;
     }
+    return 0;
 }
+
+/*yoni you wrote this in cleanup yeah?- shahar 30/07/24*/
+/*int free_variables_list(variable_ptr *head) {
+    variable_ptr current, next;
+    if (*head == NULL) return 1; /*nothing to free*/
+
+/*    current = *head;
+    while (current != NULL) {
+        next = current->next;
+        safe_free(current->content);
+        safe_free(current);
+        current = next;
+    }
+    *head = NULL;
+
+    return 0;
+}*/
+
 
 /**
  * Parses a string and returns the integer value of the number it represents.
