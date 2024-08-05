@@ -95,7 +95,7 @@ int read_next_part(FILE *as_fd, char **next_part);
 int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head);
 
 /* phase_one */
-int phase_one(FILE *fd, int IC, int DC,
+int phase_one(FILE *fd, char *filename, int *IC, int *DC,
               symbols_ptr symbol_table, variable_ptr variable_table,
               command_ptr command_table, macro_ptr macro_table);
 int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_table_head);
@@ -130,5 +130,8 @@ int free_macro_table(macro_ptr macro_table_head);
 int free_symbols_table(symbols_ptr symbols_list_head);
 int free_command_list(command_ptr command_list_head);
 int free_variable_list(variable_ptr variable_head);
+
+void free_all(macro_ptr macro_table_head, symbols_ptr symbols_list_head, 
+              variable_ptr var_list_head, command_ptr cmd_list_head);
 
 #endif /* ASSEMBLER_H */
