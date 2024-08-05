@@ -7,14 +7,14 @@
  * @return 0 if the program ran successfully, 1 if an error occurred
  */
 int main(int argc, char *argv[]) {
-    int i, dc = 0, ic = 0; /* counters */
+    int i; /* counter */
+    int *ic = 0, *dc = 0; /* counters */
     FILE *fd; /* file pointer */
     char *filename; /* filename */
     macro_ptr macro_table = NULL; /* macro table */
     symbols_ptr symbols_list = NULL; /* symbol list */
     variable_ptr variable_list = NULL; /* variable list */
     command_ptr command_list = NULL; /* command list */
-
 
     if (argc < 2) {
         fprintf(stdout, "Error: No files specified.\n");
@@ -42,7 +42,7 @@ int main(int argc, char *argv[]) {
         }
 
         phase_two(fd, argv[i], symbols_list, variable_list, command_list,
-                  ic, dc);
+                  *ic, *dc);
 
         cleanup:
         free_macro_table(macro_table);

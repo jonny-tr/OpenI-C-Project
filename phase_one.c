@@ -57,14 +57,18 @@ check max line number?*/
     }
 
 
-/** @brief phase_one does the first pass on the file
+/**
+ * @brief phase_one does the first pass on the file
  *         and builds the symbold and variables tables
+ *
  * @param fd the file after pre_assembler
- * @param symbol_table the symbol table
- * @param cmd_list_head the head of the command list
- * @param macro_table the macro table from pre_assembler
  * @param IC needs to be 0
  * @param DC needs to be 0
+ * @param symbol_table the symbol table
+ * @param variable_table the variable table
+ * @param macro_table the macro table from pre_assembler
+ * @param cmd_list_head the head of the command list
+ *
  * @return 0 on success, -1 on failure;
 */
 int phase_one(FILE *fd, char *filename, int* IC, int* DC,
@@ -81,8 +85,7 @@ int phase_one(FILE *fd, char *filename, int* IC, int* DC,
     if (new_field == NULL) { 
         phase_one_allocation_failure}
 
-    while (read_next_line(fd, (char **) &line) != -1) {
-        line_counter++;
+    while (read_next_line(fd, line) != -1) {
         word_ptr = line;
         while ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
             CHECK_UNEXPECTED_COMMA(char_type, error_flag);
@@ -369,8 +372,8 @@ int phase_one(FILE *fd, char *filename, int* IC, int* DC,
 /**
  * @brief Initializes a new command word and adds it to a linked list.
  *
- * @param head A pointer to the head of the linked list.
- * @param ptr A pointer to the newly created command word.
+ * @param head pointer to the head of the linked list.
+ * @param ptr pointer to the newly created command word.
  *
  * @return 0 on success, -1 on failure.
  */
@@ -425,8 +428,8 @@ int calc_l(command_word *field, int cmnd) {
  *
  * @param field Pointer to a command_word.
  * @param command The command afer is_valid_command, determine opcode from.
- * @return void
  *
+ * @return void
  */
 void set_command_opcode(command_word *field, int command) {
     if (command == 0) field->opcode = 0x0;       /* mov */
@@ -452,7 +455,9 @@ void set_command_opcode(command_word *field, int command) {
  *
  * @param operand The operand to be parsed, NULL if it is a command without operands.
  * @param field Pointer to the command_word struct.
- * @param src_dest 1 if source, 2 if destination .
+ * @param src_dest 1 if source, 2 if destination.
+ *
+ * @return void
  */
 void set_addressing_method(char *operand, command_word *field, int src_dest) {
     if (src_dest == 1) { /* source operand */
@@ -495,8 +500,10 @@ void set_addressing_method(char *operand, command_word *field, int src_dest) {
  * @brief Checks if the given word is a valid operand.
  *
  * @param word The word to be checked.
+ * @param macro_table The table of macros.
+ *
  * @return 1 if the word is a valid operand, -1 command, -2 invalid immediate #,
- * -3 invalid indirect register *, -4 macro, -5 invalid label 1st char, -6 invalid label
+ *         -3 invalid indirect register *, -4 macro, -5 invalid label 1st char, -6 invalid label
  *
  * @throws None.
  */
@@ -536,8 +543,11 @@ int is_valid_operand(char *word, macro_ptr macro_table) {
 
 /**
  * @brief checks if the label name is valid
- * @param name the name of the label
- * uses the macro and the symbols tables, needs access
+ *
+ * @param word the name of the label
+ * @param symbols_table_head the head of the symbols table
+ * @param macro_table_head the head of the macro table
+ *
  * @return -1 if command, -2 if label already exists, -3 if macro,
  *         -4 if register, -5 if doesn't start with a letter,
  *         -6 if isn't only letters and numbers, -7 if too long, 0 if valid
@@ -630,7 +640,9 @@ int add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
  * @brief Updates the counter of all data symbols with IC+100.
  *
  * @param head A pointer to the head of the symbol linked list.
- * @param IC IC
+ * @param IC IC counter
+ *
+ * @return void
  */
 void end_phase_one_update_counter(symbols_ptr *head, int IC) {
     symbols_ptr temp = *head;
@@ -642,13 +654,13 @@ void end_phase_one_update_counter(symbols_ptr *head, int IC) {
 }
 
 /**
- * @brief Adds a new variable to the variable linked list or initializes if needed.
+ * @brief Adds a new variable to the variable list or initializes it if needed.
  *
  * @param head A pointer to the head of the variable linked list.
  * @param content The content of the variable.
- * @param counter DC
- * @return 0 on success, -1 on failure.
+ * @param counter DC counter
  *
+ * @return 0 on success, -1 on failure.
  */
 int add_variable(variable_t **head, int content, int counter) {
     variable_ptr new_node = (variable_ptr) malloc(sizeof(variable_ptr));
@@ -675,6 +687,7 @@ int add_variable(variable_t **head, int content, int counter) {
  * @brief Parses a string and returns the integer value of the number it represents.
  *
  * @param word A pointer to the first character of the string to be parsed.
+ *
  * @return The integer value of the number represented by the string.
  *
  * @throws None.
