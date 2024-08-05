@@ -3,10 +3,15 @@
 #define LINE_SIZE 81
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: changed IC and CD to *IC and *DC
-added line_counter and updated error messages
-moved error messages from is_valid_operand to main function, wrote- HANDLE_OPERAND_ERROR macro
-next TODO: move prints from other helper functions to main*/
+/*updates for commit: wrote free_all, new allocation failure for phase 1, small derefrencing issues
+
+todo:add frees before allocation failure
+check max line number?*/
+#define phase_one_allocation_failure { \
+    fprintf(stdout, "Memory allocation failed.\n"); \
+    free_all(macro_table, symbol_table, variable_table, command_table); \
+    exit(EXIT_FAILURE); \
+}
 
 #define CHECK_UNEXPECTED_COMMA(char_type, error_flag) \
     if ((char_type) == 1) { \
@@ -73,7 +78,8 @@ int phase_one(FILE *fd, char *filename, int* IC, int* DC,
     int line_counter = 0;
     command_ptr new_field = (command_ptr) malloc(sizeof(command_word));
 
-    if (new_field == NULL) { allocation_failure };
+    if (new_field == NULL) { 
+        phase_one_allocation_failure}
 
     while (read_next_line(fd, (char **) &line) != -1) {
         line_counter++;
@@ -82,8 +88,7 @@ int phase_one(FILE *fd, char *filename, int* IC, int* DC,
             CHECK_UNEXPECTED_COMMA(char_type, error_flag);
             word_type = get_word_type(word);
             switch (word_type) {
-                case LABEL: /* TODO: I think errors need to include the file they were found in and the line number -yoni */
-                    /* TODO: correct, they should @shahar */
+                case LABEL:
                     switch (is_valid_label(word, symbol_table, macro_table)) {
                         case -1:
                             fprintf(stdout, "Error: line %d in %s.\n       " \
@@ -138,12 +143,13 @@ int phase_one(FILE *fd, char *filename, int* IC, int* DC,
                                 as_strdup(&label_temp_ptr, word);
                             }
                             break;
-                    } /*end label switch*/
+                    } /*end label case*/
 
                 case DATA:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(&symbol_table, label_temp, DC, "data") == -1) { allocation_failure };
+                        if (add_symbol(&symbol_table, label_temp, *DC, "data") == -1) { 
+                            phase_one_allocation_failure}
                     }
                     expect_comma = 0;
                     while ((char_type = get_next_word(line, word, &word_ptr)) != -1 && word[0] != '\0') {
@@ -171,8 +177,8 @@ int phase_one(FILE *fd, char *filename, int* IC, int* DC,
                             error_flag = 1;
                             break;
                         }
-                        if (add_variable(&variable_table, twos_complement(data_tmp), DC) == -1) { allocation_failure };
-                        *DC++;
+                        if (add_variable(&variable_table, twos_complement(data_tmp), *DC) == -1) { phase_one_allocation_failure };
+                        (*DC)++;
                         expect_comma = 1;
                     }
                     break;
@@ -180,14 +186,14 @@ int phase_one(FILE *fd, char *filename, int* IC, int* DC,
                 case STRING:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(&symbol_table, label_temp, DC, "data") == -1) { allocation_failure };
+                        if (add_symbol(&symbol_table, label_temp, *DC, "data") == -1) { phase_one_allocation_failure };
                     }
                     if (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
                         if (word[0] == '"' && word[strlen(word) - 1] == '"')
                             for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
-                                if (add_variable(&variable_table, get_ascii_value(word[i]), DC) ==
-                                    -1) { allocation_failure };
-                                *DC++;
+                                if (add_variable(&variable_table, get_ascii_value(word[i]), *DC) ==
+                                    -1) { phase_one_allocation_failure };
+                                (*DC)++;
                             }
                         else {
                             fprintf(stdout, "Error: line %d in %s.\n       " \
@@ -217,7 +223,7 @@ int phase_one(FILE *fd, char *filename, int* IC, int* DC,
                                 break;
                             } else expect_comma = 0;
                         }
-                        if (add_symbol(&symbol_table, word, INVALID_INT, "external") == -1) { allocation_failure };
+                        if (add_symbol(&symbol_table, word, INVALID_INT, "external") == -1) { phase_one_allocation_failure };
                         /*continue adding allocation faliur for add_symbol and then for add_variable
                         write free symbols and variable*/
                         expect_comma = 1;
@@ -226,8 +232,8 @@ int phase_one(FILE *fd, char *filename, int* IC, int* DC,
                 case ENTRY:
                     if (get_next_word(line, word, &word_ptr) == 0) {
                         if (is_valid_label(word, symbol_table, macro_table) == 0) {
-                            if (add_symbol(&symbol_table, word, IC + 100, "code") == -1) { allocation_failure };
-                            *IC++;
+                            if (add_symbol(&symbol_table, word, *IC + 100, "code") == -1) { phase_one_allocation_failure };
+                            (*IC)++;
                         } else {
                             fprintf(stdout, "Error: line %d in %s.\n       " \
                                                     "Invalid label for Entry.\n", \
@@ -253,11 +259,11 @@ int phase_one(FILE *fd, char *filename, int* IC, int* DC,
                     }
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(&symbol_table, label_temp, (IC + 100), "code") == -1) { allocation_failure };
-                        *IC++;
+                        if (add_symbol(&symbol_table, label_temp, (*IC + 100), "code") == -1) { phase_one_allocation_failure };
+                        (*IC)++;
                     }
                     /*initialize new command_word*/
-                    if (init_command_word(&command_table, &new_field) == -1) { allocation_failure };
+                    if (init_command_word(&command_table, &new_field) == -1) { phase_one_allocation_failure };
                     set_command_opcode(new_field, cmnd);
                     switch (cmnd) {
                         /*two operands*/
@@ -353,7 +359,7 @@ int phase_one(FILE *fd, char *filename, int* IC, int* DC,
         } /*end of line while*/
         /***label_flag = 0;?***/
     }
-    end_phase_one_update_counter(&symbol_table, IC);
+    end_phase_one_update_counter(&symbol_table, *IC);
 
     if (error_flag == 1) return -1;
 
@@ -371,10 +377,7 @@ int phase_one(FILE *fd, char *filename, int* IC, int* DC,
 int init_command_word(command_ptr *head, command_ptr *ptr) {
     command_ptr new_node = (command_ptr) malloc(sizeof(command_word));
 
-    if (new_node == NULL) {
-        fprintf(stderr, "Memory allocation for new command_word failed\n");
-        return -1;
-    }
+    if (new_node == NULL) return -1;
 
     new_node->are = 0x4; /* 0b100 in binary, automatically sets ARE to be 100 (only A) */
     new_node->dest_addr = 0x0; /* 0b0000 in binary */
@@ -604,10 +607,7 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
 int add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
     symbols_ptr new_node = (symbols_ptr) malloc(sizeof(symbols_list));
 
-    if (new_node == NULL) {
-        fprintf(stdout, "Memory allocation for new symbol failed\n");
-        return -1;
-    }
+    if (new_node == NULL) return -1;
 
     as_strdup(&new_node->name, name);
     as_strdup(&new_node->type, type);
@@ -653,10 +653,7 @@ void end_phase_one_update_counter(symbols_ptr *head, int IC) {
 int add_variable(variable_t **head, int content, int counter) {
     variable_ptr new_node = (variable_ptr) malloc(sizeof(variable_ptr));
 
-    if (new_node == NULL) {
-        fprintf(stdout, "Memory allocation for new variable failed\n");
-        return -1;
-    }
+    if (new_node == NULL) return -1;
 
     new_node->content = content;
     new_node->counter = counter; /*DC*/
@@ -697,10 +694,7 @@ int get_data_int(char *word) {
     /*read the number*/
     while (*word && *word != ' ' && *word != '\t'
             && *word != ',' && *word != '\0') {
-        if (!isdigit(*word)) {
-            fprintf(stdout, "Not a number\n");
-            return INVALID_INT;
-        }
+        if (!isdigit(*word)) return INVALID_INT;
         result = result * 10 + (*word - '0');
         word++;
     }
