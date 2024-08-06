@@ -10,7 +10,7 @@ check max line number?*/
 
 #define phase_one_allocation_failure \
     fprintf(stdout, "Memory allocation failed.\n"); \
-    free_all(macro_table, symbol_table, variable_table, command_table); \
+    free_all(macro_table, *symbol_table, variable_table, command_table); \
     exit(EXIT_FAILURE);
 
 #define CHECK_UNEXPECTED_COMMA(char_type, error_flag) \
@@ -72,7 +72,7 @@ check max line number?*/
  * @return 0 on success, -1 on failure;
 */
 int phase_one(FILE *fd, char *filename, int *IC, int *DC,
-              symbols_ptr symbol_table, variable_ptr variable_table,
+              symbols_ptr *symbol_table, variable_ptr variable_table,
               command_ptr command_table, macro_ptr macro_table) {
     char line[LINE_SIZE], word[LINE_SIZE]; /* buffers */
     char *word_ptr, *label_temp_ptr = NULL; /* pointers */
@@ -94,7 +94,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
             word_type = get_word_type(word);
             switch (word_type) {
                 case LABEL:
-                    switch (is_valid_label(word, symbol_table, macro_table)) {
+                    switch (is_valid_label(word, *symbol_table, macro_table)) {
                         case -1:
                             fprintf(stdout, "Error: line %d in %s.\n       "
                                             "Cannot use a command as a label.\n",
@@ -158,7 +158,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                 case DATA:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(&symbol_table, label_temp_ptr,
+                        if (add_symbol(*symbol_table, label_temp_ptr,
                                        *DC, "data") == -1) {
                             phase_one_allocation_failure
                         }
@@ -202,7 +202,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                 case STRING:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(&symbol_table, label_temp_ptr, *DC, "data")
+                        if (add_symbol(*symbol_table, label_temp_ptr, *DC, "data")
                             == -1) {
                             phase_one_allocation_failure
                         }
@@ -244,7 +244,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                                 break;
                             } else expect_comma = 0;
                         }
-                        if (add_symbol(&symbol_table, word,
+                        if (add_symbol(*symbol_table, word,
                                        INVALID_INT, "external") == -1) {
                             phase_one_allocation_failure
                         }
@@ -255,8 +255,8 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                     break;
                 case ENTRY:
                     if (get_next_word(line, word, &word_ptr) == 0) {
-                        if (is_valid_label(word, symbol_table, macro_table) == 0) {
-                            if (add_symbol(&symbol_table, word, *IC + 100, "code") ==
+                        if (is_valid_label(word, *symbol_table, macro_table) == 0) {
+                            if (add_symbol(*symbol_table, word, *IC + 100, "code") ==
                                 -1) {
                                 phase_one_allocation_failure
                             }
@@ -286,7 +286,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                     }
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(&symbol_table, label_temp_ptr, (*IC + 100), "code") ==
+                        if (add_symbol(*symbol_table, label_temp_ptr, (*IC + 100), "code") ==
                             -1) {
                             phase_one_allocation_failure
                         }
@@ -391,7 +391,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
         } /*end of line while*/
         /***label_flag = 0;?***/
     }
-    end_phase_one_update_counter(&symbol_table, *IC);
+    end_phase_one_update_counter(*symbol_table, *IC);
 
     if (error_flag == 1) return -1;
 
@@ -644,20 +644,22 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
  *
  * @return 0 on success, -1 on failure.
  */
-int add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
-    symbols_ptr new_node = (symbols_ptr) malloc(sizeof(symbols_list));
+int add_symbol(symbols_ptr head, char *name, int counter, char *type) {
+    symbols_ptr temp, new_node = (symbols_ptr) malloc(sizeof(symbols_list));
+    /* symbol nodes */
 
     if (new_node == NULL) return -1;
 
     as_strdup(&new_node->name, name);
     as_strdup(&new_node->type, type);
-    new_node->counter = (strcmp(type, "external") == 0) ? INVALID_INT : counter; /*IC or DC*/
+    new_node->counter = (strcmp(type, "external") == 0) ?
+                        INVALID_INT : counter; /*IC or DC*/
     new_node->next = NULL;
 
-    if (*head == NULL) { /*initialize the list*/
-        *head = new_node;
+    if (head == NULL) { /*initialize the list*/
+        head = new_node;
     } else {
-        symbols_ptr temp = *head;
+        temp = head;
         while (temp->next != NULL) {
             temp = temp->next;
         }
@@ -674,8 +676,8 @@ int add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
  *
  * @return void
  */
-void end_phase_one_update_counter(symbols_ptr *head, int IC) {
-    symbols_ptr temp = *head;
+void end_phase_one_update_counter(symbols_ptr head, int IC) {
+    symbols_ptr temp = head;
 
     while (temp != NULL) {
         if (strcmp(temp->type, "data") == 0) temp->counter += IC + 100;
