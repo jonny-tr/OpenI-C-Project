@@ -78,7 +78,7 @@ int read_next_word(const char line[], int *position, char **next_part);
 
 /*add from shahar's changes*/
 int get_next_word(char *line, char *word, char **word_ptr);
-int get_word_type(char *position);
+int get_word_type(char *word);
 int command_to_num(command_word cmd);
 int twos_complement(int num);
 int comma_checker(char *line, char **word_ptr);
