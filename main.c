@@ -36,8 +36,8 @@ int main(int argc, char *argv[]) {
             goto cleanup; /* skip */
         }
 
-        if ((phase_one(fd, argv[i],&ic, &dc, symbols_list, variable_list, command_list,
-                       macro_table)) == -1) {
+        if ((phase_one(fd, argv[i], ic, dc, symbols_list, variable_list,
+                       command_list, macro_table)) == -1) {
             goto cleanup;
         }
 
