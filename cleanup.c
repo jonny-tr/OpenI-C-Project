@@ -92,12 +92,14 @@ int free_command_list(command_ptr cmd_list_head) {
  * @param var_list_head The head of the variable list.
  * @param cmd_list_head The head of the command list.
  * 
- * should it return something?
+ * return 0
  */
-void free_all(macro_ptr macro_table_head, symbols_ptr symbols_list_head, \
-            variable_ptr var_list_head, command_ptr cmd_list_head){
+int free_all(macro_ptr macro_table_head, symbols_ptr symbols_list_head,
+            variable_ptr var_list_head, command_ptr cmd_list_head) {
     free_macro_table(macro_table_head);
     free_symbols_table(symbols_list_head);
     free_variable_list(var_list_head);
     free_command_list(cmd_list_head);
+
+    return 0;
 }
