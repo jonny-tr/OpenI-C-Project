@@ -4,7 +4,6 @@
 #define MAX_LABEL_LENGTH 31
 
 /*updates for commit: wrote free_all, new allocation failure for phase 1, small derefrencing issues
-
 todo:add frees before allocation failure
 check max line number?*/
 
@@ -31,7 +30,7 @@ check max line number?*/
             break; \
         case -2: \
             fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid immediate operand, it after # must be a number.\n",\
+                "Invalid immediate operand, after # must follow a number.\n",\
                 line_counter, filename);\
             break; \
         case -3: \
@@ -46,13 +45,15 @@ check max line number?*/
             break; \
         case -5: \
             fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid label, it must start with a letter.\n",\
+                "Invalid label name, must start with a letter.\n",\
                 line_counter, filename);\
             break; \
         case -6: \
             fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid label, it must only contain letters and numbers.\n",\
+                "Invalid label name, must only contain letters and numbers.\n",\
                 line_counter, filename);\
+            break;                      \
+        default: \
             break; \
     }
 
@@ -164,7 +165,8 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                         }
                     }
                     expect_comma = 0;
-                    while ((char_type = get_next_word(line, word, &word_ptr)) != -1 && word[0] != '\0') {
+                    while ((char_type = get_next_word(line, word, &word_ptr)) != -1
+                            && word[0] != '\0') {
                         if (expect_comma == 1) {
                             commas = comma_checker(line, &word_ptr);
                             if (commas == 0) {
@@ -274,7 +276,6 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                         error_flag = 1;
                     }
                     break;
-
                 case COMMAND:
                     cmnd = is_valid_command(word);
                     if (cmnd == -1) {
@@ -384,11 +385,24 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                         case 14: /*rts*/
                         case 15: /*stop*/
                             break;
-                    }
-                    new_field->l = calc_l(new_field, cmnd);
-                    *IC += new_field->l;
-            } /*end of switch*/
-        } /*end of line while*/
+                    } /* end of cmnd switch */
+                case ERROR:
+                    fprintf(stdout, "Error: line %d in %s.\n       "
+                                    "Invalid command.\n",
+                            line_counter, filename);
+                    error_flag = 1;
+                    break;
+                case -2: /* Space before : error */
+                    fprintf(stdout, "Error: line %d in %s.\n       "
+                                    "Label cannot end with a whitespace.\n",
+                            line_counter, filename);
+                    error_flag = 1;
+                    break;
+                new_field->l = calc_l(new_field, cmnd);
+                *IC += new_field->l;
+            } /*end of word_type switch*/
+        } /* end of line while */
+            /* @shahar, this is the end of the next_word loop, is it supposed to include anything else? */
         /***label_flag = 0;?***/
     }
     end_phase_one_update_counter(*symbol_table, *IC);
@@ -461,7 +475,7 @@ int calc_l(command_word *field, int cmnd) {
  * @return void
  */
 void set_command_opcode(command_word *field, int command) {
-    /* TODO: don't you want it to be a switch case? */
+    /* TODO: don't you want it to be a switch case? @shahar */
     if (command == 0) field->opcode = 0x0;       /* mov */
     else if (command == 1) field->opcode = 0x1;  /* cmp */
     else if (command == 2) field->opcode = 0x2;  /* add */
