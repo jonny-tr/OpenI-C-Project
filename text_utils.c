@@ -190,22 +190,21 @@ int get_next_word(char *line, char *word, char **word_ptr) {
 }
 
 int get_word_type(char *word) {
-    /*comment for future shahar: 
-    add check if there is a space before ":" to add the proper error message*/
     int i = 0;
 
     if (strcmp(word, ".data") == 0) return DATA;
     if (strcmp(word, ".string") == 0) return STRING;
     if (strcmp(word, ".entry") == 0) return ENTRY;
     if (strcmp(word, ".extern") == 0) return EXTERN;
-    if (word[i] == '.') {
-        fprintf(stdout, "Invalid command\n");
-        return ERROR;
-    }
+    if (word[i] == '.') return ERROR;
+
     while (word[i] != '\0') i++;
-    if (i >= 1 && word[i-1] == ':') return LABEL;
-    /*if(is_valid_command(word)!=-1)*/ return COMMAND;
-    /*return OPERAND;*/
+    if (i >= 2 && word[i-1] == ':') {
+        if (isspace(word[i-2])) return -2;
+        return LABEL;
+    }
+    if(is_valid_command(word)!=-1) return COMMAND;
+    return OPERAND;
 }
 
 /**
