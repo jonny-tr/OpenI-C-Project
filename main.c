@@ -7,8 +7,8 @@
  * @return 0 if the program ran successfully, 1 if an error occurred
  */
 int main(int argc, char *argv[]) {
-    int i; /* counter */
-    int *ic = 0, *dc = 0; /* counters */
+    int i, instruction_counter = 0, data_counter = 0; /* counter */
+    int *ic = &instruction_counter, *dc = &data_counter; /* counters */
     FILE *fd; /* file pointer */
     char *filename; /* filename */
     macro_ptr macro_table = NULL; /* macro table */

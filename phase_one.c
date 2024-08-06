@@ -63,8 +63,8 @@ check max line number?*/
  *         and builds the symbold and variables tables
  *
  * @param fd the file after pre_assembler
- * @param IC needs to be 0
- * @param DC needs to be 0
+ * @param ic needs to be 0
+ * @param dc needs to be 0
  * @param symbol_table the symbol table
  * @param variable_table the variable table
  * @param macro_table the macro table from pre_assembler
@@ -72,7 +72,7 @@ check max line number?*/
  *
  * @return 0 on success, -1 on failure;
 */
-int phase_one(FILE *fd, char *filename, int *IC, int *DC,
+int phase_one(FILE *fd, char *filename, int *ic, int *dc,
               symbols_ptr *symbol_table, variable_ptr variable_table,
               command_ptr command_table, macro_ptr macro_table) {
     char line[LINE_SIZE], word[LINE_SIZE]; /* buffers */
@@ -139,14 +139,14 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                                             "a label and its content shoult "
                                             "not exceed %d characters.\n",
                                     line_counter, filename,
-                                    MAX_LABEL_LENGTH-1);
+                                    MAX_LABEL_LENGTH);
                             error_flag = 1;
                             break;
                         case 0: /* valid label */
                             if (label_flag == 1) {
                                 fprintf(stdout, "Error: line %d in %s.\n"
-                                                "       Cannot use two labels"
-                                                " at once.\n",
+                                                "       Cannot use two labels "
+                                                "at once.\n",
                                         line_counter, filename);
                                 error_flag = 1;
                             } else {
@@ -160,7 +160,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                     if (label_flag == 1) {
                         label_flag = 0;
                         if (add_symbol(*symbol_table, label_temp_ptr,
-                                       *DC, "data") == -1) {
+                                       *dc, "data") == -1) {
                             phase_one_allocation_failure
                         }
                     }
@@ -193,10 +193,10 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                         }
                         if (add_variable(&variable_table,
                                          twos_complement(data_tmp),
-                                         *DC) == -1) {
+                                         *dc) == -1) {
                             phase_one_allocation_failure
                         }
-                        (*DC)++;
+                        (*dc)++;
                         expect_comma = 1;
                     }
                     break;
@@ -204,7 +204,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                 case STRING:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(*symbol_table, label_temp_ptr, *DC, "data")
+                        if (add_symbol(*symbol_table, label_temp_ptr, *dc, "data")
                             == -1) {
                             phase_one_allocation_failure
                         }
@@ -212,11 +212,11 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                     if (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
                         if (word[0] == '"' && word[strlen(word) - 1] == '"')
                             for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
-                                if (add_variable(&variable_table, get_ascii_value(word[i]), *DC) ==
+                                if (add_variable(&variable_table, get_ascii_value(word[i]), *dc) ==
                                     -1) {
                                     phase_one_allocation_failure
                                 }
-                                (*DC)++;
+                                (*dc)++;
                             }
                         else {
                             fprintf(stdout, "Error: line %d in %s.\n       " \
@@ -258,11 +258,11 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                 case ENTRY:
                     if (get_next_word(line, word, &word_ptr) == 0) {
                         if (is_valid_label(word, *symbol_table, macro_table) == 0) {
-                            if (add_symbol(*symbol_table, word, *IC + 100, "code") ==
+                            if (add_symbol(*symbol_table, word, *ic + 100, "code") ==
                                 -1) {
                                 phase_one_allocation_failure
                             }
-                            (*IC)++;
+                            (*ic)++;
                         } else {
                             fprintf(stdout, "Error: line %d in %s.\n       "
                                                     "Invalid label for Entry.\n",
@@ -271,7 +271,8 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                         }
                     } else {
                         fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Missing label for Entry.\n",
+                                                    "Missing label for .entry "
+                                                    "command.\n",
                                                     line_counter, filename);
                         error_flag = 1;
                     }
@@ -287,11 +288,11 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                     }
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(*symbol_table, label_temp_ptr, (*IC + 100), "code") ==
+                        if (add_symbol(*symbol_table, label_temp_ptr, (*ic + 100), "code") ==
                             -1) {
                             phase_one_allocation_failure
                         }
-                        (*IC)++;
+                        (*ic)++;
                     }
                     /*initialize new command_word*/
                     if (init_command_word(&command_table, &new_field) == -1) {
@@ -403,14 +404,14 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                     error_flag = 1;
                     break;
                 new_field->l = calc_l(new_field, cmnd);
-                *IC += new_field->l;
+                *ic += new_field->l;
             } /*end of word_type switch*/
         } /* end of line while */
             /* @shahar, this is not the end of line while, its the next_word loop,
              * is it supposed to include anything else? */
         /***label_flag = 0;?***/
     }
-    end_phase_one_update_counter(*symbol_table, *IC);
+    end_phase_one_update_counter(*symbol_table, *ic);
 
     if (error_flag == 1) return -1;
 
@@ -653,7 +654,7 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
  *
  * @param head A pointer to the head of the symbol table linked list.
  * @param name The name of the symbol.
- * @param counter IC or DC.
+ * @param counter value of IC or DC.
  * @param type The type of the symbol: external / entry / data / code
  *
  * @return 0 on success, -1 on failure.
@@ -676,11 +677,10 @@ int add_symbol(symbols_ptr head, char *name, int counter, char *type) {
         head = new_node;
     } else {
         temp = head;
-        while (temp->next != NULL) {
-            temp = temp->next;
-        }
+        while (temp->next != NULL) temp = temp->next;
         temp->next = new_node;
     }
+
     return 0;
 }
 
