@@ -203,7 +203,7 @@ int get_word_type(char *word) {
         return ERROR;
     }
     while (word[i] != '\0') i++;
-    if (word[i] == ':') return LABEL;
+    if (i >= 1 && word[i-1] == ':') return LABEL;
     /*if(is_valid_command(word)!=-1)*/ return COMMAND;
     /*return OPERAND;*/
 }
