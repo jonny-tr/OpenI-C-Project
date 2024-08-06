@@ -351,7 +351,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                             }
                             break;
 
-                            /*one operand*/
+                        /*one operand*/
                         case 5: /*clr*/
                         case 6: /*not*/
                         case 7: /*inc*/
@@ -380,10 +380,14 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                                 break;
                             }
                             break;
-
-                            /*no operands - already taken care of*/
+                            /* no operands - handeled in a different area */
                         case 14: /*rts*/
                         case 15: /*stop*/
+                            break;
+                        default:
+                            fprintf(stdout, "Unknown error: line %d in %s.\n",
+                                    line_counter, filename);
+                            error_flag = 1;
                             break;
                     } /* end of cmnd switch */
                 case ERROR:
@@ -402,7 +406,8 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                 *IC += new_field->l;
             } /*end of word_type switch*/
         } /* end of line while */
-            /* @shahar, this is the end of the next_word loop, is it supposed to include anything else? */
+            /* @shahar, this is not the end of line while, its the next_word loop,
+             * is it supposed to include anything else? */
         /***label_flag = 0;?***/
     }
     end_phase_one_update_counter(*symbol_table, *IC);
@@ -455,15 +460,12 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
  */
 int calc_l(command_word *field, int cmnd) {
     if (cmnd == 14 || cmnd == 15) return 0; /*command without operands*/
-    else if (cmnd >= 5 && cmnd <= 13) return 1; /*command with one operand*/
-
-        /*commands with two operands*/
-        /*check if both operands are registers: 0100 or 1000*/
-    else if ((field->src_addr == 0x4 || field->src_addr == 0x8) && /*0b0100||0b1000*/
-             (field->dest_addr == 0x4 || field->dest_addr == 0x8)) { /*0b0100||0b1000*/
+    /* one operand or both operands are registers: 0100 or 1000*/
+    else if ((cmnd >= 5 && cmnd <= 13)
+            || ((field->src_addr == 0x4 || field->src_addr == 0x8) /*0b0100||0b1000*/
+                && (field->dest_addr == 0x4 || field->dest_addr == 0x8))) /*0b0100||0b1000*/ {
         return 1;
     } else return 2;
-
 }
 
 /**
@@ -524,11 +526,9 @@ void set_addressing_method(char *operand, command_word *field, int src_dest) {
     } else if (src_dest == 2) { /* destination operand */
         if (operand == NULL) field->dest_addr = 0x0;
 
-            /* Immediate addressing */
-        else if (operand[0] == '#') field->dest_addr = 0x1; /*0b0001*/
-
-            /* Indirect register addressing */
-        else if (operand[0] == '*') field->dest_addr = 0x1;
+            /* Immediate addressing or indirect register addressing */
+        else if (operand[0] == '#' || operand[0] == '*')
+            field->dest_addr = 0x1; /*0b0001*/
 
             /* Direct register addressing */
         else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2
@@ -659,13 +659,15 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
  * @return 0 on success, -1 on failure.
  */
 int add_symbol(symbols_ptr head, char *name, int counter, char *type) {
-    symbols_ptr temp, new_node = (symbols_ptr) malloc(sizeof(symbols_list));
+    symbols_ptr temp, new_node = NULL;
     /* symbol nodes */
 
+    new_node = (symbols_ptr) malloc(sizeof(symbols_list));
     if (new_node == NULL) return -1;
 
     as_strdup(&new_node->name, name);
     as_strdup(&new_node->type, type);
+
     new_node->counter = (strcmp(type, "external") == 0) ?
                         INVALID_INT : counter; /*IC or DC*/
     new_node->next = NULL;
