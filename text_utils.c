@@ -80,8 +80,9 @@ int read_next_line(FILE *file, char *line) {
     if (buffer[strlen(buffer) - 1] == '\n')
         buffer[strlen(buffer) - 1] = '\0';
 
-    safe_free(line)
-    if (as_strdup(&line, buffer) != 0) return -1;
+    memcpy(line, buffer, strlen(buffer) + 1);
+    /*safe_free(line)
+    if (as_strdup(&line, buffer) != 0) return -1;*/
 
     return 0;
 }
