@@ -227,6 +227,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                         }
                     }
                     break;
+
                 case EXTERN:
                     expect_comma = 0;
                     while (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
@@ -255,6 +256,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                         expect_comma = 1;
                     }
                     break;
+
                 case ENTRY:
                     if (get_next_word(line, word, &word_ptr) == 0) {
                         if (is_valid_label(word, *symbol_table, macro_table) == 0) {
@@ -277,6 +279,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                         error_flag = 1;
                     }
                     break;
+
                 case COMMAND:
                     cmnd = is_valid_command(word);
                     if (cmnd == -1) {
@@ -391,6 +394,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             error_flag = 1;
                             break;
                     } /* end of cmnd switch */
+
                 case ERROR:
                     fprintf(stdout, "Error: line %d in %s.\n       "
                                     "Invalid command.\n",
@@ -403,11 +407,17 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             line_counter, filename);
                     error_flag = 1;
                     break;
+
+                default:
+                    fprintf(stdout, "Unknown error: line %d in %s.\n",
+                            line_counter, filename);
+                    error_flag = 1;
+                    break;
                 new_field->l = calc_l(new_field, cmnd);
                 *ic += new_field->l;
             } /*end of word_type switch*/
         } /* end of line while */
-            /* @shahar, this is not the end of line while, its the next_word loop,
+            /* @shahar, this is not the end of line while, it's the next_word loop,
              * is it supposed to include anything else? */
         /***label_flag = 0;?***/
     }
@@ -599,18 +609,13 @@ int is_valid_operand(char *word, macro_ptr macro_table) {
  */
 int is_valid_label(char *word, symbols_ptr symbols_table_head,
                    macro_ptr macro_table_head) {
-    int i = 0;
-    char *used_registers[] = {"r0", "r1", "r2", "r3", "r4",
-                              "r5", "r6", "r7"}; /* register names */
-    symbols_list *current = symbols_table_head;
+    int i = (int) strlen(word);
+    char *registers[] = {"r0", "r1", "r2", "r3", "r4",
+                         "r5", "r6", "r7"}; /* register names */
+    symbols_ptr current = symbols_table_head;
 
-    /*remove colon*/
-    while (word[i] != '\0') {
-        if (word[i] == ':') {
-            word[i] = '\0';
-        }
-        i++;
-    }
+    /* remove colon */
+    if (word[i - 1] == ':') word[i - 1] = '\0';
 
     /*is it too long*/
     if (i > MAX_LABEL_LENGTH) return -7;
@@ -618,7 +623,7 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
     /*is it a command*/
     if (is_valid_command(word) != -1) return -1;
 
-    /*is it an existing label*/
+    /* is it an existing label */
     while (current != NULL) {
         if (strcmp(word, current->name) == 0) {
             return -2;
@@ -631,7 +636,7 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
 
     /*is it a register*/
     for (i = 0; i < 8; i++) {
-        if (strcmp(word, used_registers[i]) == 0) return -4;
+        if (strcmp(word, registers[i]) == 0) return -4;
     }
 
     /*does it start with a non-alpha character*/
@@ -647,8 +652,6 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
     return 0; /*valid*/
 }
 
-/*counter is IC*/
-
 /**
  * @brief Adds a new symbol to the symbol table or initializes if needed
  *
@@ -660,8 +663,7 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
  * @return 0 on success, -1 on failure.
  */
 int add_symbol(symbols_ptr head, char *name, int counter, char *type) {
-    symbols_ptr temp, new_node = NULL;
-    /* symbol nodes */
+    symbols_ptr temp, new_node = NULL; /* symbol nodes */
 
     new_node = (symbols_ptr) malloc(sizeof(symbols_list));
     if (new_node == NULL) return -1;
@@ -670,10 +672,10 @@ int add_symbol(symbols_ptr head, char *name, int counter, char *type) {
     as_strdup(&new_node->type, type);
 
     new_node->counter = (strcmp(type, "external") == 0) ?
-                        INVALID_INT : counter; /*IC or DC*/
+                        INVALID_INT : counter; /* IC or DC */
     new_node->next = NULL;
 
-    if (head == NULL) { /*initialize the list*/
+    if (head == NULL) { /* initializes the list */
         head = new_node;
     } else {
         temp = head;
