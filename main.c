@@ -36,12 +36,12 @@ int main(int argc, char *argv[]) {
             goto cleanup; /* skip */
         }
 
-        if ((phase_one(fd, argv[i], ic, dc, &symbols_list, variable_list,
+        if ((phase_one(fd, filename, ic, dc, &symbols_list, variable_list,
                        command_list, macro_table)) == -1) {
             goto cleanup;
         }
 
-        phase_two(fd, argv[i], symbols_list, variable_list, command_list,
+        phase_two(fd, filename, symbols_list, variable_list, command_list,
                   *ic, *dc);
 
         cleanup:
