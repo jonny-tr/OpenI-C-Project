@@ -3,7 +3,6 @@
 *.bkp
 executable
 *.am
-*.as
 *.xml
 *.json
 *.dtmp
