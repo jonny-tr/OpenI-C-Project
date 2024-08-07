@@ -409,7 +409,7 @@ int pre_assembler(char **fd, macro_ptr macro_table_head) {
     as_fd = fopen(in_fd, "r");
     if (as_fd == NULL) {
         fprintf(stdout, "Error: Could not open file %s.\n", in_fd);
-        return 1;
+        return -1;
     }
 
     switch (macro_parser(as_fd, in_fd, &macro_table_head)) {
