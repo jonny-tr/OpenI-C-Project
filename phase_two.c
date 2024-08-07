@@ -28,6 +28,27 @@ int build_ent(FILE *ent_fd, symbols_ptr symbol_table) {
 }
 
 /**
+ * @brief builds the ext file
+ *
+ * @param ext_fd a pointer to the ent file
+ * @param symbol_table a pointer to the symbol table
+ *
+ * @return 0
+ */
+int build_ext(FILE *ext_fd, symbols_ptr symbol_table) {
+    symbols_ptr current = symbol_table;
+
+    while (current != NULL) {
+        if (strcmp(current->type, "extenal") == 0) {
+            fprintf(ext_fd, "%s %d\n", current->name, current->counter);
+        }
+        current = current->next;
+    }
+
+    return 0;
+}
+
+/**
  * @brief builds the object file
  *
  * @param ob_fd pointer to the object file
@@ -40,8 +61,8 @@ int build_ent(FILE *ent_fd, symbols_ptr symbol_table) {
 int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
              int ic, int dc) {
     int i; /* counter */
-    command_ptr current_cmd = command_head;
-    variable_ptr current_var = variable_head;
+    command_ptr current_cmd = command_head; /* current command */
+    variable_ptr current_var = variable_head; /* current variable */
 
     fprintf(ob_fd, "   %d %d\n", ic, dc);
 

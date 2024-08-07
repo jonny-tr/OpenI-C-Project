@@ -4,13 +4,12 @@
 #define MAX_LABEL_LENGTH 31
 
 /*updates for commit: wrote free_all, new allocation failure for phase 1, small derefrencing issues
-
 todo:add frees before allocation failure
 check max line number?*/
 
 #define phase_one_allocation_failure \
     fprintf(stdout, "Memory allocation failed.\n"); \
-    free_all(macro_table, symbol_table, variable_table, command_table); \
+    free_all(macro_table, *symbol_table, variable_table, command_table); \
     exit(EXIT_FAILURE);
 
 #define CHECK_UNEXPECTED_COMMA(char_type, error_flag) \
@@ -31,7 +30,7 @@ check max line number?*/
             break; \
         case -2: \
             fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid immediate operand, it after # must be a number.\n",\
+                "Invalid immediate operand, after # must follow a number.\n",\
                 line_counter, filename);\
             break; \
         case -3: \
@@ -46,13 +45,15 @@ check max line number?*/
             break; \
         case -5: \
             fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid label, it must start with a letter.\n",\
+                "Invalid label name, must start with a letter.\n",\
                 line_counter, filename);\
             break; \
         case -6: \
             fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid label, it must only contain letters and numbers.\n",\
+                "Invalid label name, must only contain letters and numbers.\n",\
                 line_counter, filename);\
+            break;                      \
+        default: \
             break; \
     }
 
@@ -62,8 +63,8 @@ check max line number?*/
  *         and builds the symbold and variables tables
  *
  * @param fd the file after pre_assembler
- * @param IC needs to be 0
- * @param DC needs to be 0
+ * @param ic needs to be 0
+ * @param dc needs to be 0
  * @param symbol_table the symbol table
  * @param variable_table the variable table
  * @param macro_table the macro table from pre_assembler
@@ -71,16 +72,16 @@ check max line number?*/
  *
  * @return 0 on success, -1 on failure;
 */
-int phase_one(FILE *fd, char *filename, int *IC, int *DC,
-              symbols_ptr symbol_table, variable_ptr variable_table,
+int phase_one(FILE *fd, char *filename, int *ic, int *dc,
+              symbols_ptr *symbol_table, variable_ptr variable_table,
               command_ptr command_table, macro_ptr macro_table) {
-    char line[LINE_SIZE], word[LINE_SIZE], label_temp[LINE_SIZE]; /* buffers */
-    char *word_ptr, *label_temp_ptr = label_temp;
+    char line[LINE_SIZE], word[LINE_SIZE]; /* buffers */
+    char *word_ptr, *label_temp_ptr = NULL; /* pointers */
     int label_flag = 0, error_flag = 0, expect_comma; /* flags: 1 on, 0 off */
-    int i, cmnd, word_type, data_tmp, commas, operand_error;
+    int i, cmnd, word_type, data_tmp, commas, operand_error,
+        line_counter = 0; /* counters */
     int char_type; /* -1 line end, 0 word, 1 comma */
-    int line_counter = 0;
-    command_ptr new_field = (command_ptr) malloc(sizeof(command_word));
+    command_ptr new_field = (command_ptr) malloc(sizeof(command_word)); /* command */
 
     if (new_field == NULL) {
         phase_one_allocation_failure
@@ -94,7 +95,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
             word_type = get_word_type(word);
             switch (word_type) {
                 case LABEL:
-                    switch (is_valid_label(word, symbol_table, macro_table)) {
+                    switch (is_valid_label(word, *symbol_table, macro_table)) {
                         case -1:
                             fprintf(stdout, "Error: line %d in %s.\n       "
                                             "Cannot use a command as a label.\n",
@@ -134,17 +135,17 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                             break;
                         case -7:
                             fprintf(stdout, "Error: line %d in %s.\n       "
-                                            "Label is too long, max length"
-                                            " is %d.\n",
+                                            "Label is too long, max length of "
+                                            "a label and its content shoult "
+                                            "not exceed %d characters.\n",
                                     line_counter, filename,
                                     MAX_LABEL_LENGTH);
                             error_flag = 1;
                             break;
-                        case 0: /*valid label*/
+                        case 0: /* valid label */
                             if (label_flag == 1) {
                                 fprintf(stdout, "Error: line %d in %s.\n"
-                                                "       "
-                                                "Cannot use two labels "
+                                                "       Cannot use two labels "
                                                 "at once.\n",
                                         line_counter, filename);
                                 error_flag = 1;
@@ -153,18 +154,19 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                                 as_strdup(&label_temp_ptr, word);
                             }
                             break;
-                    } /*end label case*/
+                    } /* end label case */
 
                 case DATA:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(&symbol_table, label_temp,
-                                       *DC, "data") == -1) {
+                        if (add_symbol(*symbol_table, label_temp_ptr,
+                                       *dc, "data") == -1) {
                             phase_one_allocation_failure
                         }
                     }
                     expect_comma = 0;
-                    while ((char_type = get_next_word(line, word, &word_ptr)) != -1 && word[0] != '\0') {
+                    while ((char_type = get_next_word(line, word, &word_ptr)) != -1
+                            && word[0] != '\0') {
                         if (expect_comma == 1) {
                             commas = comma_checker(line, &word_ptr);
                             if (commas == 0) {
@@ -191,10 +193,10 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                         }
                         if (add_variable(&variable_table,
                                          twos_complement(data_tmp),
-                                         *DC) == -1) {
+                                         *dc) == -1) {
                             phase_one_allocation_failure
                         }
-                        (*DC)++;
+                        (*dc)++;
                         expect_comma = 1;
                     }
                     break;
@@ -202,7 +204,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                 case STRING:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(&symbol_table, label_temp, *DC, "data")
+                        if (add_symbol(*symbol_table, label_temp_ptr, *dc, "data")
                             == -1) {
                             phase_one_allocation_failure
                         }
@@ -210,9 +212,11 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                     if (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
                         if (word[0] == '"' && word[strlen(word) - 1] == '"')
                             for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
-                                if (add_variable(&variable_table, get_ascii_value(word[i]), *DC) ==
-                                    -1) { phase_one_allocation_failure };
-                                (*DC)++;
+                                if (add_variable(&variable_table, get_ascii_value(word[i]), *dc) ==
+                                    -1) {
+                                    phase_one_allocation_failure
+                                }
+                                (*dc)++;
                             }
                         else {
                             fprintf(stdout, "Error: line %d in %s.\n       " \
@@ -223,6 +227,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                         }
                     }
                     break;
+
                 case EXTERN:
                     expect_comma = 0;
                     while (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
@@ -242,19 +247,24 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                                 break;
                             } else expect_comma = 0;
                         }
-                        if (add_symbol(&symbol_table, word, INVALID_INT, "external") ==
-                            -1) { phase_one_allocation_failure };
-                        /*continue adding allocation faliur for add_symbol and then for add_variable
+                        if (add_symbol(*symbol_table, word,
+                                       INVALID_INT, "external") == -1) {
+                            phase_one_allocation_failure
+                        }
+                        /*continue adding allocation faliure for add_symbol and then for add_variable
                         write free symbols and variable*/
                         expect_comma = 1;
                     }
                     break;
+
                 case ENTRY:
                     if (get_next_word(line, word, &word_ptr) == 0) {
-                        if (is_valid_label(word, symbol_table, macro_table) == 0) {
-                            if (add_symbol(&symbol_table, word, *IC + 100, "code") ==
-                                -1) { phase_one_allocation_failure };
-                            (*IC)++;
+                        if (is_valid_label(word, *symbol_table, macro_table) == 0) {
+                            if (add_symbol(*symbol_table, word, *ic + 100, "code") ==
+                                -1) {
+                                phase_one_allocation_failure
+                            }
+                            (*ic)++;
                         } else {
                             fprintf(stdout, "Error: line %d in %s.\n       "
                                                     "Invalid label for Entry.\n",
@@ -263,7 +273,8 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                         }
                     } else {
                         fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Missing label for Entry.\n",
+                                                    "Missing label for .entry "
+                                                    "command.\n",
                                                     line_counter, filename);
                         error_flag = 1;
                     }
@@ -280,12 +291,16 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                     }
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(&symbol_table, label_temp, (*IC + 100), "code") ==
-                            -1) { phase_one_allocation_failure };
-                        (*IC)++;
+                        if (add_symbol(*symbol_table, label_temp_ptr, (*ic + 100), "code") ==
+                            -1) {
+                            phase_one_allocation_failure
+                        }
+                        (*ic)++;
                     }
                     /*initialize new command_word*/
-                    if (init_command_word(&command_table, &new_field) == -1) { phase_one_allocation_failure };
+                    if (init_command_word(&command_table, &new_field) == -1) {
+                        phase_one_allocation_failure
+                    }
                     set_command_opcode(new_field, cmnd);
                     switch (cmnd) {
                         /*two operands*/
@@ -340,7 +355,7 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                             }
                             break;
 
-                            /*one operand*/
+                        /*one operand*/
                         case 5: /*clr*/
                         case 6: /*not*/
                         case 7: /*inc*/
@@ -369,19 +384,44 @@ int phase_one(FILE *fd, char *filename, int *IC, int *DC,
                                 break;
                             }
                             break;
-
-                            /*no operands - already taken care of*/
+                            /* no operands - handeled in a different area */
                         case 14: /*rts*/
                         case 15: /*stop*/
                             break;
-                    }
-                    new_field->l = calc_l(new_field, cmnd);
-                    *IC += new_field->l;
-            } /*end of switch*/
-        } /*end of line while*/
+                        default:
+                            fprintf(stdout, "Unknown error: line %d in %s.\n",
+                                    line_counter, filename);
+                            error_flag = 1;
+                            break;
+                    } /* end of cmnd switch */
+
+                case ERROR:
+                    fprintf(stdout, "Error: line %d in %s.\n       "
+                                    "Invalid command.\n",
+                            line_counter, filename);
+                    error_flag = 1;
+                    break;
+                case -2: /* Space before : error */
+                    fprintf(stdout, "Error: line %d in %s.\n       "
+                                    "Label cannot end with a whitespace.\n",
+                            line_counter, filename);
+                    error_flag = 1;
+                    break;
+
+                default:
+                    fprintf(stdout, "Unknown error: line %d in %s.\n",
+                            line_counter, filename);
+                    error_flag = 1;
+                    break;
+                new_field->l = calc_l(new_field, cmnd);
+                *ic += new_field->l;
+            } /*end of word_type switch*/
+        } /* end of line while */
+            /* @shahar, this is not the end of line while, it's the next_word loop,
+             * is it supposed to include anything else? */
         /***label_flag = 0;?***/
     }
-    end_phase_one_update_counter(&symbol_table, *IC);
+    end_phase_one_update_counter(*symbol_table, *ic);
 
     if (error_flag == 1) return -1;
 
@@ -431,15 +471,12 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
  */
 int calc_l(command_word *field, int cmnd) {
     if (cmnd == 14 || cmnd == 15) return 0; /*command without operands*/
-    else if (cmnd >= 5 && cmnd <= 13) return 1; /*command with one operand*/
-
-        /*commands with two operands*/
-        /*check if both operands are registers: 0100 or 1000*/
-    else if ((field->src_addr == 0x4 || field->src_addr == 0x8) && /*0b0100||0b1000*/
-             (field->dest_addr == 0x4 || field->dest_addr == 0x8)) { /*0b0100||0b1000*/
+    /* one operand or both operands are registers: 0100 or 1000*/
+    else if ((cmnd >= 5 && cmnd <= 13)
+            || ((field->src_addr == 0x4 || field->src_addr == 0x8) /*0b0100||0b1000*/
+                && (field->dest_addr == 0x4 || field->dest_addr == 0x8))) /*0b0100||0b1000*/ {
         return 1;
     } else return 2;
-
 }
 
 /**
@@ -451,7 +488,7 @@ int calc_l(command_word *field, int cmnd) {
  * @return void
  */
 void set_command_opcode(command_word *field, int command) {
-    /* TODO: don't you want it to be a switch case? */
+    /* TODO: don't you want it to be a switch case? @shahar */
     if (command == 0) field->opcode = 0x0;       /* mov */
     else if (command == 1) field->opcode = 0x1;  /* cmp */
     else if (command == 2) field->opcode = 0x2;  /* add */
@@ -500,11 +537,9 @@ void set_addressing_method(char *operand, command_word *field, int src_dest) {
     } else if (src_dest == 2) { /* destination operand */
         if (operand == NULL) field->dest_addr = 0x0;
 
-            /* Immediate addressing */
-        else if (operand[0] == '#') field->dest_addr = 0x1; /*0b0001*/
-
-            /* Indirect register addressing */
-        else if (operand[0] == '*') field->dest_addr = 0x1;
+            /* Immediate addressing or indirect register addressing */
+        else if (operand[0] == '#' || operand[0] == '*')
+            field->dest_addr = 0x1; /*0b0001*/
 
             /* Direct register addressing */
         else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2
@@ -574,18 +609,13 @@ int is_valid_operand(char *word, macro_ptr macro_table) {
  */
 int is_valid_label(char *word, symbols_ptr symbols_table_head,
                    macro_ptr macro_table_head) {
-    int i = 0;
-    char *used_registers[] = {"r0", "r1", "r2", "r3", "r4",
-                              "r5", "r6", "r7"}; /* register names */
-    symbols_list *current = symbols_table_head;
+    int i = (int) strlen(word);
+    char *registers[] = {"r0", "r1", "r2", "r3", "r4",
+                         "r5", "r6", "r7"}; /* register names */
+    symbols_ptr current = symbols_table_head;
 
-    /*remove colon*/
-    while (word[i] != '\0') {
-        if (word[i] == ':') {
-            word[i] = '\0';
-        }
-        i++;
-    }
+    /* remove colon */
+    if (word[i - 1] == ':') word[i - 1] = '\0';
 
     /*is it too long*/
     if (i > MAX_LABEL_LENGTH) return -7;
@@ -593,7 +623,7 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
     /*is it a command*/
     if (is_valid_command(word) != -1) return -1;
 
-    /*is it an existing label*/
+    /* is it an existing label */
     while (current != NULL) {
         if (strcmp(word, current->name) == 0) {
             return -2;
@@ -606,7 +636,7 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
 
     /*is it a register*/
     for (i = 0; i < 8; i++) {
-        if (strcmp(word, used_registers[i]) == 0) return -4;
+        if (strcmp(word, registers[i]) == 0) return -4;
     }
 
     /*does it start with a non-alpha character*/
@@ -622,37 +652,37 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
     return 0; /*valid*/
 }
 
-/*counter is IC*/
-
 /**
  * @brief Adds a new symbol to the symbol table or initializes if needed
  *
  * @param head A pointer to the head of the symbol table linked list.
  * @param name The name of the symbol.
- * @param counter IC or DC.
+ * @param counter value of IC or DC.
  * @param type The type of the symbol: external / entry / data / code
  *
  * @return 0 on success, -1 on failure.
  */
-int add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
-    symbols_ptr new_node = (symbols_ptr) malloc(sizeof(symbols_list));
+int add_symbol(symbols_ptr head, char *name, int counter, char *type) {
+    symbols_ptr temp, new_node = NULL; /* symbol nodes */
 
+    new_node = (symbols_ptr) malloc(sizeof(symbols_list));
     if (new_node == NULL) return -1;
 
     as_strdup(&new_node->name, name);
     as_strdup(&new_node->type, type);
-    new_node->counter = (strcmp(type, "external") == 0) ? INVALID_INT : counter; /*IC or DC*/
+
+    new_node->counter = (strcmp(type, "external") == 0) ?
+                        INVALID_INT : counter; /* IC or DC */
     new_node->next = NULL;
 
-    if (*head == NULL) { /*initialize the list*/
-        *head = new_node;
+    if (head == NULL) { /* initializes the list */
+        head = new_node;
     } else {
-        symbols_ptr temp = *head;
-        while (temp->next != NULL) {
-            temp = temp->next;
-        }
+        temp = head;
+        while (temp->next != NULL) temp = temp->next;
         temp->next = new_node;
     }
+
     return 0;
 }
 
@@ -664,8 +694,8 @@ int add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
  *
  * @return void
  */
-void end_phase_one_update_counter(symbols_ptr *head, int IC) {
-    symbols_ptr temp = *head;
+void end_phase_one_update_counter(symbols_ptr head, int IC) {
+    symbols_ptr temp = head;
 
     while (temp != NULL) {
         if (strcmp(temp->type, "data") == 0) temp->counter += IC + 100;
