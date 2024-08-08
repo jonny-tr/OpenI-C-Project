@@ -3,7 +3,7 @@
 #define LINE_SIZE 81
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: EXTERN case should work now, added option for "“ smart quotes in STRING case
+/*updates for commit: EXTERN case should work now
 debugging stuff
 check max line number?*/
 
@@ -61,15 +61,13 @@ check max line number?*/
 /**
  * @brief phase_one does the first pass on the file
  *         and builds the symbold and variables tables
- *
  * @param fd the file after pre_assembler
  * @param ic needs to be 0
  * @param dc needs to be 0
  * @param symbol_table the symbol table
  * @param variable_table the variable table
+ * @param command_table the head of the command list
  * @param macro_table the macro table from pre_assembler
- * @param cmd_list_head the head of the command list
- *
  * @return 0 on success, -1 on failure;
 */
 int phase_one(FILE *fd, char *filename, int *ic, int *dc,
@@ -78,9 +76,10 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0}; /* buffers */
     char *word_ptr, *label_temp_ptr = NULL; /* pointers */
     int label_flag = 0, error_flag = 0, expect_comma; /* flags: 1 on, 0 off */
-    int i, cmnd, word_type, data_tmp, commas, operand_error,line_counter = 0; /* counters */
+    int i, cmnd, word_type, data_tmp, commas, operand_error,
+            line_counter = 0; /* counters */
     int char_type; /* -1 line end, 0 word, 1 comma */
-    int debug_temp; /*debugging, delete when done!!!!!!!!!!!!!!!!!!*/
+    int debug_temp; /*debugging, TODO: delete when done!!!!!!!!!!!!!!!!!!*/
     command_ptr new_field = (command_ptr) malloc(sizeof(command_word)); /* command */
 
     if (new_field == NULL) {
@@ -91,7 +90,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
         word_ptr = line;
         line_counter++;
         /*debugging stuff:*/
-            fprintf(stdout, "\nline number %d, line is: %s", line_counter, line);
+        fprintf(stdout, "\nline number %d, line is: %s", line_counter, line);
         /*end debugging*/
         while ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
             CHECK_UNEXPECTED_COMMA(char_type, error_flag);
@@ -169,32 +168,32 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                                        *dc, "data") == -1) {
                             phase_one_allocation_failure
                         }
-                        /*debugging:*/
+                            /*debugging:*/
                         else fprintf(stdout, "debugging: Label '%s' added to list, data\n", label_temp_ptr);
                     }
 
-                   /* expect_comma = 0;
-                    commas = 0;
-                    while ((char_type = get_next_word(line, word, &word_ptr)) != -1
-                            && word[0] != '\0') {
-                        fprintf(stdout, "debugging: data is: %s\n", word);
-                        if (expect_comma == 1) {
-                            commas = comma_checker(line, &word_ptr);
-                            if (commas == 0) {
-                                fprintf(stdout, "Error: line %d in %s.\n       "
-                                                "Missing comma.\n",
-                                        line_counter, filename);
-                                error_flag = 1;
-                                break;
-                            } else if (commas > 1 ) {
-                                fprintf(stdout, "Error: line %d in %s.\n       "
-                                                "Too many commas.\n",
-                                        line_counter, filename);
-                                error_flag = 1;
-                                break;
-                            }
-                            expect_comma = 0;
-                        } else { /* expect_comma == 0 *//*
+                    /* expect_comma = 0;
+                     commas = 0;
+                     while ((char_type = get_next_word(line, word, &word_ptr)) != -1
+                             && word[0] != '\0') {
+                         fprintf(stdout, "debugging: data is: %s\n", word);
+                         if (expect_comma == 1) {
+                             commas = comma_checker(&word_ptr);
+                             if (commas == 0) {
+                                 fprintf(stdout, "Error: line %d in %s.\n       "
+                                                 "Missing comma.\n",
+                                         line_counter, filename);
+                                 error_flag = 1;
+                                 break;
+                             } else if (commas > 1 ) {
+                                 fprintf(stdout, "Error: line %d in %s.\n       "
+                                                 "Too many commas.\n",
+                                         line_counter, filename);
+                                 error_flag = 1;
+                                 break;
+                             }
+                             expect_comma = 0;
+                         } else { /* expect_comma == 0 *//*
                             if (commas > 0) {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
                                                 "Unexpected comma before data.\n", line_counter, filename);
@@ -224,11 +223,11 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
 
                     commas = 0;
                     expect_comma = 0; /*no comma is expected before the first data*/
-                    while ((char_type = get_next_word(line, word, &word_ptr)) 
-                            != -1 && word[0] != '\0') {
+                    while ((char_type = get_next_word(line, word, &word_ptr))
+                           != -1 && word[0] != '\0') {
                         if (expect_comma != commas) {
                             fprintf(stdout, "Error: line %d in %s.\n       "
-                            "Improper comma use.\n", line_counter, filename);
+                                            "Improper comma use.\n", line_counter, filename);
                             fprintf(stdout, "debugging: expect_comma: %d, commas: %d\n", expect_comma, commas);
                             error_flag = 1;
                             break;
@@ -241,24 +240,25 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
 
                         if (data_tmp == INVALID_INT) {
                             fprintf(stdout, "Error: line %d in %s.\n       "
-                            "Invalid data.\n", line_counter, filename);
+                                            "Invalid data.\n", line_counter, filename);
                             error_flag = 1;
                             break;
                         }
 
-                        if (add_variable(&variable_table, twos_complement(data_tmp), *dc) == -1) {
+                        if (add_variable(&variable_table,
+                                         twos_complement(data_tmp), *dc) == -1) {
                             phase_one_allocation_failure;
                         } else { /*valid data*/
                             (*dc)++;
-                            fprintf(stdout, "debugging: data %d added to list with dc: %d\n", data_tmp, *dc-1);
+                            fprintf(stdout, "debugging: data %d added to list with dc: %d\n", data_tmp, *dc - 1);
                         }
 
                         /*check for commas*/
                         expect_comma = 1;
-                        commas = comma_checker(line, &word_ptr);
+                        commas = comma_checker(&word_ptr);
                         if (commas > 1) {
                             fprintf(stdout, "Error: line %d in %s.\n"
-                            "Too many commas.\n", line_counter, filename);
+                                            "Too many commas.\n", line_counter, filename);
                             error_flag = 1;
                             break;
                         }
@@ -274,16 +274,17 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             == -1) {
                             phase_one_allocation_failure
                         }
-                        /*debugging stuff*/
-                        else{
+                            /*debugging stuff*/
+                        else {
                             fprintf(stdout, "debugging: Label '%s' added to list, string:\n", label_temp_ptr);
                         }
                         /*end debugging*/
                     }
                     if (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
                         fprintf(stdout, "debugging: string is: %s\n", word);
-                        fprintf(stdout, "word[0] is: '%c', word[strlen(word) - 1] is: '%c'\n", word[0], word[strlen(word) - 1]);
-                        if (word[0] == '"' && word[strlen(word) - 1] == '"'){
+                        fprintf(stdout, "word[0] is: '%c', word[strlen(word) - 1] is: '%c'\n", word[0],
+                                word[strlen(word) - 1]);
+                        if (word[0] == '"' && word[strlen(word) - 1] == '"') {
                             for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
                                 if (add_variable(&variable_table, get_ascii_value(word[i]), *dc) ==
                                     -1) {
@@ -293,21 +294,19 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             }
                             if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Cannot input more than 1 string.\n",
-                                                    line_counter, filename);
+                                                "Cannot input more than 1 string.\n",
+                                        line_counter, filename);
                                 error_flag = 1;
                                 break;
                             }
-                        }
-                        else {
+                        } else {
                             fprintf(stdout, "Error: line %d in %s.\n       " \
                                                     "Invalid string.\n", \
                                                     line_counter, filename);
                             error_flag = 1;
                             break;
                         }
-                    }
-                    else {
+                    } else {
                         fprintf(stdout, "Error: line %d in %s.\n       " \
                                                 "Missing string.\n", \
                                                 line_counter, filename);
@@ -318,27 +317,27 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
 
                 case EXTERN:
                     expect_comma = 0;
-                    while (/*read_next_word(line, &position, &word_ptr) != -1*/get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
+                    while (/*read_next_word(line, &position, &word_ptr) != -1*/
+                            get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
                         if (expect_comma == 1) {
-                            commas = comma_checker(line, &word_ptr);
+                            commas = comma_checker(&word_ptr);
                             if (commas == 0) {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Missing comma.\n",
-                                                    line_counter, filename);
+                                                "Missing comma.\n",
+                                        line_counter, filename);
                                 error_flag = 1;
                                 break;
                             } else if (commas > 1) {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Too many commas.\n",
-                                                    line_counter, filename);
+                                                "Too many commas.\n",
+                                        line_counter, filename);
                                 error_flag = 1;
                                 break;
                             } else expect_comma = 0;
-                        }
-                        else {
+                        } else {
                             if (add_symbol(*symbol_table, word,
-                                       INVALID_INT, "external") == -1) {
-                            phase_one_allocation_failure;
+                                           INVALID_INT, "external") == -1) {
+                                phase_one_allocation_failure;
                             }
                             expect_comma = 1;
                         }
@@ -356,54 +355,54 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             fprintf(stdout, "debugging: ic updated to: %d\n", *ic);
                         } else {
                             fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Invalid label for Entry.\n",
-                                                    line_counter, filename);
+                                            "Invalid label for Entry.\n",
+                                    line_counter, filename);
                             error_flag = 1;
                         }
                     } else {
                         fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Missing label for .entry "
-                                                    "command.\n",
-                                                    line_counter, filename);
+                                        "Missing label for .entry "
+                                        "command.\n",
+                                line_counter, filename);
                         error_flag = 1;
                     }
                     break;
-                /*debugging case 6*/
+                    /*debugging case 6*/
                 case OPERAND:
                     fprintf(stdout, "debugging: CASE OPERAND: %s\n", word);
                     fprintf(stdout, "line is: %s\n", line);
                     return -3;
                     break;
-                /*end of debugging*/
+                    /*end of debugging*/
                 case COMMAND:
                     cmnd = is_valid_command(word);
                     fprintf(stdout, "debugging: CASE COMMAND: %s\n"
                                     "cmnd: %d\n", word, cmnd);
                     if (cmnd == -1) {
                         fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "%s: invalid command.\n",
-                                                    line_counter, filename, word);
+                                        "%s: invalid command.\n",
+                                line_counter, filename, word);
                         error_flag = 1;
                         break;
                     }
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(*symbol_table, label_temp_ptr, (*ic + 100), "code") ==
-                            -1) {
+                        if (add_symbol(*symbol_table, label_temp_ptr,
+                                       (*ic + 100), "code") == -1) {
                             phase_one_allocation_failure
                         }
                         (*ic)++;
                         fprintf(stdout, "debugging: ic updated to: %d\n", *ic);
                         fprintf(stdout, "debugging: added label '%s' to list\n", label_temp_ptr);
                     }
-                    /*initialize new command_word*/
+                    /* initialize new command_word */
                     if (init_command_word(&command_table, &new_field) == -1) {
                         phase_one_allocation_failure
                     }
                     fprintf(stdout, "debugging: new command word initialized\n");
                     set_command_opcode(new_field, cmnd);
                     switch (cmnd) {
-                        /*two operands*/
+                        /* two operands */
                         case 0: /*mov*/
                         case 1: /*cmp*/
                         case 2: /*add*/
@@ -414,28 +413,27 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
                                 fprintf(stdout, "debugging: 2 operands needed, first is: '%s'\n", word);
                                 operand_error = is_valid_operand(word, macro_table);
-                                if (operand_error == 1){
+                                if (operand_error == 1) {
                                     set_addressing_method(word, new_field, 1);
                                     fprintf(stdout, "debugging: first operand added\n");
-                                }
-                                else {
+                                } else {
                                     PRINT_OPERAND_ERROR(operand_error);
                                     error_flag = 1;
                                     break;
                                 }
                             } else {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Missing operands.\n",
-                                                    line_counter, filename);
+                                                "Missing operands.\n",
+                                        line_counter, filename);
                                 error_flag = 1;
                                 break;
                             }
                             /*check for propper commas*/
-                            if (comma_checker(line, &word_ptr) != 1) {
+                            if (comma_checker(&word_ptr) != 1) {
                                 error_flag = 1;
                                 fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Invalid comma use.\n",
-                                                    line_counter, filename);
+                                                "Invalid comma use.\n",
+                                        line_counter, filename);
                                 break;
                             }
                             fprintf(stdout, "debugging: propper comma was used\n");
@@ -444,32 +442,31 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
                                 fprintf(stdout, "debugging: second operand is: %s\n", word);
                                 operand_error = is_valid_operand(word, macro_table);
-                                if (operand_error == 1){
+                                if (operand_error == 1) {
                                     set_addressing_method(word, new_field, 2);
                                     fprintf(stdout, "debugging: second operand added\n");
-                                }
-                                else {
+                                } else {
                                     PRINT_OPERAND_ERROR(operand_error);
                                     error_flag = 1;
                                     break;
                                 }
                             } else {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Missing destination operand.\n",
-                                                    line_counter, filename);
+                                                "Missing destination operand.\n",
+                                        line_counter, filename);
                                 error_flag = 1;
                                 break;
                             }
-                            /*check no extra operands:*/
+                            /* check for no extra operands */
                             if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Too many operands.\n",
-                                                    line_counter, filename);
+                                                "Too many operands.\n",
+                                        line_counter, filename);
                                 error_flag = 1;
                                 break;
                             }
                             break;
-                        /*one operand*/
+                            /*one operand*/
                         case 5: /*clr*/
                         case 6: /*not*/
                         case 7: /*inc*/
@@ -493,29 +490,29 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                                 }
                             } else {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Missing operand.\n",
-                                                    line_counter, filename);
+                                                "Missing operand.\n",
+                                        line_counter, filename);
                                 error_flag = 1;
                                 break;
                             }
-                            /*check no extra operands:*/
+                            /* check no extra operands: */
                             if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Too many operands.\n",
-                                                    line_counter, filename);
+                                                "Too many operands.\n",
+                                        line_counter, filename);
                                 error_flag = 1;
                                 break;
                             }
                             break;
 
-                        /* no operands - handeled in a different area */
+                            /* no operands - handeled in a different area */
                         case 14: /*rts*/
                         case 15: /*stop*/
                             /*check no extra operands:*/
                             if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
-                                                    "Too many operands.\n",
-                                                    line_counter, filename);
+                                                "Too many operands.\n",
+                                        line_counter, filename);
                                 error_flag = 1;
                                 break;
                             }
@@ -532,11 +529,11 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                     fprintf(stdout, "Error: line %d in %s.\n       "
                                     "Invalid command.\n",
                             line_counter, filename);
-                    char_type = -1; /*finish this line*/
+                    char_type = -1; /* finish this line */
                     error_flag = 1;
                     break;
 
-                case -2: /* Space before : error */
+                case -2: /* Space before ':' error */
                     fprintf(stdout, "Error: line %d in %s.\n       "
                                     "Label cannot end with a whitespace.\n",
                             line_counter, filename);
@@ -552,39 +549,37 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                     error_flag = 1;
                     break;
             } /* end of word_type switch */
-            if(word_type == COMMAND){ /*reached end of line*/
+            if (word_type == COMMAND) { /*reached end of line*/
                 new_field->l = calc_l(new_field, cmnd);
                 fprintf(stdout, "debugging: l is: %d\n", new_field->l);
                 *ic += new_field->l;
                 fprintf(stdout, "debugging: ic updated to: %d\n", *ic);
             }
-            if(char_type == -1) {
+            if (char_type == -1) {
                 fprintf(stdout, "debugging: reached end of line %d\n", line_counter);
             }
         } /* end of next_word loop */
     } /* end of line loop */
-    
+
     end_phase_one_update_counter(*symbol_table, *ic);
 
     if (error_flag == 1) return -1;
 
     return 0;
 }
-              
+
 /**
- * @brief Initializes a new command word and adds it to a linked list.
- *
+ * @brief Creates a new command word and adds it to the linked list.
  * @param head pointer to the head of the linked list.
  * @param ptr pointer to the newly created command word.
- *
  * @return 0 on success, -1 on failure.
  */
 int init_command_word(command_ptr *head, command_ptr *ptr) {
-    command_ptr new_node = (command_ptr) malloc(sizeof(command_word));
+    command_ptr temp, new_node = (command_ptr) calloc(1, sizeof(command_word));
 
     if (new_node == NULL) return -1;
 
-    new_node->are = 0x4; /* 0b100 in binary, automatically sets ARE to be 100 (only A) */
+    new_node->are = 0x4; /* 0b100 in binary, sets ARE to be 100 (only A) */
     new_node->dest_addr = 0x0; /* 0b0000 in binary */
     new_node->src_addr = 0x0;  /* 0b0000 in binary */
     new_node->opcode = 0x0;  /* 0b0000 in binary */
@@ -594,44 +589,41 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
     if (*head == NULL) { /* initialize the list */
         *head = new_node;
     } else {
-        command_ptr temp = *head;
-        while (temp->next != NULL) {
-            temp = temp->next;
-        }
+        temp = *head;
+        while (temp->next != NULL) temp = temp->next;
         temp->next = new_node;
     }
     *ptr = new_node;
+
     return 0;
 }
 
 /**
  * @brief Calculates the value of 'L' for a given command.
- *
  * @param field pointer to the command_word struct
  * @param cmnd the command code
- *
  * @return the value of 'l' based on the command
  */
 int calc_l(command_word *field, int cmnd) {
     if (cmnd == 14 || cmnd == 15) return 0; /*command without operands*/
-    /* one operand or both operands are registers: 0100 or 1000*/
+        /* one operand or both operands are registers: 0100 or 1000*/
     else if ((cmnd >= 5 && cmnd <= 13)
-            || ((field->src_addr == 0x4 || field->src_addr == 0x8) /*0b0100||0b1000*/
-                && (field->dest_addr == 0x4 || field->dest_addr == 0x8))) /*0b0100||0b1000*/ {
+             /*0b0100||0b1000*/
+             || ((field->src_addr == 0x4 || field->src_addr == 0x8)
+                 /*0b0100||0b1000*/
+                 && (field->dest_addr == 0x4 || field->dest_addr == 0x8)))
         return 1;
-    } else return 2;
+    else
+        return 2;
 }
 
 /**
  * @brief Sets the opcode of a command_word.
- *
  * @param field Pointer to a command_word.
  * @param command The command afer is_valid_command, determine opcode from.
- *
  * @return void
  */
 void set_command_opcode(command_word *field, int command) {
-    /* TODO: don't you want it to be a switch case? @shahar */
     if (command == 0) field->opcode = 0x0;       /* mov */
     else if (command == 1) field->opcode = 0x1;  /* cmp */
     else if (command == 2) field->opcode = 0x2;  /* add */
@@ -652,11 +644,9 @@ void set_command_opcode(command_word *field, int command) {
 
 /**
  * @brief Sets the addressing method in the command_word, used after is_valid_operand.
- *
  * @param operand The operand to be parsed, NULL if it is a command without operands.
  * @param field Pointer to the command_word struct.
  * @param src_dest 1 if source, 2 if destination.
- *
  * @return void
  */
 void set_addressing_method(char *operand, command_word *field, int src_dest) {
@@ -696,14 +686,11 @@ void set_addressing_method(char *operand, command_word *field, int src_dest) {
 
 /**
  * @brief Checks if the given word is a valid operand.
- *
  * @param word The word to be checked.
  * @param macro_table The table of macros.
- *
  * @return 1 if the word is a valid operand, -1 command, -2 invalid immediate #,
- *         -3 invalid indirect register *, -4 macro, -5 invalid label 1st char, -6 invalid label
- *
- * @throws None.
+ *         -3 invalid indirect register *, -4 macro, -5 invalid label 1st char,
+ *         -6 invalid label
  */
 int is_valid_operand(char *word, macro_ptr macro_table) {
     int i;
@@ -721,7 +708,8 @@ int is_valid_operand(char *word, macro_ptr macro_table) {
             return -2;
         }
     } else if (word[0] == '*') { /*needs to be a valid register*/
-        if (!(strncmp(&word[1], "r", 1) == 0 && strlen(word) == 3 && word[2] >= '0' && word[2] <= '7')) {
+        if (!(strncmp(&word[1], "r", 1) == 0 && strlen(word) == 3
+              && word[2] >= '0' && word[2] <= '7')) {
             return -3;
         }
     } else if (is_macro_name_valid(word, macro_table) == 2) {
@@ -741,11 +729,9 @@ int is_valid_operand(char *word, macro_ptr macro_table) {
 
 /**
  * @brief checks if the label name is valid
- *
  * @param word the name of the label
  * @param symbols_table_head the head of the symbols table
  * @param macro_table_head the head of the macro table
- *
  * @return -1 if command, -2 if label already exists, -3 if macro,
  *         -4 if register, -5 if doesn't start with a letter,
  *         -6 if isn't only letters and numbers, -7 if too long, 0 if valid
@@ -797,12 +783,10 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
 
 /**
  * @brief Adds a new symbol to the symbol table or initializes if needed
- *
  * @param head A pointer to the head of the symbol table linked list.
  * @param name The name of the symbol.
  * @param counter value of IC or DC.
  * @param type The type of the symbol: external / entry / data / code
- *
  * @return 0 on success, -1 on failure.
  */
 int add_symbol(symbols_ptr head, char *name, int counter, char *type) {
@@ -830,29 +814,25 @@ int add_symbol(symbols_ptr head, char *name, int counter, char *type) {
 }
 
 /**
- * @brief Updates the counter of all data symbols with IC+100.
- *
+ * @brief Updates the counter of all data symbols with ic+100.
  * @param head A pointer to the head of the symbol linked list.
- * @param IC IC counter
- *
+ * @param ic ic counter
  * @return void
  */
-void end_phase_one_update_counter(symbols_ptr head, int IC) {
+void end_phase_one_update_counter(symbols_ptr head, int ic) {
     symbols_ptr temp = head;
 
     while (temp != NULL) {
-        if (strcmp(temp->type, "data") == 0) temp->counter += IC + 100;
+        if (strcmp(temp->type, "data") == 0) temp->counter += ic + 100;
         temp = temp->next;
     }
 }
 
 /**
  * @brief Adds a new variable to the variable list or initializes it if needed.
- *
  * @param head A pointer to the head of the variable linked list.
  * @param content The content of the variable.
  * @param counter DC counter
- *
  * @return 0 on success, -1 on failure.
  */
 int add_variable(variable_t **head, int content, int counter) {
@@ -864,7 +844,7 @@ int add_variable(variable_t **head, int content, int counter) {
     new_node->counter = counter; /*DC*/
     new_node->next = NULL;
 
-    if (*head == NULL) { /*initialize the list*/
+    if (*head == NULL) { /* initialize the list */
         *head = new_node;
     } else {
         variable_ptr temp = *head;
@@ -877,13 +857,10 @@ int add_variable(variable_t **head, int content, int counter) {
 }
 
 /**
- * @brief Parses a string and returns the integer value of the number it represents.
- *
+ * @brief Parses a string and returns the integer value of the number
+ *        it represents.
  * @param word A pointer to the first character of the string to be parsed.
- *
  * @return The integer value of the number represented by the string.
- *
- * @throws None.
  */
 int get_data_int(char *word) {
     int result = 0, sign = 1;
@@ -902,5 +879,6 @@ int get_data_int(char *word) {
         result = result * 10 + (*word - '0');
         word++;
     }
+
     return sign * result;
 }

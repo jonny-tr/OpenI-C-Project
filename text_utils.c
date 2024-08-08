@@ -119,7 +119,7 @@ int read_next_word(const char *line, int *position, char **next_part) {
  * @return amount of commas, 0 if there are no commas
  */
 
-int comma_checker(char *line, char **word_ptr) {
+int comma_checker(char **word_ptr) {
     char *p = *word_ptr;
     int commas = 0;
 
@@ -133,12 +133,10 @@ int comma_checker(char *line, char **word_ptr) {
 }
 
 /**
- * Get the next word from a line of text.
- *
+ * @brief Get the next word from a line of text.
  * @param line The line of text to search for the next word.
  * @param word A pointer to a character array where the word will be stored.
  * @param word_ptr A pointer to a pointer to the current position in the line.
- *
  * @return 0 if a word was found, -1 if end of the line was reached,
  *         1 if comma before word
  */
