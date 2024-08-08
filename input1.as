@@ -12,6 +12,6 @@ LOOP: prn #48
  dec K 
  jmp LOOP 
 END: stop 
-STR: .string “abcd” 
+STR: .string "abcd"
 LIST: .data 6, -9 
  .data -100 
