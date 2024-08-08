@@ -6,6 +6,7 @@
             error_flag = 1;\
             break;\
             }
+
 /**
  * @brief builds the ent file
  *
@@ -248,21 +249,22 @@ int entry_update(symbols_ptr symbol_table_head, char *word) {
  *
  * @param fd pointer to the file
  * @param filename name of the file
- * @param symbol_table pointer to the symbol table
+ * @param symbol_table_head pointer to the symbol table
  * @param expected_ic expected ic value
  * @param dc value of dc
  *
  * @return 0 if successful, -1 otherwise
  */
-int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
+int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
               variable_ptr variable_head, command_ptr cmd_list_head,
               int expected_ic, int dc) {
     char *line = NULL, *next_word = NULL, *ob_file = NULL, *ext_file = NULL,
         *ent_file = NULL; /* strings and filenames */
-    int line_num = 0, ic = 0, *position = 0, error_flag = 0, allocation_flag = 0;
-        /* counters and flags */
+    int line_num = 0, ic = 0, *position, error_flag = 0, allocation_flag = 0,
+        ent_flag = 0, ext_flag = 0; /* counters and flags */
     FILE *ob_fd = NULL, *ext_fd = NULL, *ent_fd = NULL; /* file pointers */
-    command_ptr cmd_list = cmd_list_head, tmp_cmd = NULL; /* pointers */
+    command_ptr current_cmd = cmd_list_head, tmp_cmd = NULL; /* pointers */
+    symbols_ptr current_symbol = symbol_table_head; /* pointer */
 
     ob_file = as_strcat(filename, ".ob");
     ext_file = as_strcat(filename, ".ext");
@@ -270,7 +272,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
 
     while (read_next_line(fd, line) != -1
            || !feof(fd)
-           || cmd_list->next != NULL) {
+           || current_cmd->next != NULL) {
         line_num++;
         position = 0;
         next_word_check
@@ -280,29 +282,32 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
         } /* skip label */
 
         if ((strcmp(next_word, ".data") == 0)
-            || (strcmp(next_word, ".string") == 0)
-            || (strcmp(next_word, ".extern") == 0)) {
+            || (strcmp(next_word, ".string") == 0)) {
             continue; /* skip */
+        } else if (strcmp(next_word, ".extern") == 0) {
+            ext_flag = 1;
+            continue;
         } else if (strcmp(next_word, ".entry") == 0) {
+            ent_flag = 1;
             /* upsate labels in the symbol table */
             while (read_next_word(line, position, &next_word) != 1) {
-                if (entry_update(symbol_table, next_word) == -1) {
+                if (entry_update(symbol_table_head, next_word) == -1) {
                     error_flag = 1;
                     break;
                 }
             }
             continue;
         } else {
-            ic += cmd_list->l;
-            if (cmd_list->l == 1) continue;
-            tmp_cmd = cmd_list->next;
+            ic += current_cmd->l;
+            if (current_cmd->l == 1) continue;
+            tmp_cmd = current_cmd->next;
             next_word_check
             /* add new nodes to the command list */
-            if (update_command_list(cmd_list, next_word, line, position,
-                                filename, symbol_table, &ext_fd, ext_file,
-                                line_num) == -1) error_flag = 1;
-            cmd_list->next = tmp_cmd;
-            cmd_list = cmd_list->next;
+            if (update_command_list(current_cmd, next_word, line, position,
+                                    filename, symbol_table_head, &ext_fd,
+                                    ext_file, line_num) == -1) error_flag = 1;
+            current_cmd->next = tmp_cmd;
+            current_cmd = current_cmd->next;
         }
     }
 
@@ -314,19 +319,44 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
 
     if (error_flag == 0) {
         ob_fd = fopen(ob_file, "w");
-        ent_fd = fopen(ent_file, "w");
-        if (ob_fd == NULL || ext_fd == NULL || ent_fd == NULL) {
-            fprintf(stdout, "Error: Could not create an output file for %s.\n",
+
+        if (ob_fd == NULL) {
+            fprintf(stdout, "Error: Could not create an output file for "
+                            "%s.\n",
                     filename);
             error_flag = 1;
             goto cleanup;
         }
+        
         if (build_ob(ob_fd, cmd_list_head, variable_head, ic, dc) == -1) {
             error_flag = 1;
             allocation_flag = 1;
             goto cleanup;
         }
-        build_ent(ent_fd, symbol_table);
+
+        if (ent_flag == 1) {
+            ent_fd = fopen(ent_file, "w");
+            if (ent_fd == NULL) {
+                fprintf(stdout, "Error: Could not create an entry file for "
+                                "%s.\n",
+                        filename);
+                error_flag = 1;
+                goto cleanup;
+            }
+            build_ent(ent_fd, symbol_table_head);
+        }
+
+        if (ext_flag == 1) {
+            ext_fd = fopen(ext_file, "w");
+            if (ext_fd == NULL) {
+                fprintf(stdout, "Error: Could not create an external file for "
+                                "%s.\n",
+                        filename);
+                error_flag = 1;
+                goto cleanup;
+            }
+            build_ext(ext_fd, symbol_table_head);
+        }
     }
 
     cleanup:
@@ -340,6 +370,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
     safe_free(ext_file)
     safe_free(ent_file)
 
+    /* remove files in case there was an error and they were still created */
     if (error_flag) {
         if (ob_fd != NULL) remove(ob_file);
         if (ext_fd != NULL) remove(ext_file);
