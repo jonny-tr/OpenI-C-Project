@@ -56,7 +56,7 @@ int is_valid_command(char *command) {
 
     for (i = 0; i < 20; i++) {
         if (strcmp(command, valid[i]) == 0) {
-            return i;
+            return i-4;
         }
     }
 
@@ -160,13 +160,21 @@ int get_next_word(char *line, char *word, char **word_ptr) {
     }
 
     /* Get the word */
-    while (*p && !isspace(*p) && *p != ',' && *p != ':') *w++ = *p++;
+    while (*p && !isspace(*p) && *p != ',' && *p != ':') {
+        *w++ = *p++;
+    }
+
+    /* Handle the case where the word ends with a colon */
+    if (*p == ':') {
+        *w++ = *p++;
+    }
 
     *w = '\0';
     *word_ptr = p;
-
+    /*fprintf(stdout, "debugging: extracted word is: %s\n", word);*/
     return 0;
 }
+
 
 /**
  * @brief returns the type of the word
@@ -190,6 +198,7 @@ int get_word_type(char *word) {
     }
 
     if (is_valid_command(word) != -1) return COMMAND;
+    fprintf(stdout, "debugging: word is %s\n", word);
 
     return OPERAND;
 }
