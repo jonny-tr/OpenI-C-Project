@@ -115,6 +115,7 @@ int get_data_int(char *word);
 int build_ent(FILE *ent_fd, symbols_ptr symbol_table);
 int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
              int ic, int dc);
+int build_ext(FILE *ext_fd, symbols_ptr symbol_table);
 int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
               FILE **ext_fd, char *ext_file, int line_num);
 int update_command_list(command_ptr command_list, char *word, char *line,
@@ -122,7 +123,7 @@ int update_command_list(command_ptr command_list, char *word, char *line,
                         symbols_ptr symbols_head, FILE **ext_fd,
                         char *ext_file, int line_num);
 int entry_update(symbols_ptr symbol_table, char *word);
-int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
+int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
               variable_ptr variable_head, command_ptr cmd_list_head,
               int expected_ic, int dc);
 
