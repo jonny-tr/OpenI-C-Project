@@ -67,7 +67,7 @@ int is_valid_command(char *command) {
  * @brief Reads a line from the file and stores it in the given buffer.
  * @param file The file pointer to read from.
  * @param line The buffer to store the line.
- * @return 0 if successful, -1 otherwise.
+ * @return 0 if successful, -1 if an EOF reached.
  */
 int read_next_line(FILE *file, char *line) {
     char buffer[81];
@@ -78,8 +78,6 @@ int read_next_line(FILE *file, char *line) {
     if (feof(file)) return -1;
 
     memcpy(line, buffer, strlen(buffer) + 1);
-    /*safe_free(line)
-    if (as_strdup(&line, buffer) != 0) return -1;*/
 
     return 0;
 }
@@ -88,38 +86,28 @@ int read_next_line(FILE *file, char *line) {
  * @brief the function reads the next part of the line
  * @param line the line to read from
  * @param position the position in the line
- * @return pointer to the string read, 1 if line finished,
+ * @param next_part the next part of the line
+ * @return 0 if successful, 1 if line finished,
  *          -1 if an error occurred
  */
-int read_next_word(const char line[], int *position, char **next_part) {
-    char c, *temp = NULL; /* strings */
+int read_next_word(const char *line, int *position, char **next_part) {
+    char c; /* strings */
     int buffer = 0; /* counter */
 
-    if (line[*position] == '\0') return 1;
-
-    safe_free(*next_part)
-    temp = (char *) calloc(20, sizeof(char));
-    if (temp == NULL) return -1;
-    *next_part = temp;
+    if (line[*position] == '\n') return -1;
 
     while (isspace(line[*position])) ++(*position); /* skip whitespaces */
 
-    while (isspace(c = line[*position]) != 0) {
-        if (buffer % 19 == 0) {
-            temp = (char *) realloc(*next_part, buffer + 21);
-            if (temp == NULL) {
-                safe_free(*next_part)
-                return -1;
-            }
-            *next_part = temp;
-        }
+    if (line[*position] == ',') return 1;
 
-        if (c == ',') break;
+    while (isspace(c = line[*position]) != 0
+           && c != ',' && c != ':') {
         *next_part[buffer] = c;
         ++buffer;
         ++(*position);
     }
     *next_part[buffer] = '\0';
+    printf("%s\n", *next_part);
 
     return 0;
 }
@@ -151,12 +139,11 @@ int comma_checker(char *line, char **word_ptr) {
  * @param word A pointer to a character array where the word will be stored.
  * @param word_ptr A pointer to a pointer to the current position in the line.
  *
- * @return 0 if a word was found, -1 if the end of the line was reached,
+ * @return 0 if a word was found, -1 if end of the line was reached,
  *         1 if comma before word
  */
 int get_next_word(char *line, char *word, char **word_ptr) {
-    char *p = *word_ptr;
-    char *w = word;
+    char *p = *word_ptr, *w = word;
 
     /* Skip whitespaces */
     while (isspace(*p)) {
@@ -166,19 +153,14 @@ int get_next_word(char *line, char *word, char **word_ptr) {
         p++;
     }
 
-    /* Check if comma */
+    /* Check for a comma */
     if (*p == ',') {
         *word_ptr = p;
         return 1;
     }
 
-    /*Get the word*/
-    while (*p && !isspace(*p) && *p != ',') {
-        *w++ = *p++;
-        /*if (*(p - 1) == ':') break; /* label */
-        /*depends on error handling, if there is no space after the label is that an error?*/
-        /* I think it is -yoni 04/08/24 */
-    }
+    /* Get the word */
+    while (*p && !isspace(*p) && *p != ',' && *p != ':') *w++ = *p++;
 
     *w = '\0';
     *word_ptr = p;
@@ -186,6 +168,12 @@ int get_next_word(char *line, char *word, char **word_ptr) {
     return 0;
 }
 
+/**
+ * @brief returns the type of the word
+ * @param word the word to check
+ * @return the type of the word (data, string, label, etc.)
+ *         or -1 if an error occurred
+ */
 int get_word_type(char *word) {
     int i = 0;
 
@@ -193,14 +181,16 @@ int get_word_type(char *word) {
     if (strcmp(word, ".string") == 0) return STRING;
     if (strcmp(word, ".entry") == 0) return ENTRY;
     if (strcmp(word, ".extern") == 0) return EXTERN;
-    if (word[i] == '.') return ERROR;
+    if (word[i] == '.') return ERROR; /* starts with . but not a saved word */
 
     while (word[i] != '\0') i++;
-    if (i >= 2 && word[i-1] == ':') {
-        if (isspace(word[i-2])) return -2;
+    if (i >= 2 && word[i - 1] == ':') {
+        if (isspace(word[i - 2])) return -2;
         return LABEL;
     }
-    if(is_valid_command(word)!=-1) return COMMAND;
+
+    if (is_valid_command(word) != -1) return COMMAND;
+
     return OPERAND;
 }
 
