@@ -98,7 +98,8 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head);
 int phase_one(FILE *fd, char *filename, int *ic, int *dc,
               symbols_ptr *symbol_table, variable_ptr variable_table,
               command_ptr command_table, macro_ptr macro_table);
-int is_valid_label(char *word, symbols_ptr symbols_table_head, macro_ptr macro_table_head);
+int is_valid_label(char *word, symbols_ptr symbols_table_head,
+                   macro_ptr macro_table_head);
 int is_valid_operand(char *word, macro_ptr macro_table);
 int add_symbol(symbols_ptr head, char *name, int counter, char *type);
 int add_variable(variable_t **head, int content, int counter);
