@@ -58,11 +58,11 @@ int skip_macro(FILE *as_fd, char *filename, char *next_part, int *line_num) {
 int macro_table_builder(char *next_part, FILE *as_fd,
                         macro_ptr *macro_table_head, int *line_num,
                         char *filename) {
-    str_node_ptr macro_content_head = NULL, macro_content_tail = NULL,
-                new_node = NULL; /* linked list of strings */
-    macro_ptr new_macro; /* new macro */
-    int i, error_flag = 0; /* counter and flags */
     char *buffer = NULL; /* buffer */
+    int i, error_flag = 0; /* counter and flags */
+    macro_ptr new_macro; /* new macro */
+    str_node_ptr macro_content_head = NULL, macro_content_tail = NULL,
+            new_node = NULL; /* linked list of strings */
 
     if (read_next_part(as_fd, &next_part) != 0) {
         for (i = 0; i < strlen(next_part); i++)
@@ -71,7 +71,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
     }
 
     /* Create new macro node */
-    new_macro = (macro_ptr)calloc(1, sizeof(macro_t));
+    new_macro = (macro_ptr) calloc(1, sizeof(macro_t));
     if (new_macro == NULL) {
         safe_free(next_part)
         free_macro_table(*macro_table_head);
@@ -132,7 +132,7 @@ int macro_table_builder(char *next_part, FILE *as_fd,
             fclose(as_fd);
             allocation_failure
         }
-        if (read_next_part(as_fd, &next_part) != 0) {
+        if (read_next_part(as_fd, &next_part) == 1) {
             error_flag = 1;
             break;
         }
@@ -149,26 +149,28 @@ int macro_table_builder(char *next_part, FILE *as_fd,
                                 "line.\n", *line_num, filename);
                 error_flag = 1;
             }
-            if (read_next_part(as_fd, &next_part) != 0) {
+            if (read_next_part(as_fd, &next_part) == 1) {
                 error_flag = 1;
                 break;
             }
             if (strchr(next_part, '\n') == NULL
-                    && !feof(as_fd)) {
+                && !feof(as_fd)) {
                 fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Extra characters after 'endmacr'.\n",
-                                *line_num, filename);
+                        *line_num, filename);
                 error_flag = 1;
-            } else for (i = 0; i < strlen(next_part); i++)
+            } else {
+                for (i = 0; i < strlen(next_part); i++)
                     if (next_part[i] == '\n') (*line_num)++;
+            }
             break;
         }
 
         /* add next_part to the macro content linked list */
-        new_node = (str_node_ptr)calloc(1, sizeof(str_node_ptr));
+        new_node = (str_node_ptr) calloc(1, sizeof(str_node_ptr));
         if (new_node == NULL
-                || (as_strdup(&new_node->str, next_part) != 0)
-                || (new_node->str == NULL)) {
+            || (as_strdup(&new_node->str, next_part) != 0)
+            || (new_node->str == NULL)) {
             safe_free(next_part)
             free_macro_table(*macro_table_head);
             fclose(as_fd);
@@ -257,7 +259,7 @@ int read_next_part(FILE *fd, char **next_part) {
 
     do {
         if (buffer % 19 == 0) {
-            temp = (char *)realloc(*next_part, buffer + 21);
+            temp = (char *) realloc(*next_part, buffer + 21);
             if (!temp) {
                 safe_free(*next_part)
                 fclose(fd);
@@ -265,7 +267,7 @@ int read_next_part(FILE *fd, char **next_part) {
             }
             *next_part = temp;
         }
-        (*next_part)[buffer++] = (char)c;
+        (*next_part)[buffer++] = (char) c;
 
         c = fgetc(fd);
         if (c == EOF) break;
@@ -288,7 +290,7 @@ int read_next_part(FILE *fd, char **next_part) {
  */
 int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head) {
     char *next_part = NULL, *content_buffer = NULL, *macro_buffer = NULL;
-    /* strings */
+        /* strings */
     int i, line_num = 1, error_flag = 0; /* counters */
     unsigned long len; /* position counter */
     FILE *am_fd; /* file pointer */
@@ -304,7 +306,7 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head) {
     }
     filename[strlen(filename) - 1] = 's';
 
-    next_part = (char *)calloc(20, sizeof(char)); /* initial allocation */
+    next_part = (char *) calloc(20, sizeof(char)); /* initial allocation */
     if (next_part == NULL) {
         fclose(as_fd);
         fclose(am_fd);
@@ -334,9 +336,9 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head) {
                 error_flag = 1;
             }
             if (read_next_part(as_fd, &next_part) != 0
-                        || (error_flag = macro_table_builder(next_part, as_fd,
-                               macro_table_head, &line_num,
-                               filename) != 0)) {
+                || (error_flag = macro_table_builder(next_part, as_fd,
+                                                     macro_table_head, &line_num,
+                                                     filename) != 0)) {
                 for (i = 0; i < strlen(next_part); i++)
                     if (next_part[i] == '\n') line_num++;
             }
@@ -364,12 +366,6 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head) {
                     content_buffer = as_strcat(content_buffer,
                                                content_node->str);
                     content_node = content_node->next;
-                }
-
-                len = strlen(content_buffer);
-                while (len > 0 && content_buffer != NULL &&
-                        isspace(content_buffer[len - 1])) {
-                    content_buffer[--len] = '\0';
                 }
 
                 fwrite(content_buffer, strlen(content_buffer), 1, am_fd);
