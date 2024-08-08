@@ -45,7 +45,7 @@ int skip_macro(FILE *as_fd, char *filename, char *next_part, int *line_num) {
         fprintf(stdout, "Error: %s finished without 'endmacr'.\n",
                 filename);
     }
-    
+
     return *line_num;
 }
 

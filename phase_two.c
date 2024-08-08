@@ -9,10 +9,8 @@
 
 /**
  * @brief builds the ent file
- *
  * @param ent_fd a pointer to the ent file
  * @param symbol_table a pointer to the symbol table
- *
  * @return 0
  */
 int build_ent(FILE *ent_fd, symbols_ptr symbol_table) {
@@ -30,10 +28,8 @@ int build_ent(FILE *ent_fd, symbols_ptr symbol_table) {
 
 /**
  * @brief builds the ext file
- *
  * @param ext_fd a pointer to the ent file
  * @param symbol_table a pointer to the symbol table
- *
  * @return 0
  */
 int build_ext(FILE *ext_fd, symbols_ptr symbol_table) {
@@ -51,12 +47,10 @@ int build_ext(FILE *ext_fd, symbols_ptr symbol_table) {
 
 /**
  * @brief builds the object file
- *
  * @param ob_fd pointer to the object file
  * @param command_word pointer to the command list
  * @param ic the instruction counter
  * @param dc the data counter
- *
  * @return 0 if successful, -1 otherwise
  */
 int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
@@ -88,10 +82,8 @@ int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
 /**
  * @brief checks if the symbol is in the symbol table and returns its counter,
  *        prints external symbols to the specified external file
- *
  * @param name name of the symbol to be checked
  * @param symbols_head a pointer to the symbol table
- *
  * @return the counter of the symbol, -1 if an error occurred
  */
 int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
@@ -123,14 +115,12 @@ int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
 
 /**
  * @brief the function updates the command list and adds the new command words
- *
  * @param command_list the list of commands
  * @param word the current word in the line
  * @param line the current line
  * @param position the current position in the line
  * @param filename the name of the file
  * @param symbols_head the list of symbols
- *
  * @return 0 if successful, -1 otherwise
  */
 int update_command_list(command_ptr command_list, char *word, char *line,
@@ -223,10 +213,8 @@ int update_command_list(command_ptr command_list, char *word, char *line,
 
 /**
  * @brief updates the type of the symbol to be entry
- *
  * @param symbol_table_head pointer to the symbol table head
  * @param word name of the symbol to be updated
- *
  * @return 0 if successful, -1 otherwise
  */
 int entry_update(symbols_ptr symbol_table_head, char *word) {
@@ -246,13 +234,11 @@ int entry_update(symbols_ptr symbol_table_head, char *word) {
 
 /**
  * @brief phase two of the assembler, builds the outpu files
- *
  * @param fd pointer to the file
  * @param filename name of the file
  * @param symbol_table_head pointer to the symbol table
  * @param expected_ic expected ic value
  * @param dc value of dc
- *
  * @return 0 if successful, -1 otherwise
  */
 int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,

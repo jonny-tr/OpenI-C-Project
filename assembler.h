@@ -81,7 +81,7 @@ int get_next_word(char *line, char *word, char **word_ptr);
 int get_word_type(char *word);
 int command_to_num(command_word cmd);
 int twos_complement(int num);
-int comma_checker(char *line, char **word_ptr);
+int comma_checker(char **word_ptr);
 int get_ascii_value(char ch);
 
 /* pre_assembler */
@@ -107,7 +107,7 @@ int init_command_word(command_ptr *head, command_ptr *ptr);
 void set_command_opcode(command_word *field, int command);
 void set_addressing_method(char *operand, command_word *field, int src_dest);
 int calc_l(command_word *field, int cmnd);
-void end_phase_one_update_counter(symbols_ptr head, int IC);
+void end_phase_one_update_counter(symbols_ptr head, int ic);
 int get_data_int(char *word);
 
 
