@@ -3,7 +3,7 @@
 #define LINE_SIZE 81
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: EXTERN case should work now, added option for "“ smart quotes in STRING case
+/*updates for commit: EXTERN case should work now
 debugging stuff
 check max line number?*/
 
@@ -78,7 +78,8 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0}; /* buffers */
     char *word_ptr, *label_temp_ptr = NULL; /* pointers */
     int label_flag = 0, error_flag = 0, expect_comma; /* flags: 1 on, 0 off */
-    int i, cmnd, word_type, data_tmp, commas, operand_error,line_counter = 0; /* counters */
+    int i, cmnd, word_type, data_tmp, commas, operand_error,
+        line_counter = 0; /* counters */
     int char_type; /* -1 line end, 0 word, 1 comma */
     int debug_temp; /*debugging, delete when done!!!!!!!!!!!!!!!!!!*/
     command_ptr new_field = (command_ptr) malloc(sizeof(command_word)); /* command */
@@ -246,7 +247,8 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             break;
                         }
 
-                        if (add_variable(&variable_table, twos_complement(data_tmp), *dc) == -1) {
+                        if (add_variable(&variable_table,
+                                         twos_complement(data_tmp), *dc) == -1) {
                             phase_one_allocation_failure;
                         } else { /*valid data*/
                             (*dc)++;
@@ -388,15 +390,15 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                     }
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(*symbol_table, label_temp_ptr, (*ic + 100), "code") ==
-                            -1) {
+                        if (add_symbol(*symbol_table, label_temp_ptr,
+                                       (*ic + 100), "code") == -1) {
                             phase_one_allocation_failure
                         }
                         (*ic)++;
                         fprintf(stdout, "debugging: ic updated to: %d\n", *ic);
                         fprintf(stdout, "debugging: added label '%s' to list\n", label_temp_ptr);
                     }
-                    /*initialize new command_word*/
+                    /* initialize new command_word */
                     if (init_command_word(&command_table, &new_field) == -1) {
                         phase_one_allocation_failure
                     }
@@ -572,7 +574,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
 }
               
 /**
- * @brief Initializes a new command word and adds it to a linked list.
+ * @brief Creates a new command word and adds it to the linked list.
  *
  * @param head pointer to the head of the linked list.
  * @param ptr pointer to the newly created command word.
@@ -580,11 +582,11 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
  * @return 0 on success, -1 on failure.
  */
 int init_command_word(command_ptr *head, command_ptr *ptr) {
-    command_ptr new_node = (command_ptr) malloc(sizeof(command_word));
+    command_ptr temp, new_node = (command_ptr) calloc(1,sizeof(command_word));
 
     if (new_node == NULL) return -1;
 
-    new_node->are = 0x4; /* 0b100 in binary, automatically sets ARE to be 100 (only A) */
+    new_node->are = 0x4; /* 0b100 in binary, sets ARE to be 100 (only A) */
     new_node->dest_addr = 0x0; /* 0b0000 in binary */
     new_node->src_addr = 0x0;  /* 0b0000 in binary */
     new_node->opcode = 0x0;  /* 0b0000 in binary */
@@ -594,13 +596,14 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
     if (*head == NULL) { /* initialize the list */
         *head = new_node;
     } else {
-        command_ptr temp = *head;
+        temp = *head;
         while (temp->next != NULL) {
             temp = temp->next;
         }
         temp->next = new_node;
     }
     *ptr = new_node;
+
     return 0;
 }
 
@@ -614,12 +617,17 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
  */
 int calc_l(command_word *field, int cmnd) {
     if (cmnd == 14 || cmnd == 15) return 0; /*command without operands*/
+
     /* one operand or both operands are registers: 0100 or 1000*/
     else if ((cmnd >= 5 && cmnd <= 13)
-            || ((field->src_addr == 0x4 || field->src_addr == 0x8) /*0b0100||0b1000*/
-                && (field->dest_addr == 0x4 || field->dest_addr == 0x8))) /*0b0100||0b1000*/ {
+                /*0b0100||0b1000*/
+                || ((field->src_addr == 0x4 || field->src_addr == 0x8)
+                /*0b0100||0b1000*/
+                && (field->dest_addr == 0x4 || field->dest_addr == 0x8)))
         return 1;
-    } else return 2;
+
+    else
+        return 2;
 }
 
 /**
@@ -631,7 +639,6 @@ int calc_l(command_word *field, int cmnd) {
  * @return void
  */
 void set_command_opcode(command_word *field, int command) {
-    /* TODO: don't you want it to be a switch case? @shahar */
     if (command == 0) field->opcode = 0x0;       /* mov */
     else if (command == 1) field->opcode = 0x1;  /* cmp */
     else if (command == 2) field->opcode = 0x2;  /* add */
@@ -701,7 +708,8 @@ void set_addressing_method(char *operand, command_word *field, int src_dest) {
  * @param macro_table The table of macros.
  *
  * @return 1 if the word is a valid operand, -1 command, -2 invalid immediate #,
- *         -3 invalid indirect register *, -4 macro, -5 invalid label 1st char, -6 invalid label
+ *         -3 invalid indirect register *, -4 macro, -5 invalid label 1st char,
+ *         -6 invalid label
  *
  * @throws None.
  */
@@ -721,7 +729,8 @@ int is_valid_operand(char *word, macro_ptr macro_table) {
             return -2;
         }
     } else if (word[0] == '*') { /*needs to be a valid register*/
-        if (!(strncmp(&word[1], "r", 1) == 0 && strlen(word) == 3 && word[2] >= '0' && word[2] <= '7')) {
+        if (!(strncmp(&word[1], "r", 1) == 0 && strlen(word) == 3
+            && word[2] >= '0' && word[2] <= '7')) {
             return -3;
         }
     } else if (is_macro_name_valid(word, macro_table) == 2) {
@@ -877,7 +886,8 @@ int add_variable(variable_t **head, int content, int counter) {
 }
 
 /**
- * @brief Parses a string and returns the integer value of the number it represents.
+ * @brief Parses a string and returns the integer value of the number
+ *        it represents.
  *
  * @param word A pointer to the first character of the string to be parsed.
  *
