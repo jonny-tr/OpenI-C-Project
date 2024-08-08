@@ -94,7 +94,6 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
             fprintf(stdout, "\nline number %d, line is: %s", line_counter, line);
         /*end debugging*/
         while ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
-            /*fprintf(stdout, "Debugging: word is: %s\n", word);*/
             CHECK_UNEXPECTED_COMMA(char_type, error_flag);
             word_type = get_word_type(word);
             switch (word_type) {
@@ -173,9 +172,12 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                         /*debugging:*/
                         else fprintf(stdout, "debugging: Label '%s' added to list, data\n", label_temp_ptr);
                     }
-                    expect_comma = 0;
+
+                   /* expect_comma = 0;
+                    commas = 0;
                     while ((char_type = get_next_word(line, word, &word_ptr)) != -1
                             && word[0] != '\0') {
+                        fprintf(stdout, "debugging: data is: %s\n", word);
                         if (expect_comma == 1) {
                             commas = comma_checker(line, &word_ptr);
                             if (commas == 0) {
@@ -184,15 +186,24 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                                         line_counter, filename);
                                 error_flag = 1;
                                 break;
-                            } else if (commas > 1) {
+                            } else if (commas > 1 ) {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
                                                 "Too many commas.\n",
                                         line_counter, filename);
                                 error_flag = 1;
                                 break;
-                            } else expect_comma = 0;
+                            }
+                            expect_comma = 0;
+                        } else { /* expect_comma == 0 *//*
+                            if (commas > 0) {
+                                fprintf(stdout, "Error: line %d in %s.\n       "
+                                                "Unexpected comma before data.\n", line_counter, filename);
+                                error_flag = 1;
+                                break;
+                            }
                         }
                         data_tmp = get_data_int(word);
+                        fprintf(stdout, "debugging: data_tmp is: %d\n", data_tmp);
                         if (data_tmp == INVALID_INT) {
                             fprintf(stdout, "Error: line %d in %s.\n       "
                                             "Invalid data.\n",
@@ -205,9 +216,55 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                                          *dc) == -1) {
                             phase_one_allocation_failure
                         }
+                        else fprintf(stdout, "debugging: data %d added to list\n", data_tmp);
                         (*dc)++;
                         expect_comma = 1;
                     }
+                    break; */
+
+                    commas = 0;
+                    expect_comma = 0; /*no comma is expected before the first data*/
+                    while ((char_type = get_next_word(line, word, &word_ptr)) 
+                            != -1 && word[0] != '\0') {
+                        if (expect_comma != commas) {
+                            fprintf(stdout, "Error: line %d in %s.\n       "
+                            "Improper comma use.\n", line_counter, filename);
+                            fprintf(stdout, "debugging: expect_comma: %d, commas: %d\n", expect_comma, commas);
+                            error_flag = 1;
+                            break;
+                        }
+                        fprintf(stdout, "debugging: data is: %s\n", word);
+
+                        /*add data to the linked list*/
+                        data_tmp = get_data_int(word);
+                        fprintf(stdout, "debugging: data_tmp is: %d\n", data_tmp);
+
+                        if (data_tmp == INVALID_INT) {
+                            fprintf(stdout, "Error: line %d in %s.\n       "
+                            "Invalid data.\n", line_counter, filename);
+                            error_flag = 1;
+                            break;
+                        }
+
+                        if (add_variable(&variable_table, twos_complement(data_tmp), *dc) == -1) {
+                            phase_one_allocation_failure;
+                        } else { /*valid data*/
+                            (*dc)++;
+                            fprintf(stdout, "debugging: data %d added to list with dc: %d\n", data_tmp, *dc-1);
+                        }
+
+                        /*check for commas*/
+                        expect_comma = 1;
+                        commas = comma_checker(line, &word_ptr);
+                        if (commas > 1) {
+                            fprintf(stdout, "Error: line %d in %s.\n"
+                            "Too many commas.\n", line_counter, filename);
+                            error_flag = 1;
+                            break;
+                        }
+                    }
+                    fprintf(stdout, "debugging: end of data entry\n");
+                    char_type = -1;
                     break;
 
                 case STRING:
@@ -225,7 +282,8 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                     }
                     if (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
                         fprintf(stdout, "debugging: string is: %s\n", word);
-                        if ((word[0] == '"' || word[0] == '“') && (word[strlen(word) - 1] == '"' || word[strlen(word) - 1] == '”'))
+                        fprintf(stdout, "word[0] is: '%c', word[strlen(word) - 1] is: '%c'\n", word[0], word[strlen(word) - 1]);
+                        if (word[0] == '"' && word[strlen(word) - 1] == '"'){
                             for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
                                 if (add_variable(&variable_table, get_ascii_value(word[i]), *dc) ==
                                     -1) {
@@ -233,6 +291,14 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                                 }
                                 (*dc)++;
                             }
+                            if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
+                                fprintf(stdout, "Error: line %d in %s.\n       "
+                                                    "Cannot input more than 1 string.\n",
+                                                    line_counter, filename);
+                                error_flag = 1;
+                                break;
+                            }
+                        }
                         else {
                             fprintf(stdout, "Error: line %d in %s.\n       " \
                                                     "Invalid string.\n", \
@@ -240,6 +306,13 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             error_flag = 1;
                             break;
                         }
+                    }
+                    else {
+                        fprintf(stdout, "Error: line %d in %s.\n       " \
+                                                "Missing string.\n", \
+                                                line_counter, filename);
+                        error_flag = 1;
+                        break;
                     }
                     break;
 
@@ -459,6 +532,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                     fprintf(stdout, "Error: line %d in %s.\n       "
                                     "Invalid command.\n",
                             line_counter, filename);
+                    char_type = -1; /*finish this line*/
                     error_flag = 1;
                     break;
 
@@ -478,23 +552,25 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                     error_flag = 1;
                     break;
             } /* end of word_type switch */
-            if(char_type == -1){ /*reached end of line*/
+            if(word_type == COMMAND){ /*reached end of line*/
                 new_field->l = calc_l(new_field, cmnd);
                 fprintf(stdout, "debugging: l is: %d\n", new_field->l);
                 *ic += new_field->l;
                 fprintf(stdout, "debugging: ic updated to: %d\n", *ic);
+            }
+            if(char_type == -1) {
                 fprintf(stdout, "debugging: reached end of line %d\n", line_counter);
             }
         } /* end of next_word loop */
     } /* end of line loop */
-
+    
     end_phase_one_update_counter(*symbol_table, *ic);
 
     if (error_flag == 1) return -1;
 
     return 0;
 }
-
+              
 /**
  * @brief Initializes a new command word and adds it to a linked list.
  *
