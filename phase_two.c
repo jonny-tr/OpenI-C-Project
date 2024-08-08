@@ -333,7 +333,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
             goto cleanup;
         }
 
-        if (ent_flag == 1) {
+        if (ent_flag) {
             ent_fd = fopen(ent_file, "w");
             if (ent_fd == NULL) {
                 fprintf(stdout, "Error: Could not create an entry file for "
@@ -345,7 +345,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
             build_ent(ent_fd, symbol_table_head);
         }
 
-        if (ext_flag == 1) {
+        if (ext_flag) {
             ext_fd = fopen(ext_file, "w");
             if (ext_fd == NULL) {
                 fprintf(stdout, "Error: Could not create an external file for "

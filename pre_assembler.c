@@ -9,21 +9,21 @@
  * @return line number, -1 if an error occurred
  */
 int skip_macro(FILE *as_fd, char *filename, char *next_part, int *line_num) {
-    int i, temp_flag; /* counter and flag*/
+    int i, newline_flag; /* counter and flag*/
 
     do {
-        if (strchr(next_part, '\n') == NULL) temp_flag = 1;
+        if (strchr(next_part, '\n') == NULL) newline_flag = 1;
         if (read_next_part(as_fd, &next_part) != 0) return -1;
         for (i = 0; i < strlen(next_part); i++) {
             if (next_part[i] == '\n') {
-                temp_flag = 0;
+                newline_flag = 0;
                 (*line_num)++;
             }
         }
     } while (strcmp(next_part, "endmacr") != 0 && !feof(as_fd));
 
     if (!feof(as_fd)) {
-        if (temp_flag == 1) {
+        if (newline_flag) {
             fprintf(stdout, "Error: line %d in %s.\n       "
                             "'endmacr' should be declared in a separate line.\n",
                     *line_num, filename);
@@ -45,6 +45,7 @@ int skip_macro(FILE *as_fd, char *filename, char *next_part, int *line_num) {
         fprintf(stdout, "Error: %s finished without 'endmacr'.\n",
                 filename);
     }
+    
     return *line_num;
 }
 
@@ -292,7 +293,6 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head) {
     char *next_part = NULL, *content_buffer = NULL, *macro_buffer = NULL;
         /* strings */
     int i, line_num = 1, error_flag = 0; /* counters */
-    unsigned long len; /* position counter */
     FILE *am_fd; /* file pointer */
     macro_ptr macro_index = NULL; /* macro to spread */
     str_node_ptr content_node; /* content node */
