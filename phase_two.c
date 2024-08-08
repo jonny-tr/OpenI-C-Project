@@ -264,7 +264,6 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
         ent_flag = 0, ext_flag = 0; /* counters and flags */
     FILE *ob_fd = NULL, *ext_fd = NULL, *ent_fd = NULL; /* file pointers */
     command_ptr current_cmd = cmd_list_head, tmp_cmd = NULL; /* pointers */
-    symbols_ptr current_symbol = symbol_table_head; /* pointer */
 
     ob_file = as_strcat(filename, ".ob");
     ext_file = as_strcat(filename, ".ext");
@@ -289,7 +288,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
             continue;
         } else if (strcmp(next_word, ".entry") == 0) {
             ent_flag = 1;
-            /* upsate labels in the symbol table */
+            /* update labels in the symbol table */
             while (read_next_word(line, position, &next_word) != 1) {
                 if (entry_update(symbol_table_head, next_word) == -1) {
                     error_flag = 1;
@@ -327,7 +326,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
             error_flag = 1;
             goto cleanup;
         }
-        
+
         if (build_ob(ob_fd, cmd_list_head, variable_head, ic, dc) == -1) {
             error_flag = 1;
             allocation_flag = 1;
