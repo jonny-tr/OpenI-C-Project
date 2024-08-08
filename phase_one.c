@@ -14,45 +14,46 @@ check max line number?*/
 
 #define CHECK_UNEXPECTED_COMMA(char_type, error_flag) \
     if ((char_type) == 1) { \
-    fprintf(stdout, "Error: line %d in %s.\n       "\
-                        "Unexpected comma.\n",\
-                        line_counter, filename);\
+    fprintf(stdout, "Error: line %d in %s.\n       " \
+                        "Unexpected comma.\n", \
+                        line_counter, filename); \
         (error_flag) = 1; \
         break; \
     }
 
 #define PRINT_OPERAND_ERROR(error_code) \
-    switch(error_code) { \
+    switch (error_code) { \
         case -1: \
-            fprintf(stdout, "Error: line %d in %s.\n       "\
-                "A command cannot be used as an operand.\n",\
+            fprintf(stdout, "Error: line %d in %s.\n       " \
+                "A command cannot be used as an operand.\n", \
                 line_counter, filename);\
             break; \
         case -2: \
-            fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid immediate operand, after # must follow a number.\n",\
-                line_counter, filename);\
+            fprintf(stdout, "Error: line %d in %s.\n       " \
+                "Invalid immediate operand, after # must follow a number.\n", \
+                line_counter, filename); \
             break; \
         case -3: \
-            fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid register.\n",\
-                line_counter, filename);\
+            fprintf(stdout, "Error: line %d in %s.\n       " \
+                "Invalid register.\n", \
+                line_counter, filename); \
             break; \
         case -4: \
-            fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Macro cannot be used as an operand.\n",\
-                line_counter, filename);\
+            fprintf(stdout, "Error: line %d in %s.\n       " \
+                "Macro cannot be used as an operand.\n", \
+                line_counter, filename); \
             break; \
         case -5: \
-            fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid label name, must start with a letter.\n",\
-                line_counter, filename);\
+            fprintf(stdout, "Error: line %d in %s.\n       " \
+                "Invalid label name, must start with a letter.\n", \
+                line_counter, filename); \
             break; \
         case -6: \
-            fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid label name, must only contain letters and numbers.\n",\
-                line_counter, filename);\
-            break;                      \
+            fprintf(stdout, "Error: line %d in %s.\n       " \
+                "Invalid label name, must only contain " \
+                "letters and numbers.\n", \
+                line_counter, filename); \
+            break; \
         default: \
             break; \
     }
