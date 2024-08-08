@@ -75,11 +75,11 @@ check max line number?*/
 int phase_one(FILE *fd, char *filename, int *ic, int *dc,
               symbols_ptr *symbol_table, variable_ptr variable_table,
               command_ptr command_table, macro_ptr macro_table) {
-    char line[LINE_SIZE], word[LINE_SIZE]; /* buffers */
+    char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0}; /* buffers */
     char *word_ptr, *label_temp_ptr = NULL; /* pointers */
     int label_flag = 0, error_flag = 0, expect_comma; /* flags: 1 on, 0 off */
     int i, cmnd, word_type, data_tmp, commas, operand_error,
-        line_counter = 0; /* counters */
+        position, line_counter = 0; /* counters */
     int char_type; /* -1 line end, 0 word, 1 comma */
     command_ptr new_field = (command_ptr) malloc(sizeof(command_word)); /* command */
 
@@ -88,6 +88,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
     }
 
     while (read_next_line(fd, line) != -1) {
+        position = 0;
         word_ptr = line;
         line_counter++;
         while ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
@@ -150,11 +151,12 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                                         line_counter, filename);
                                 error_flag = 1;
                             } else {
-                                label_flag = 1;
                                 as_strdup(&label_temp_ptr, word);
+                                label_flag = 0;
                             }
                             break;
                     } /* end label case */
+                    break;
 
                 case DATA:
                     if (label_flag == 1) {
@@ -209,7 +211,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             phase_one_allocation_failure
                         }
                     }
-                    if (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
+                    if (/*read_next_word(line, &position, &word_ptr) != -1*/get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
                         if (word[0] == '"' && word[strlen(word) - 1] == '"')
                             for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
                                 if (add_variable(&variable_table, get_ascii_value(word[i]), *dc) ==
@@ -230,7 +232,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
 
                 case EXTERN:
                     expect_comma = 0;
-                    while (get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
+                    while (/*read_next_word(line, &position, &word_ptr) != -1*/get_next_word(line, word, &word_ptr) != -1 && word[0] != '\0') {
                         if (expect_comma == 1) {
                             commas = comma_checker(line, &word_ptr);
                             if (commas == 0) {
@@ -258,7 +260,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                     break;
 
                 case ENTRY:
-                    if (get_next_word(line, word, &word_ptr) == 0) {
+                    if (/*read_next_word(line, &position, &word_ptr) == 0*/get_next_word(line, word, &word_ptr) == 0) {
                         if (is_valid_label(word, *symbol_table, macro_table) == 0) {
                             if (add_symbol(*symbol_table, word, *ic + 100, "code") ==
                                 -1) {
@@ -310,7 +312,8 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                         case 3: /*sub*/
                         case 4: /*lea*/
                             /*first operand*/
-                            if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
+                            if ((char_type = /*read_next_word(line, &position, &word_ptr)) != -1*/
+                                    get_next_word(line, word, &word_ptr)) != -1) {
                                 CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                                 operand_error = is_valid_operand(word, macro_table);
                                 if (operand_error == 1)
@@ -337,7 +340,8 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             }
 
                             /*second oeprand*/
-                            if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
+                            if ((char_type = /*read_next_word(line, &position, &word_ptr)) != -1*/
+                                    get_next_word(line, word, &word_ptr)) != -1) {
                                 operand_error = is_valid_operand(word, macro_table);
                                 if (operand_error == 1)
                                     set_addressing_method(word, new_field, 2);
@@ -366,7 +370,8 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                         case 12: /*prn*/
                         case 13: /*jsr*/
                             /*only destination operand*/
-                            if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
+                            if ((char_type = /*read_next_word(line, &position, &word_ptr)) != -1*/
+                                    get_next_word(line, word, &word_ptr)) != -1) {
                                 CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                                 operand_error = is_valid_operand(word, macro_table);
                                 if (operand_error == 1)
@@ -394,6 +399,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             error_flag = 1;
                             break;
                     } /* end of cmnd switch */
+                    break;
 
                 case ERROR:
                     fprintf(stdout, "Error: line %d in %s.\n       "
@@ -401,6 +407,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             line_counter, filename);
                     error_flag = 1;
                     break;
+
                 case -2: /* Space before : error */
                     fprintf(stdout, "Error: line %d in %s.\n       "
                                     "Label cannot end with a whitespace.\n",
@@ -413,14 +420,13 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             line_counter, filename);
                     error_flag = 1;
                     break;
-                new_field->l = calc_l(new_field, cmnd);
-                *ic += new_field->l;
-            } /*end of word_type switch*/
-        } /* end of line while */
-            /* @shahar, this is not the end of line while, it's the next_word loop,
-             * is it supposed to include anything else? */
-        /***label_flag = 0;?***/
-    }
+            } /* end of word_type switch */
+
+            new_field->l = calc_l(new_field, cmnd);
+            *ic += new_field->l;
+        } /* end of next_word loop */
+    } /* end of line loop */
+
     end_phase_one_update_counter(*symbol_table, *ic);
 
     if (error_flag == 1) return -1;
@@ -754,8 +760,7 @@ int get_data_int(char *word) {
     }
 
     /* read the number */
-    while (*word && *word != ' ' && *word != '\t'
-           && *word != ',' && *word != '\0') {
+    while (*word && !isspace(*word)) {
         if (!isdigit(*word)) return INVALID_INT;
         result = result * 10 + (*word - '0');
         word++;
