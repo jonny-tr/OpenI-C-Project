@@ -14,45 +14,46 @@ check max line number?*/
 
 #define CHECK_UNEXPECTED_COMMA(char_type, error_flag) \
     if ((char_type) == 1) { \
-    fprintf(stdout, "Error: line %d in %s.\n       "\
-                        "Unexpected comma.\n",\
-                        line_counter, filename);\
+    fprintf(stdout, "Error: line %d in %s.\n       " \
+                        "Unexpected comma.\n", \
+                        line_counter, filename); \
         (error_flag) = 1; \
         break; \
     }
 
 #define PRINT_OPERAND_ERROR(error_code) \
-    switch(error_code) { \
+    switch (error_code) { \
         case -1: \
-            fprintf(stdout, "Error: line %d in %s.\n       "\
-                "A command cannot be used as an operand.\n",\
-                line_counter, filename);\
+            fprintf(stdout, "Error: line %d in %s.\n       " \
+                "A command cannot be used as an operand.\n", \
+                line_counter, filename); \
             break; \
         case -2: \
-            fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid immediate operand, after # must follow a number.\n",\
-                line_counter, filename);\
+            fprintf(stdout, "Error: line %d in %s.\n       " \
+                "Invalid immediate operand, after # must follow a number.\n", \
+                line_counter, filename); \
             break; \
         case -3: \
-            fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid register.\n",\
-                line_counter, filename);\
+            fprintf(stdout, "Error: line %d in %s.\n       " \
+                "Invalid register.\n", \
+                line_counter, filename); \
             break; \
         case -4: \
-            fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Macro cannot be used as an operand.\n",\
-                line_counter, filename);\
+            fprintf(stdout, "Error: line %d in %s.\n       " \
+                "Macro cannot be used as an operand.\n", \
+                line_counter, filename); \
             break; \
         case -5: \
-            fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid label name, must start with a letter.\n",\
-                line_counter, filename);\
+            fprintf(stdout, "Error: line %d in %s.\n       " \
+                "Invalid label name, must start with a letter.\n", \
+                line_counter, filename); \
             break; \
         case -6: \
-            fprintf(stdout, "Error: line %d in %s.\n       "\
-                "Invalid label name, must only contain letters and numbers.\n",\
-                line_counter, filename);\
-            break;                      \
+            fprintf(stdout, "Error: line %d in %s.\n       " \
+                "Invalid label name, must only contain " \
+                "letters and numbers.\n", \
+                line_counter, filename); \
+            break; \
         default: \
             break; \
     }
@@ -75,11 +76,11 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
               command_ptr command_table, macro_ptr macro_table) {
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0}; /* buffers */
     char *word_ptr, *label_temp_ptr = NULL; /* pointers */
-    int label_flag = 0, error_flag = 0, expect_comma; /* flags: 1 on, 0 off */
-    int i, cmnd, word_type, data_tmp, commas, operand_error,
-            line_counter = 0; /* counters */
-    int char_type; /* -1 line end, 0 word, 1 comma */
-    int debug_temp; /*debugging, TODO: delete when done!!!!!!!!!!!!!!!!!!*/
+    int label_flag = 0, error_flag = 0, expect_comma, /* flags: 1 on, 0 off */
+        i, cmnd, word_type, data_tmp, commas, operand_error,
+        line_counter = 0, /* counters */
+        char_type; /* -1 line end, 0 word, 1 comma */
+    int debug_temp; /*debugging, TODO: delete when done!!!!!*/
     command_ptr new_field = (command_ptr) malloc(sizeof(command_word)); /* command */
 
     if (new_field == NULL) {
@@ -222,7 +223,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                     break; */
 
                     commas = 0;
-                    expect_comma = 0; /*no comma is expected before the first data*/
+                    expect_comma = 0; /* no comma is expected before the first data */
                     while ((char_type = get_next_word(line, word, &word_ptr))
                            != -1 && word[0] != '\0') {
                         if (expect_comma != commas) {
@@ -234,7 +235,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                         }
                         fprintf(stdout, "debugging: data is: %s\n", word);
 
-                        /*add data to the linked list*/
+                        /* add data to the linked list */
                         data_tmp = get_data_int(word);
                         fprintf(stdout, "debugging: data_tmp is: %d\n", data_tmp);
 
@@ -792,7 +793,7 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
 int add_symbol(symbols_ptr head, char *name, int counter, char *type) {
     symbols_ptr temp, new_node = NULL; /* symbol nodes */
 
-    new_node = (symbols_ptr) malloc(sizeof(symbols_list));
+    new_node = (symbols_ptr) calloc(1, sizeof(symbols_list));
     if (new_node == NULL) return -1;
 
     as_strdup(&new_node->name, name);

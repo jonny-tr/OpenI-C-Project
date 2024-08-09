@@ -15,6 +15,7 @@
             exit(EXIT_FAILURE);
 
 #define safe_free(p) if ((p) != NULL) { free(p); (p) = NULL; }
+
 #define INVALID_INT INT_MIN /*substitute for NULL*/
 
 /*---------------------------------enums-------------------------------------*/
