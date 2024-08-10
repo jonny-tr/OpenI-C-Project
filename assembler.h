@@ -15,6 +15,7 @@
             exit(EXIT_FAILURE);
 
 #define safe_free(p) if ((p) != NULL) { free(p); (p) = NULL; }
+
 #define INVALID_INT INT_MIN /*substitute for NULL*/
 
 /*---------------------------------enums-------------------------------------*/
@@ -81,7 +82,7 @@ int get_next_word(char *line, char *word, char **word_ptr);
 int get_word_type(char *word);
 int command_to_num(command_word cmd);
 int twos_complement(int num);
-int comma_checker(char *line, char **word_ptr);
+int comma_checker(char **word_ptr);
 int get_ascii_value(char ch);
 
 /* pre_assembler */
@@ -107,7 +108,7 @@ int init_command_word(command_ptr *head, command_ptr *ptr);
 void set_command_opcode(command_word *field, int command);
 void set_addressing_method(char *operand, command_word *field, int src_dest);
 int calc_l(command_word *field, int cmnd);
-void end_phase_one_update_counter(symbols_ptr head, int IC);
+void end_phase_one_update_counter(symbols_ptr head, int ic);
 int get_data_int(char *word);
 
 
@@ -115,6 +116,7 @@ int get_data_int(char *word);
 int build_ent(FILE *ent_fd, symbols_ptr symbol_table);
 int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
              int ic, int dc);
+int build_ext(FILE *ext_fd, symbols_ptr symbol_table);
 int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
               FILE **ext_fd, char *ext_file, int line_num);
 int update_command_list(command_ptr command_list, char *word, char *line,
@@ -122,7 +124,7 @@ int update_command_list(command_ptr command_list, char *word, char *line,
                         symbols_ptr symbols_head, FILE **ext_fd,
                         char *ext_file, int line_num);
 int entry_update(symbols_ptr symbol_table, char *word);
-int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table,
+int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
               variable_ptr variable_head, command_ptr cmd_list_head,
               int expected_ic, int dc);
 
