@@ -140,12 +140,13 @@ int comma_checker(char **word_ptr) {
  * @return 0 if a word was found, -1 if end of the line was reached,
  *         1 if comma before word
  */
-int get_next_word(char *line, char *word, char **word_ptr) {
+
+int old_get_next_word(char *line, char *word, char **word_ptr) {
     char *p = *word_ptr, *w = word;
 
     /* Skip whitespaces */
     while (isspace(*p)) {
-        if (*p == '\n') return -1; /* End of line */
+        if (*p == '\n' || *p =='\0') return -1; /* End of line */
         p++;
     }
 
@@ -171,6 +172,48 @@ int get_next_word(char *line, char *word, char **word_ptr) {
     return 0;
 }
 
+int get_next_word(char *line, char *word, char **word_ptr) {
+    char *p = *word_ptr, *w = word;
+
+    /** Skip leading whitespaces **/
+    while (isspace(*p)) {
+        if (*p == '\n' || *p == '\0') {
+            *word_ptr = p; /** Update word_ptr to the end of the line **/
+            return -1; /** End of line **/
+        }
+        p++;
+    }
+
+    /** Handle the case where the line is completely empty or just has whitespaces **/
+    if (*p == '\0') {
+        *word_ptr = p; /** Update word_ptr to the end of the line **/
+        return -1; /** End of line **/
+    }
+
+    /** Check for a comma **/
+    if (*p == ',') {
+        *word_ptr = p + 1; /** Move past the comma **/
+        return 1; /** Indicate that a comma was found **/
+    }
+
+    /** Extract the word **/
+    while (*p && !isspace(*p) && *p != ',' && *p != ':') {
+        *w++ = *p++;
+    }
+
+    /** Handle the case where the word ends with a colon **/
+    if (*p == ':') {
+        *w++ = *p++;
+    }
+
+    *w = '\0'; /** Null-terminate the word **/
+    *word_ptr = p; /** Update word_ptr to the new position **/
+    return 0; /** Indicate a word was found **/
+}
+
+
+
+
 
 /**
  * @brief returns the type of the word
@@ -194,7 +237,7 @@ int get_word_type(char *word) {
     }
 
     if (is_valid_command(word) != -1) return COMMAND;
-    fprintf(stdout, "debugging: word is %s\n", word);
+    fprintf(stdout, "debugging: ERROR, word is %s\n", word);
 
     return ERROR;
 }
