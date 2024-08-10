@@ -42,6 +42,7 @@ int main(int argc, char *argv[]) {
             goto cleanup;
         }
 
+        rewind(am_fd);
         phase_two(am_fd, filename, symbol_head, variable_head, command_head,
                   *ic, *dc);
 
