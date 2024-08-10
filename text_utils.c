@@ -145,9 +145,7 @@ int get_next_word(char *line, char *word, char **word_ptr) {
 
     /* Skip whitespaces */
     while (isspace(*p)) {
-        if (*p == '\n') {
-            return -1; /* End of line */
-        }
+        if (*p == '\n') return -1; /* End of line */
         p++;
     }
 
