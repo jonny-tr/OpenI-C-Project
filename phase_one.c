@@ -165,7 +165,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 case DATA:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(*symbol_head, label_temp_ptr,
+                        if (add_symbol(symbol_head, label_temp_ptr,
                                        *dc, "data") == -1) {
                             phase_one_allocation_failure
                         }
@@ -272,7 +272,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 case STRING:
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(*symbol_head, label_temp_ptr, *dc, "data")
+                        if (add_symbol(symbol_head, label_temp_ptr, *dc, "data")
                             == -1) {
                             phase_one_allocation_failure
                         }
@@ -336,7 +336,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                 break;
                             } else expect_comma = 0;
                         } else {
-                            if (add_symbol(*symbol_head, word,
+                            if (add_symbol(symbol_head, word,
                                            INVALID_INT, "external") == -1) {
                                 phase_one_allocation_failure;
                             }
@@ -348,7 +348,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 case ENTRY:
                     if (/*read_next_word(line, &position, &word_ptr) == 0*/get_next_word(line, word, &word_ptr) == 0) {
                         if (is_valid_label(word, *symbol_head, *macro_head) == 0) {
-                            if (add_symbol(*symbol_head, word, *ic + 100, "code") ==
+                            if (add_symbol(symbol_head, word, *ic + 100, "code") ==
                                 -1) {
                                 phase_one_allocation_failure
                             }
@@ -388,7 +388,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                     }
                     if (label_flag == 1) {
                         label_flag = 0;
-                        if (add_symbol(*symbol_head, label_temp_ptr,
+                        if (add_symbol(symbol_head, label_temp_ptr,
                                        (*ic + 100), "code") == -1) {
                             phase_one_allocation_failure
                         }
@@ -734,18 +734,18 @@ int is_valid_operand(char *word, macro_ptr macro_head) {
 /**
  * @brief checks if the label name is valid
  * @param word the name of the label
- * @param symbols_head the head of the symbols table
+ * @param symbol_head the head of the symbols table
  * @param macro_head the head of the macro table
  * @return -1 if command, -2 if label already exists, -3 if macro,
  *         -4 if register, -5 if doesn't start with a letter,
  *         -6 if isn't only letters and numbers, -7 if too long, 0 if valid
  */
-int is_valid_label(char *word, symbols_ptr symbols_head,
+int is_valid_label(char *word, symbols_ptr symbol_head,
                    macro_ptr macro_head) {
     int i = (int) strlen(word);
     char *registers[] = {"r0", "r1", "r2", "r3", "r4",
                          "r5", "r6", "r7"}; /* register names */
-    symbols_ptr current = symbols_head;
+    symbols_ptr current = symbol_head;
 
     /* remove colon */
     if (word[i - 1] == ':') word[i - 1] = '\0';
@@ -793,7 +793,7 @@ int is_valid_label(char *word, symbols_ptr symbols_head,
  * @param type The type of the symbol: external / entry / data / code
  * @return 0 on success, -1 on failure.
  */
-int add_symbol(symbols_ptr head, char *name, int counter, char *type) {
+int add_symbol(symbols_ptr *head, char *name, int counter, char *type) {
     symbols_ptr temp, new_node = NULL; /* symbol nodes */
 
     new_node = (symbols_ptr) calloc(1, sizeof(symbols_list));
@@ -806,10 +806,10 @@ int add_symbol(symbols_ptr head, char *name, int counter, char *type) {
                         INVALID_INT : counter; /* IC or DC */
     new_node->next = NULL;
 
-    if (head == NULL) { /* initializes the list */
-        head = new_node;
+    if (*head == NULL) { /* initializes the list */
+        *head = new_node;
     } else {
-        temp = head;
+        temp = *head;
         while (temp->next != NULL) temp = temp->next;
         temp->next = new_node;
     }
