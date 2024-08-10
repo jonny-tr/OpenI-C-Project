@@ -226,8 +226,9 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
 
                     commas = 0;
                     expect_comma = 0; /* no comma is expected before the first data */
-                    while ((char_type = get_next_word(line, word, &word_ptr))
-                           != -1 && word[0] != '\0') {
+                    while (char_type != -1
+                            && (char_type = get_next_word(line, word, &word_ptr)) != -1
+                            && word[0] != '\0') {
                         if (expect_comma != commas) {
                             fprintf(stdout, "Error: line %d in %s.\n       "
                                             "Improper comma use.\n", line_counter, filename);
@@ -561,6 +562,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
             }
             if (char_type == -1) {
                 fprintf(stdout, "debugging: reached end of line %d\n", line_counter);
+                break;
             }
         } /* end of next_word loop */
     } /* end of line loop */
@@ -840,7 +842,7 @@ void end_phase_one_update_counter(symbols_ptr head, int ic) {
  * @return 0 on success, -1 on failure.
  */
 int add_variable(variable_t **head, int content, int counter) {
-    variable_ptr new_node = (variable_ptr) malloc(sizeof(variable_ptr));
+    variable_ptr new_node = (variable_ptr) calloc(1, sizeof(variable_ptr));
 
     if (new_node == NULL) return -1;
 
@@ -852,9 +854,7 @@ int add_variable(variable_t **head, int content, int counter) {
         *head = new_node;
     } else {
         variable_ptr temp = *head;
-        while (temp->next != NULL) {
-            temp = temp->next;
-        }
+        while (temp->next != NULL) temp = temp->next;
         temp->next = new_node;
     }
     return 0;
