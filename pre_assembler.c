@@ -391,10 +391,10 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head) {
 /**
  * @brief pre-assembles the file
  * @param fd the file name
- * @param macro_table_head the head of macros table
+ * @param macro_head the head of macros table
  * @return 0 if the function ran successfully, -1 if an error occurred
  */
-int pre_assembler(char **fd, macro_ptr macro_table_head) {
+int pre_assembler(char **fd, macro_ptr macro_head) {
     FILE *as_fd; /* file pointer */
     char *in_fd = as_strcat(*fd, ".as"); /* file name */
 
@@ -408,7 +408,7 @@ int pre_assembler(char **fd, macro_ptr macro_table_head) {
         return -1;
     }
 
-    switch (macro_parser(as_fd, in_fd, &macro_table_head)) {
+    switch (macro_parser(as_fd, in_fd, &macro_head)) {
         default:
             safe_free(in_fd)
             fclose(as_fd);

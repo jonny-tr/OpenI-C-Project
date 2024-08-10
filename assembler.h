@@ -86,7 +86,7 @@ int comma_checker(char **word_ptr);
 int get_ascii_value(char ch);
 
 /* pre_assembler */
-int pre_assembler(char **in_fd, macro_ptr macro_table_head);
+int pre_assembler(char **in_fd, macro_ptr macro_head);
 int macro_table_builder(char *next_part, FILE *as_fd,
                         macro_ptr *macro_table_head, int *line_num,
                         char *filename);
@@ -96,9 +96,9 @@ int read_next_part(FILE *as_fd, char **next_part);
 int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head);
 
 /* phase_one */
-int phase_one(FILE *fd, char *filename, int *ic, int *dc,
-              symbols_ptr *symbol_table, variable_ptr *variable_table,
-              command_ptr *command_table, macro_ptr *macro_table);
+int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
+              symbols_ptr *symbol_head, variable_ptr *variable_head,
+              command_ptr *command_head, macro_ptr *macro_head);
 int is_valid_label(char *word, symbols_ptr symbols_table_head,
                    macro_ptr macro_table_head);
 int is_valid_operand(char *word, macro_ptr macro_table);
@@ -124,14 +124,14 @@ int update_command_list(command_ptr command_list, char *word, char *line,
                         symbols_ptr symbols_head, FILE **ext_fd,
                         char *ext_file, int line_num);
 int entry_update(symbols_ptr symbol_table, char *word);
-int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
-              variable_ptr variable_head, command_ptr cmd_list_head,
+int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
+              variable_ptr variable_head, command_ptr command_head,
               int expected_ic, int dc);
 
 /* cleanup */
-int free_macro_table(macro_ptr macro_table_head);
-int free_symbols_table(symbols_ptr symbols_list_head);
-int free_command_list(command_ptr command_list_head);
+int free_macro_table(macro_ptr macro_head);
+int free_symbols_table(symbols_ptr symbol_head);
+int free_command_list(command_ptr command_head);
 int free_variable_list(variable_ptr variable_head);
 int free_all(macro_ptr macro_table_head, symbols_ptr symbols_list_head,
               variable_ptr var_list_head, command_ptr cmd_list_head);
