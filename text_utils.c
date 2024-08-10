@@ -70,9 +70,9 @@ int is_valid_command(char *command) {
  * @return 0 if successful, -1 if an EOF reached.
  */
 int read_next_line(FILE *file, char *line) {
-    char buffer[81];
+    char buffer[LINE_SIZE];
 
-    while (fgets(buffer, 81, file) != NULL
+    while (fgets(buffer, LINE_SIZE, file) != NULL
            && buffer[0] == ';'); /* skip comments */
 
     if (feof(file)) return -1;

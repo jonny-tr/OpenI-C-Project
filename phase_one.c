@@ -1,6 +1,5 @@
 #include "assembler.h"
 
-#define LINE_SIZE 81
 #define MAX_LABEL_LENGTH 31
 
 /*updates for commit: EXTERN case should work now
@@ -692,12 +691,12 @@ void set_addressing_method(char *operand, command_word *field, int src_dest) {
 /**
  * @brief Checks if the given word is a valid operand.
  * @param word The word to be checked.
- * @param macro_table The table of macros.
+ * @param macro_head The table of macros.
  * @return 1 if the word is a valid operand, -1 command, -2 invalid immediate #,
  *         -3 invalid indirect register *, -4 macro, -5 invalid label 1st char,
  *         -6 invalid label
  */
-int is_valid_operand(char *word, macro_ptr macro_table) {
+int is_valid_operand(char *word, macro_ptr macro_head) {
     int i;
     if (is_valid_command(word) != -1) {
         return -1; /*it is a command*/
@@ -717,7 +716,7 @@ int is_valid_operand(char *word, macro_ptr macro_table) {
               && word[2] >= '0' && word[2] <= '7')) {
             return -3;
         }
-    } else if (is_macro_name_valid(word, macro_table) == 2) {
+    } else if (is_macro_name_valid(word, macro_head) == 2) {
         return -4;
     } else { /*needs to be a valid label*/
         if (isalpha(word[0]) == 0) {
@@ -735,18 +734,18 @@ int is_valid_operand(char *word, macro_ptr macro_table) {
 /**
  * @brief checks if the label name is valid
  * @param word the name of the label
- * @param symbols_table_head the head of the symbols table
- * @param macro_table_head the head of the macro table
+ * @param symbols_head the head of the symbols table
+ * @param macro_head the head of the macro table
  * @return -1 if command, -2 if label already exists, -3 if macro,
  *         -4 if register, -5 if doesn't start with a letter,
  *         -6 if isn't only letters and numbers, -7 if too long, 0 if valid
  */
-int is_valid_label(char *word, symbols_ptr symbols_table_head,
-                   macro_ptr macro_table_head) {
+int is_valid_label(char *word, symbols_ptr symbols_head,
+                   macro_ptr macro_head) {
     int i = (int) strlen(word);
     char *registers[] = {"r0", "r1", "r2", "r3", "r4",
                          "r5", "r6", "r7"}; /* register names */
-    symbols_ptr current = symbols_table_head;
+    symbols_ptr current = symbols_head;
 
     /* remove colon */
     if (word[i - 1] == ':') word[i - 1] = '\0';
@@ -766,7 +765,7 @@ int is_valid_label(char *word, symbols_ptr symbols_table_head,
     }
 
     /*is it a macro*/
-    if (is_macro_name_valid(word, macro_table_head) == 2) return -3;
+    if (is_macro_name_valid(word, macro_head) == 2) return -3;
 
     /*is it a register*/
     for (i = 0; i < 8; i++) {

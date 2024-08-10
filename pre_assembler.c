@@ -200,11 +200,11 @@ int macro_table_builder(char *next_part, FILE *as_fd,
 /**
  * @brief checks if the next part is a macro
  * @param next_part the next part of the file
- * @param macro_table_head the table of macros
+ * @param macro_head the table of macros
  * @return a pointer to the macro, NULL if it is not a macro
  */
-macro_ptr is_macro(char *next_part, macro_ptr macro_table_head) {
-    macro_ptr current = macro_table_head;
+macro_ptr is_macro(char *next_part, macro_ptr macro_head) {
+    macro_ptr current = macro_head;
 
     while (current != NULL) {
         if (strcmp(next_part, current->name) == 0) {
@@ -219,11 +219,11 @@ macro_ptr is_macro(char *next_part, macro_ptr macro_table_head) {
 /**
  * @brief checks if the macro name is valid
  * @param name the name of the macro
- * @param macro_table_head the table of macros
+ * @param macro_head the table of macros
  * @return 0 if the name is valid, 1 if it is not, 2 if it is already taken
  */
-int is_macro_name_valid(char *name, macro_ptr macro_table_head) {
-    macro_t *current = macro_table_head;
+int is_macro_name_valid(char *name, macro_ptr macro_head) {
+    macro_t *current = macro_head;
 
     /* check if macro name is a saved word */
     if (is_valid_command(name) != -1) return 1;
@@ -286,10 +286,10 @@ int read_next_part(FILE *fd, char **next_part) {
  * @brief parses the macros in the file
  * @param as_fd the file pointer
  * @param filename the name of the file
- * @param macro_table_head the start of macros table
+ * @param macro_head the start of macros table
  * @return 0 if the function ran successfully, 1 if an error occurred
  */
-int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head) {
+int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_head) {
     char *next_part = NULL, *content_buffer = NULL, *macro_buffer = NULL;
         /* strings */
     int i, line_num = 1, error_flag = 0; /* counters */
@@ -337,14 +337,14 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_table_head) {
             }
             if (read_next_part(as_fd, &next_part) != 0
                 || (error_flag = macro_table_builder(next_part, as_fd,
-                                                     macro_table_head, &line_num,
+                                                     macro_head, &line_num,
                                                      filename) != 0)) {
                 for (i = 0; i < strlen(next_part); i++)
                     if (next_part[i] == '\n') line_num++;
             }
             continue;
         } else {
-            macro_index = is_macro(next_part, *macro_table_head);
+            macro_index = is_macro(next_part, *macro_head);
             if (macro_index != NULL && strchr(macro_buffer, '\n') == NULL) {
                 fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Macro should be used in a separate line."
