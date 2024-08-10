@@ -77,7 +77,7 @@ int read_next_line(FILE *file, char *line) {
 
     if (feof(file)) return -1;
 
-    memcpy(line, buffer, strlen(buffer) + 1);
+    memcpy(line, buffer, LINE_SIZE);
 
     return 0;
 }
