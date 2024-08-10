@@ -37,8 +37,8 @@ int main(int argc, char *argv[]) {
             goto cleanup; /* skip */
         }
 
-        if ((phase_one(am_fd, filename, ic, dc, &symbol_table, variable_table,
-                       command_table, macro_table)) == -1) {
+        if ((phase_one(am_fd, filename, ic, dc, &symbol_table, &variable_table,
+                       &command_table, &macro_table)) == -1) {
             goto cleanup;
         }
 

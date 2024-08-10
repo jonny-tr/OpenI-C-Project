@@ -9,7 +9,7 @@ check max line number?*/
 
 #define phase_one_allocation_failure \
     fprintf(stdout, "Memory allocation failed.\n"); \
-    free_all(macro_table, *symbol_table, variable_table, command_table); \
+    free_all(*macro_table, *symbol_table, *variable_table, *command_table); \
     exit(EXIT_FAILURE);
 
 #define CHECK_UNEXPECTED_COMMA(char_type, error_flag) \
@@ -72,15 +72,14 @@ check max line number?*/
  * @return 0 on success, -1 on failure;
 */
 int phase_one(FILE *fd, char *filename, int *ic, int *dc,
-              symbols_ptr *symbol_table, variable_ptr variable_table,
-              command_ptr command_table, macro_ptr macro_table) {
+              symbols_ptr *symbol_table, variable_ptr *variable_table,
+              command_ptr *command_table, macro_ptr *macro_table) {
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0}; /* buffers */
     char *word_ptr, *label_temp_ptr = NULL; /* pointers */
     int label_flag = 0, error_flag = 0, expect_comma, /* flags: 1 on, 0 off */
         i, cmnd, word_type, data_tmp, commas, operand_error,
         line_counter = 0, /* counters */
         char_type; /* -1 line end, 0 word, 1 comma */
-    int debug_temp; /*debugging, TODO: delete when done!!!!!*/
     command_ptr new_field = (command_ptr) malloc(sizeof(command_word)); /* command */
 
     if (new_field == NULL) {
@@ -101,7 +100,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
             switch (word_type) {
                 case LABEL:
                     fprintf(stdout, "Debugging: label is: %s\n", word);
-                    switch (is_valid_label(word, *symbol_table, macro_table)) {
+                    switch (is_valid_label(word, *symbol_table, *macro_table)) {
                         case -1:
                             fprintf(stdout, "Error: line %d in %s.\n       "
                                             "Cannot use a command as a label.\n",
@@ -250,7 +249,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             break;
                         }
 
-                        if (add_variable(&variable_table,
+                        if (add_variable(variable_table,
                                          twos_complement(data_tmp), *dc) == -1) {
                             phase_one_allocation_failure;
                         } else { /*valid data*/
@@ -290,8 +289,8 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                                 word[strlen(word) - 1]);
                         if (word[0] == '"' && word[strlen(word) - 1] == '"') {
                             for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
-                                if (add_variable(&variable_table, get_ascii_value(word[i]), *dc) ==
-                                    -1) {
+                                if (add_variable(variable_table,
+                                                 get_ascii_value(word[i]), *dc) == -1) {
                                     phase_one_allocation_failure
                                 }
                                 (*dc)++;
@@ -349,7 +348,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
 
                 case ENTRY:
                     if (/*read_next_word(line, &position, &word_ptr) == 0*/get_next_word(line, word, &word_ptr) == 0) {
-                        if (is_valid_label(word, *symbol_table, macro_table) == 0) {
+                        if (is_valid_label(word, *symbol_table, *macro_table) == 0) {
                             if (add_symbol(*symbol_table, word, *ic + 100, "code") ==
                                 -1) {
                                 phase_one_allocation_failure
@@ -399,7 +398,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                         fprintf(stdout, "debugging: added label '%s' to list\n", label_temp_ptr);
                     }
                     /* initialize new command_word */
-                    if (init_command_word(&command_table, &new_field) == -1) {
+                    if (init_command_word(command_table, &new_field) == -1) {
                         phase_one_allocation_failure
                     }
                     fprintf(stdout, "debugging: new command word initialized\n");
@@ -415,7 +414,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                             if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
                                 fprintf(stdout, "debugging: 2 operands needed, first is: '%s'\n", word);
-                                operand_error = is_valid_operand(word, macro_table);
+                                operand_error = is_valid_operand(word, *macro_table);
                                 if (operand_error == 1) {
                                     set_addressing_method(word, new_field, 1);
                                     fprintf(stdout, "debugging: first operand added\n");
@@ -444,7 +443,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             /*second oeprand*/
                             if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
                                 fprintf(stdout, "debugging: second operand is: %s\n", word);
-                                operand_error = is_valid_operand(word, macro_table);
+                                operand_error = is_valid_operand(word, *macro_table);
                                 if (operand_error == 1) {
                                     set_addressing_method(word, new_field, 2);
                                     fprintf(stdout, "debugging: second operand added\n");
@@ -483,7 +482,7 @@ int phase_one(FILE *fd, char *filename, int *ic, int *dc,
                             if ((char_type = get_next_word(line, word, &word_ptr)) != -1) {
                                 fprintf(stdout, "debugging: 1 operand needed, %s\n", word);
                                 CHECK_UNEXPECTED_COMMA(char_type, error_flag);
-                                operand_error = is_valid_operand(word, macro_table);
+                                operand_error = is_valid_operand(word, *macro_table);
                                 if (operand_error == 1)
                                     set_addressing_method(word, new_field, 2);
                                 else {
@@ -841,7 +840,7 @@ void end_phase_one_update_counter(symbols_ptr head, int ic) {
  * @param counter DC counter
  * @return 0 on success, -1 on failure.
  */
-int add_variable(variable_t **head, int content, int counter) {
+int add_variable(variable_ptr *head, int content, int counter) {
     variable_ptr new_node = (variable_ptr) calloc(1, sizeof(variable_ptr));
 
     if (new_node == NULL) return -1;
