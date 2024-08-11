@@ -1,20 +1,13 @@
 #include "assembler.h"
 
-#define next_word_check if (read_next_word(line, position, &next_word) \
-                == -1) { \
-            fprintf(stdout, "Error: Failed to read from %s.\n", filename); \
-            error_flag = 1; \
-            break; \
-            }
-
 /**
  * @brief builds the ent file
  * @param ent_fd a pointer to the ent file
- * @param symbol_table a pointer to the symbol table
+ * @param symbol_head a pointer to the symbol table
  * @return 0
  */
-int build_ent(FILE *ent_fd, symbols_ptr symbol_table) {
-    symbols_ptr current = symbol_table;
+int build_ent(FILE *ent_fd, symbols_ptr symbol_head) {
+    symbols_ptr current = symbol_head;
 
     while (current != NULL) {
         if (strcmp(current->type, "entry") == 0) {
@@ -29,11 +22,11 @@ int build_ent(FILE *ent_fd, symbols_ptr symbol_table) {
 /**
  * @brief builds the ext file
  * @param ext_fd a pointer to the ext file
- * @param symbol_table a pointer to the symbol table
+ * @param symbol_head a pointer to the symbol table
  * @return 0
  */
-int build_ext(FILE *ext_fd, symbols_ptr symbol_table) {
-    symbols_ptr current = symbol_table;
+int build_ext(FILE *ext_fd, symbols_ptr symbol_head) {
+    symbols_ptr current = symbol_head;
 
     while (current != NULL) {
         if (strcmp(current->type, "extenal") == 0) {
@@ -130,10 +123,9 @@ int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
  * @param line_num the line number
  * @return 0 if successful, -1 otherwise
  */
-int update_command_list(command_ptr command_list, char *word, char *line,
-                        int *position, char *filename,
-                        symbols_ptr symbols_head, FILE **ext_fd,
-                        char *ext_file, const int line_num) {
+int update_command_list(command_ptr command_list, char *word, char **word_ptr,
+                        char *filename, symbols_ptr symbols_head,
+                        FILE **ext_fd, char *ext_file, const int line_num) {
     int num;
     char *next_word = NULL;
     command_ptr current = command_list, new_node = NULL;
@@ -151,7 +143,8 @@ int update_command_list(command_ptr command_list, char *word, char *line,
                     || current->dest_addr == 8)) {
         new_node->are = 4;
         new_node->dest_addr = atoi(&word[strlen(word) - 1]);
-        if (read_next_word(line, position, &next_word) == -1) {
+        if (get_next_word(word, word_ptr) == -1
+                /*read_next_word(line, position, next_word) == -1*/) {
             fprintf(stdout, "Error: Failed to read from %s.\n", filename);
             return -1;
         }
@@ -241,49 +234,49 @@ int entry_update(symbols_ptr symbol_table_head, char *word) {
 
 /**
  * @brief phase two of the assembler, builds the outpu files
- * @param fd pointer to the file
+ * @param am_fd pointer to the .am file
  * @param filename name of the file
- * @param symbol_table_head pointer to the symbol table
+ * @param symbol_head pointer to the symbol table
  * @param expected_ic expected ic value
  * @param dc value of dc
  * @return 0 if successful, -1 otherwise
  */
-int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
-              variable_ptr variable_head, command_ptr cmd_list_head,
+int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
+              variable_ptr variable_head, command_ptr command_head,
               int expected_ic, int dc) {
-    char *line = NULL, *next_word = NULL, *ob_file = NULL, *ext_file = NULL,
-        *ent_file = NULL; /* strings and filenames */
-    int line_num = 0, ic = 0, *position, error_flag = 0, allocation_flag = 0,
+    char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0}, *ob_file = NULL, *ext_file = NULL,
+        *ent_file = NULL, *word_ptr = NULL; /* strings and filenames */
+    int line_num = 0, ic = 0, error_flag = 0, allocation_flag = 0,
         ent_flag = 0, ext_flag = 0; /* counters and flags */
     FILE *ob_fd = NULL, *ext_fd = NULL, *ent_fd = NULL; /* file pointers */
-    command_ptr current_cmd = cmd_list_head, tmp_cmd = NULL; /* pointers */
+    command_ptr current_cmd = command_head, tmp_cmd = NULL; /* pointers */
 
     ob_file = as_strcat(filename, ".ob");
     ext_file = as_strcat(filename, ".ext");
     ent_file = as_strcat(filename, ".ent");
 
-    while (read_next_line(fd, line) != -1
-           || !feof(fd)
+    while (read_next_line(am_fd, line) != -1
+           || !feof(am_fd)
            || current_cmd->next != NULL) {
         line_num++;
-        position = 0;
+        word_ptr = line;
         next_word_check
 
-        if (next_word[strlen(next_word) - 1] == ':') {
+        if (word[strlen(word) - 1] == ':') {
             next_word_check
         } /* skip label */
 
-        if ((strcmp(next_word, ".data") == 0)
-            || (strcmp(next_word, ".string") == 0)) {
+        if ((strcmp(word, ".data") == 0)
+            || (strcmp(word, ".string") == 0)) {
             continue; /* skip */
-        } else if (strcmp(next_word, ".extern") == 0) {
+        } else if (strcmp(word, ".extern") == 0) {
             ext_flag = 1;
             continue;
-        } else if (strcmp(next_word, ".entry") == 0) {
+        } else if (strcmp(word, ".entry") == 0) {
             ent_flag = 1;
             /* update labels in the symbol table */
-            while (read_next_word(line, position, &next_word) != 1) {
-                if (entry_update(symbol_table_head, next_word) == -1) {
+            while (get_next_word(word, &word_ptr) != -1) {
+                if (entry_update(symbol_head, word) == -1) {
                     error_flag = 1;
                     break;
                 }
@@ -295,8 +288,8 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
             tmp_cmd = current_cmd->next;
             next_word_check
             /* add new nodes to the command list */
-            if (update_command_list(current_cmd, next_word, line, position,
-                                    filename, symbol_table_head, &ext_fd,
+            if (update_command_list(current_cmd, word, &word_ptr,
+                                    filename, symbol_head, &ext_fd,
                                     ext_file, line_num) == -1) error_flag = 1;
             current_cmd->next = tmp_cmd;
             current_cmd = current_cmd->next;
@@ -320,7 +313,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
             goto cleanup;
         }
 
-        if (build_ob(ob_fd, cmd_list_head, variable_head, ic, dc) == -1) {
+        if (build_ob(ob_fd, command_head, variable_head, ic, dc) == -1) {
             error_flag = 1;
             allocation_flag = 1;
             goto cleanup;
@@ -335,7 +328,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
                 error_flag = 1;
                 goto cleanup;
             }
-            build_ent(ent_fd, symbol_table_head);
+            build_ent(ent_fd, symbol_head);
         }
 
         if (ext_flag) {
@@ -347,7 +340,7 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
                 error_flag = 1;
                 goto cleanup;
             }
-            build_ext(ext_fd, symbol_table_head);
+            build_ext(ext_fd, symbol_head);
         }
     }
 
@@ -356,8 +349,6 @@ int phase_two(FILE *fd, char *filename, symbols_ptr symbol_table_head,
     if (ext_fd != NULL) fclose(ext_fd);
     if (ent_fd != NULL) fclose(ent_fd);
 
-    safe_free(line)
-    safe_free(next_word)
     safe_free(ob_file)
     safe_free(ext_file)
     safe_free(ent_file)

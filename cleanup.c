@@ -2,14 +2,14 @@
 
 /**
  * @brief frees the macro table
- * @param macro_table_head the table of macros
- * @return 0 if the function ran successfully, 1 if macro_table_head is NULL
+ * @param macro_head the table of macros
+ * @return 0 if the function ran successfully, 1 if macro_head is NULL
  */
-int free_macro_table(macro_ptr macro_table_head) {
+int free_macro_table(macro_ptr macro_head) {
     macro_ptr current, next;
     str_node_ptr current_content, *next_content;
 
-    if ((current = macro_table_head) == NULL) return 1;
+    if ((current = macro_head) == NULL) return 1;
 
     while (current != NULL) {
         next = current->next;
@@ -30,13 +30,13 @@ int free_macro_table(macro_ptr macro_table_head) {
 
 /**
  * @brief frees the symbol table
- * @param symbols_list_head the symbol table
- * @return 0 if the function ran successfully, 1 if symbols_list_head is NULL
+ * @param symbol_head the symbol table
+ * @return 0 if the function ran successfully, 1 if symbol_head is NULL
  */
-int free_symbols_table(symbols_ptr symbols_list_head) {
+int free_symbols_table(symbols_ptr symbol_head) {
     symbols_ptr current, next;
 
-    if ((current = symbols_list_head) == NULL) return 1;
+    if ((current = symbol_head) == NULL) return 1;
 
     while (current != NULL) {
         next = current->next;
@@ -49,13 +49,13 @@ int free_symbols_table(symbols_ptr symbols_list_head) {
 
 /**
  * @brief frees the variable list
- * @param var_list_head the variable list
- * @return 0 if the function ran successfully, 1 if var_list_head is NULL
+ * @param variable_head the variable list
+ * @return 0 if the function ran successfully, 1 if variable_head is NULL
  */
-int free_variable_list(variable_ptr var_list_head) {
+int free_variable_list(variable_ptr variable_head) {
     variable_ptr current, next;
 
-    if ((current = var_list_head) == NULL) return 1;
+    if ((current = variable_head) == NULL) return 1;
 
     while (current != NULL) {
         next = current->next;
@@ -68,13 +68,13 @@ int free_variable_list(variable_ptr var_list_head) {
 
 /**
  * @brief frees the command list
- * @param cmd_list_head the command list
+ * @param command_head the command list
  * @return 0 if the function ran successfully, 1 if cmd_list_head is NULL
  */
-int free_command_list(command_ptr cmd_list_head) {
+int free_command_list(command_ptr command_head) {
     command_ptr current, next;
 
-    if ((current = cmd_list_head) == NULL) return 1;
+    if ((current = command_head) == NULL) return 1;
 
     while (current != NULL) {
         next = current->next;
