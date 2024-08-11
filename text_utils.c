@@ -90,7 +90,7 @@ int read_next_line(FILE *file, char *line) {
  * @return 0 if successful, 1 if line finished,
  *          -1 if an error occurred
  */
-int read_next_word(const char *line, int *position, char **next_part) {
+int read_next_word(const char *line, int *position, char *next_part) {
     char c; /* strings */
     int buffer = 0; /* counter */
 
@@ -102,12 +102,12 @@ int read_next_word(const char *line, int *position, char **next_part) {
 
     while (isspace(c = line[*position]) != 0
            && c != ',' && c != ':') {
-        *next_part[buffer] = c;
+        next_part[buffer] = c;
         ++buffer;
         ++(*position);
     }
-    *next_part[buffer] = '\0';
-    printf("%s\n", *next_part);
+    next_part[buffer] = '\0';
+    printf("%s\n", next_part); /* TODO: delete debug */
 
     return 0;
 }
@@ -133,82 +133,46 @@ int comma_checker(char **word_ptr) {
 }
 
 /**
- * @brief Get the next word from a line of text.
- * @param line The line of text to search for the next word.
- * @param word A pointer to a character array where the word will be stored.
- * @param word_ptr A pointer to a pointer to the current position in the line.
- * @return 0 if a word was found, -1 if end of the line was reached,
- *         1 if comma before word
+ * @brief gets the next word
+ * @param word the word to store
+ * @param word_ptr the pointer to the word
+ * @return 0 if successful, -1 if the line is empty
  */
-
-int old_get_next_word(char *line, char *word, char **word_ptr) {
+int get_next_word(char *word, char **word_ptr) {
     char *p = *word_ptr, *w = word;
 
     /* Skip whitespaces */
     while (isspace(*p)) {
-        if (*p == '\n' || *p =='\0') return -1; /* End of line */
-        p++;
-    }
-
-    /* Check for a comma */
-    if (*p == ',') {
-        *word_ptr = p;
-        return 1;
-    }
-
-    /* Get the word */
-    while (*p && !isspace(*p) && *p != ',' && *p != ':') {
-        *w++ = *p++;
-    }
-
-    /* Handle the case where the word ends with a colon */
-    if (*p == ':') {
-        *w++ = *p++;
-    }
-
-    *w = '\0';
-    *word_ptr = p;
-    /*fprintf(stdout, "debugging: extracted word is: %s\n", word);*/
-    return 0;
-}
-
-int get_next_word(char *line, char *word, char **word_ptr) {
-    char *p = *word_ptr, *w = word;
-
-    /** Skip leading whitespaces **/
-    while (isspace(*p)) {
         if (*p == '\n' || *p == '\0') {
-            *word_ptr = p; /** Update word_ptr to the end of the line **/
-            return -1; /** End of line **/
+            *word_ptr = p; /* Update word_ptr to the end of the line */
+            return -1; /* End of line */
         }
         p++;
     }
 
-    /** Handle the case where the line is completely empty or just has whitespaces **/
     if (*p == '\0') {
-        *word_ptr = p; /** Update word_ptr to the end of the line **/
-        return -1; /** End of line **/
+        *word_ptr = p;
+        return -1;
     }
 
-    /** Check for a comma **/
+    /* Check for a comma */
     if (*p == ',') {
-        *word_ptr = p + 1; /** Move past the comma **/
-        return 1; /** Indicate that a comma was found **/
+        *word_ptr = p + 1;
+        return 1;
     }
 
-    /** Extract the word **/
     while (*p && !isspace(*p) && *p != ',' && *p != ':') {
         *w++ = *p++;
     }
 
-    /** Handle the case where the word ends with a colon **/
     if (*p == ':') {
         *w++ = *p++;
     }
 
-    *w = '\0'; /** Null-terminate the word **/
-    *word_ptr = p; /** Update word_ptr to the new position **/
-    return 0; /** Indicate a word was found **/
+    *w = '\0'; /* Null-terminate the word */
+    *word_ptr = p; /* Update word_ptr to the new position */
+
+    return 0;
 }
 
 
@@ -223,6 +187,8 @@ int get_next_word(char *line, char *word, char **word_ptr) {
  */
 int get_word_type(char *word) {
     int i = 0;
+
+    if (word[0] == '\0') ++*word;
 
     if (strcmp(word, ".data") == 0) return DATA;
     if (strcmp(word, ".string") == 0) return STRING;
