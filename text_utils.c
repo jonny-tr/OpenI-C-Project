@@ -136,7 +136,7 @@ int comma_checker(char **word_ptr) {
  * @brief gets the next word
  * @param word the word to store
  * @param word_ptr the pointer to the word
- * @return 0 if successful, -1 if the line is empty
+ * @return 0 if successful, -1 if the line is empty, 1 if comma
  */
 int get_next_word(char *word, char **word_ptr) {
     char *p = *word_ptr, *w = word;
