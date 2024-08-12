@@ -129,7 +129,7 @@ int build_ext(FILE *ext_fd, symbols_ptr symbol_head);
 int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
               FILE **ext_fd, char *ext_file, int line_num);
 int update_command_list(command_ptr command_list, char *word, char **word_ptr,
-                        char *filename, symbols_ptr symbols_head,
+                        char *filename, symbols_ptr symbol_head,
                         FILE **ext_fd, char *ext_file, int line_num);
 int entry_update(symbols_ptr symbol_table, char *word);
 int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
