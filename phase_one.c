@@ -75,7 +75,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
               command_ptr *command_head, macro_ptr *macro_head) {
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0}; /* buffers */
     char *word_ptr, *label_temp_ptr = NULL; /* pointers */
-    int label_flag = 0, error_flag = 0, expect_comma, /* flags: 1 on, 0 off */
+    int label_flag = 0, error_flag = 0, expect_comma, entry_flag, /* flags */
         i, cmnd, word_type, data_tmp, commas, operand_error,
         line_counter = 0, /* counters */
         char_type; /* -1 line end, 0 word, 1 comma */
@@ -334,10 +334,8 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
 
                 case EXTERN:
                     expect_comma = 0;
-                    while (
-                            /*read_next_word(line, &position, word)*/
-                            get_next_word(word, &word_ptr)
-                            != -1 && word[0] != '\0') {
+                    while (get_next_word(word, &word_ptr) != -1
+                            && word[0] != '\0') {
                         if (expect_comma == 1) {
                             commas = comma_checker(&word_ptr);
                             if (commas == 0) {
@@ -364,18 +362,16 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                     break;
 
                 case ENTRY:
-                    if (
-                            /*read_next_word(line, &position, word)*/
-                            get_next_word(word, &word_ptr)
-                             == 0) {
-                        if (is_valid_label(word, *symbol_head, *macro_head) == 0) {
+                    if (get_next_word(word, &word_ptr) == 0) {
+                        if ((entry_flag =
+                                is_valid_label(word, *symbol_head, *macro_head)) == 0) {
                             if (add_symbol(symbol_head, word, *ic + 100,
                                            "entry") == -1) {
                                 phase_one_allocation_failure
                             }
                             (*ic)++;
                             fprintf(stdout, "debugging: ic updated to: %d\n", *ic);
-                        } else {
+                        } else if (entry_flag != -2) {
                             fprintf(stdout, "Error: line %d in %s.\n       "
                                             "Invalid label for Entry.\n",
                                     line_counter, filename);
