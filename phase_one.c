@@ -2,9 +2,8 @@
 
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: EXTERN case should work now
-debugging stuff
-check max line number?*/
+/*updates for commit: deleted update ic for extern and entry
+TODO: check max line number?*/
 
 #define phase_one_allocation_failure \
     fprintf(stdout, "Memory allocation failed.\n"); \
@@ -293,14 +292,13 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                             get_next_word(word, &word_ptr)
                             != -1 && word[0] != '\0') {
                         fprintf(stdout, "debugging: string is: %s\n", word);
-                        fprintf(stdout, "word[0] is: '%c', word[strlen(word) - 1] is: '%c'\n", word[0],
-                                word[strlen(word) - 1]);
                         if (word[0] == '"' && word[strlen(word) - 1] == '"') {
                             for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
                                 if (add_variable(variable_head,
                                                  get_ascii_value(word[i]), *dc) == -1) {
                                     phase_one_allocation_failure
                                 }
+                                else {fprintf(stdout, "added variable '%c', dc: %d\n", word[i], *dc);}
                                 (*dc)++;
                             }
                             /* add null terminator */
@@ -356,6 +354,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                            "external") == -1) {
                                 phase_one_allocation_failure;
                             }
+                            else {fprintf(stdout, "debugging: extern '%s' added\n", word);}
                             expect_comma = 1;
                         }
                     }/*end EXTERN case while*/
@@ -369,7 +368,6 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                            "entry") == -1) {
                                 phase_one_allocation_failure
                             }
-                            (*ic)++;
                             fprintf(stdout, "debugging: ic updated to: %d\n", *ic);
                         } else if (entry_flag != -2) {
                             fprintf(stdout, "Error: line %d in %s.\n       "
@@ -593,7 +591,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
             }
         } /* end of next_word loop */
     } /* end of line loop */
-    fprintf(stdout, "out of while loop, line is: '%s'\n", line);
+    fprintf(stdout, "out of while loop, line is: '%s' \n", line);
     end_phase_one_update_counter(*symbol_head, *ic);
 
     if (error_flag == 1) return -1;
@@ -787,7 +785,7 @@ int is_valid_label(char *word, symbols_ptr symbol_head,
 
     /* is it an existing label */
     while (current != NULL) {
-        if (strcmp(word, current->name) == 0) {
+        if (strcmp(word, current->name) == 0 && !strcmp("entry", current->type)==0) {
             return -2;
         }
         current = current->next;
