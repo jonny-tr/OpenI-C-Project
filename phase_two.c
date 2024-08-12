@@ -117,20 +117,22 @@ int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
  * @param line the current line
  * @param position the current position in the line
  * @param filename the name of the file
- * @param symbols_head the list of symbols
+ * @param symbol_head the list of symbols
  * @param ext_fd a pointer to the external file
  * @param ext_file the name of the external file
  * @param line_num the line number
- * @return 0 if successful, -1 otherwise
+ * @return 0 if successful, -1 on failure, -2 on allocation failure
  */
 int update_command_list(command_ptr command_list, char *word, char **word_ptr,
-                        char *filename, symbols_ptr symbols_head,
+                        char *filename, symbols_ptr symbol_head,
                         FILE **ext_fd, char *ext_file, const int line_num) {
     int num;
     char *next_word = NULL;
     command_ptr current = command_list, new_node = NULL;
 
     new_node = (command_ptr) calloc(1, sizeof(command_word));
+    if (new_node == NULL) return -2;
+
     new_node->next = current->next;
     current->next = new_node;
 
@@ -163,7 +165,7 @@ int update_command_list(command_ptr command_list, char *word, char **word_ptr,
             new_node->opcode = (num >> 8);
             break;
         case 2: /* direct address */
-            if ((num = is_symbol(word, symbols_head, new_node, ext_fd,
+            if ((num = is_symbol(word, symbol_head, new_node, ext_fd,
                                  ext_file, line_num)) == -1)
                 return -1;
             new_node->dest_addr = num;
@@ -181,6 +183,8 @@ int update_command_list(command_ptr command_list, char *word, char **word_ptr,
     }
 
     new_node = (command_ptr) calloc(1, sizeof(command_word));
+    if (new_node == NULL) return -2;
+
     new_node->next = current->next;
     current->next = new_node;
 
@@ -193,7 +197,7 @@ int update_command_list(command_ptr command_list, char *word, char **word_ptr,
             new_node->opcode = (num >> 8);
             break;
         case 2: /* direct address */
-            if ((num = is_symbol(word, symbols_head, new_node, ext_fd,
+            if ((num = is_symbol(word, symbol_head, new_node, ext_fd,
                                  ext_file, line_num)) == -1)
                 return -1;
             new_node->dest_addr = num;
@@ -208,6 +212,7 @@ int update_command_list(command_ptr command_list, char *word, char **word_ptr,
         default:
             break;
     }
+
     return 0;
 }
 
@@ -288,19 +293,29 @@ int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
             tmp_cmd = current_cmd->next;
             next_word_check
             /* add new nodes to the command list */
-            if (update_command_list(current_cmd, word, &word_ptr,
+            switch (update_command_list(current_cmd, word, &word_ptr,
                                     filename, symbol_head, &ext_fd,
-                                    ext_file, line_num) == -1) error_flag = 1;
+                                    ext_file, line_num)) {
+                case -1:
+                    error_flag = 1;
+                    break;
+                case -2:
+                    error_flag = 1;
+                    allocation_flag = 1;
+                    goto cleanup;
+                default:
+                    break;
+            }
             current_cmd->next = tmp_cmd;
             current_cmd = current_cmd->next;
         }
     }
 
-    if (ic + dc != expected_ic) {
+    /*if (ic + dc != expected_ic) {
         fprintf(stdout, "Unknown error encountered during execution.\n"
                         "Review file %s.\n", filename);
         error_flag = 1;
-    }
+    }*/
 
     if (error_flag == 0) {
         ob_fd = fopen(ob_file, "w");
@@ -340,7 +355,7 @@ int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
                 error_flag = 1;
                 goto cleanup;
             }
-            build_ext(ext_fd, symbol_head);
+            /*build_ext(ext_fd, symbol_head); TODO: delete? built in is_symbol*/
         }
     }
 
@@ -358,12 +373,13 @@ int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
         if (ob_fd != NULL) remove(ob_file);
         if (ext_fd != NULL) remove(ext_file);
         if (ent_fd != NULL) remove(ent_file);
-        return -1;
     }
 
     if (allocation_flag) {
         allocation_failure
     }
+
+    if (error_flag) return -1;
 
     return 0;
 }
