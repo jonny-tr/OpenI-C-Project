@@ -25,9 +25,6 @@ int main(int argc, char *argv[]) {
         filename = as_strcat(argv[i], ".am");
         
         if (pre_assembler(&argv[i], macro_head) == -1) {
-            if (remove(filename) != 0) {
-                fprintf(stdout, "Error: Could not delete %s.as.\n", argv[i]);
-            }
             goto cleanup; /* skip */
         }
 
