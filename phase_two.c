@@ -256,8 +256,8 @@ int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
     ent_file = as_strcat(filename, ".ent");
 
     while (read_next_line(am_fd, line) != -1
-           || !feof(am_fd)
-           || current_cmd->next != NULL) {
+           && !feof(am_fd)
+           && current_cmd->next != NULL) {
         line_num++;
         word_ptr = line;
         next_word_check
@@ -296,7 +296,7 @@ int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
         }
     }
 
-    if (ic != expected_ic) {
+    if (ic + dc != expected_ic) {
         fprintf(stdout, "Unknown error encountered during execution.\n"
                         "Review file %s.\n", filename);
         error_flag = 1;
