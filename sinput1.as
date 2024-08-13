@@ -14,16 +14,13 @@ endmacr
  m_macr
  add r7,*r6
  clr k
-
  sub L3,L3
  .entry MAIN
  jmp LOOP
 END: stop
 STR: .string "abcd"
-.extern L3
 LIST: .data 6, -9
-
-  .data -100
-  K: .data 31
-; .data -100 is the problem?
-
+ .data -100
+ K: .data 31
+.extern L3
+.string "hi" 

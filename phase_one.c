@@ -2,7 +2,7 @@
 
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: deleted update ic for extern and entry, removed inner while
+/*updates for commit: fixed read_next_line, made calc_l easier to read
 TODO: write function process data to save from breaks in while, make sure end of line works well
 check max line number?*/
 
@@ -232,6 +232,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                         "Too many commas.\n",
                                 line_counter, filename);
                         error_flag = 1;
+                        char_type = -1;
                         break;
                     }
                 }
@@ -323,7 +324,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 } /*end EXTERN case while*/
                 break;
 
-            case ENTRY:
+            case ENTRY: /*remove entry flag?*/
                 if (get_next_word(word, &word_ptr) == 0) {
                     if ((entry_flag =
                                  is_valid_label(word, *symbol_head, *macro_head)) == 0) {
@@ -331,7 +332,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                        "entry") == -1) {
                             phase_one_allocation_failure
                         }
-                        fprintf(stdout, "debugging: ic updated to: %d\n", *ic);
+                        fprintf(stdout, "debugging: entry '%s' added with ic: %d\n", word, *ic);
                     } else if (entry_flag != -2) {
                         fprintf(stdout, "Error: line %d in %s.\n       "
                                         "Invalid label for Entry.\n",
@@ -347,7 +348,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 }
                 break;
 
-            case OPERAND:
+            case OPERAND: /*shouldnt exist, its an error if there is an operand*/
                 fprintf(stdout, "debugging: CASE OPERAND: %s\n", word);
                 fprintf(stdout, "line is: %s\n", line);
                 break;
@@ -460,7 +461,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                             fprintf(stdout, "debugging: 1 operand needed, %s\n", word);
                             CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                             operand_error = is_valid_operand(word, *macro_head);
-                            if (operand_error == 1)
+                            if (operand_error == 1) /*valid*/
                                 set_addressing_method(word, new_field, 2);
                             else {
                                 PRINT_OPERAND_ERROR(operand_error);
@@ -539,7 +540,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
         }
         fprintf(stdout, "debugging: reached end of line %d\n", line_counter);
     } /* end of line loop */
-    fprintf(stdout, "out of while loop, line is: '%s' \n", line);
+    fprintf(stdout, "out of while loop, last line was: '%s' \n", line);
     phase_one_update_counter(*symbol_head, *ic);
 
     if (error_flag == 1)
@@ -586,15 +587,14 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
  */
 int calc_l(command_t *field, int cmnd) {
     if (cmnd == 14 || cmnd == 15) return 0; /*command without operands*/
-        /* one operand or both operands are registers: 0100 or 1000*/
-    else if ((cmnd >= 5 && cmnd <= 13)
-             /*0b0100||0b1000*/
-             || ((field->src_addr == 0x4 || field->src_addr == 0x8)
-                 /*0b0100||0b1000*/
-                 && (field->dest_addr == 0x4 || field->dest_addr == 0x8)))
+
+    if (cmnd >= 5 && cmnd <= 13) return 1; /*command with 1 operand*/
+
+    /*command with 2 operands, check if both are registers*/       
+    if((field->src_addr == 0x4 || field->src_addr == 0x8)
+                 && (field->dest_addr == 0x4 || field->dest_addr == 0x8)) 
         return 1;
-    else
-        return 2;
+    return 2; /*last case, command with 2 operands*/
 }
 
 /**
