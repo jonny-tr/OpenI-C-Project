@@ -380,9 +380,15 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_head) {
     /* free memory */
     safe_free(macro_buffer)
     safe_free(next_part)
-    fclose(am_fd);
 
-    if (error_flag) return -1;
+    if (error_flag
+        && am_fd != NULL) {
+            if (remove(filename) != 0)
+                fprintf(stdout, "Error: Could not delete %s.\n", filename);
+        return -1;
+    }
+
+    fclose(am_fd);
 
     return 0;
 }

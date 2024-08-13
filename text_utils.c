@@ -83,36 +83,6 @@ int read_next_line(FILE *file, char *line) {
 }
 
 /**
- * @brief the function reads the next part of the line
- * @param line the line to read from
- * @param position the position in the line
- * @param next_part the next part of the line
- * @return 0 if successful, 1 if line finished,
- *          -1 if an error occurred
- */
-int read_next_word(const char *line, int *position, char *next_part) {
-    char c; /* strings */
-    int buffer = 0; /* counter */
-
-    if (line[*position] == '\n') return -1;
-
-    while (isspace(line[*position])) ++(*position); /* skip whitespaces */
-
-    if (line[*position] == ',') return 1;
-
-    while (isspace(c = line[*position]) != 0
-           && c != ',' && c != ':') {
-        next_part[buffer] = c;
-        ++buffer;
-        ++(*position);
-    }
-    next_part[buffer] = '\0';
-    printf("%s\n", next_part); /* TODO: delete debug */
-
-    return 0;
-}
-
-/**
  * @brief checks if the next character is a comma
  * @param line line to check
  * @param position the position in the command
@@ -213,9 +183,9 @@ int get_word_type(char *word) {
  * @param cmd the command
  * @return the command as a number
  */
-int command_to_num(command_word cmd) {
-    int full_bits = (cmd.opcode << 11) | (cmd.src_addr << 7) |
-                    (cmd.dest_addr << 3) | cmd.are;
+int command_to_num(command_ptr cmd) {
+    int full_bits = (cmd->opcode << 11) | (cmd->src_addr << 7) |
+                    (cmd->dest_addr << 3) | cmd->are;
 
     return full_bits;
 }

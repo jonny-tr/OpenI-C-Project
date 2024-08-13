@@ -53,13 +53,13 @@ typedef struct macro_t {
 } macro_t;
 typedef macro_t *macro_ptr;
 
-typedef struct symbols_list {
+typedef struct symbol_t {
     char *name; /* label */
     int counter; /* IC or NULL */
     char *type; /* data/external/entry */
-    struct symbols_list *next;
-} symbols_list;
-typedef symbols_list *symbols_ptr;
+    struct symbol_t *next;
+} symbol_t;
+typedef symbol_t *symbol_ptr;
 
 typedef struct variable_t {
     int content: 15;
@@ -68,15 +68,15 @@ typedef struct variable_t {
 } variable_t;
 typedef variable_t *variable_ptr;
 
-typedef struct command_word {
+typedef struct command_t {
     unsigned int are: 3; /* bits 02-00 */
     unsigned int dest_addr: 4; /* bits 06-03 */
     unsigned int src_addr: 4;  /* bits 10-07 */
     unsigned int opcode: 4;  /* bits 14-11 */
     unsigned int l: 3;
-    struct command_word *next;
-} command_word;
-typedef command_word *command_ptr;
+    struct command_t *next;
+} command_t;
+typedef command_t *command_ptr;
 
 /*---------------------------------functions---------------------------------*/
 /* text utils */
@@ -84,12 +84,11 @@ int as_strdup(char **dest, const char *s);
 char *as_strcat(const char *s1, const char *s2);
 int is_valid_command(char *command);
 int read_next_line(FILE *fd, char *line);
-int read_next_word(const char line[], int *position, char *next_part);
 
 /* add from shahar's changes */
 int get_next_word(char *word, char **word_ptr);
 int get_word_type(char *word);
-int command_to_num(command_word cmd);
+int command_to_num(command_ptr cmd);
 int twos_complement(int num);
 int comma_checker(char **word_ptr);
 int get_ascii_value(char ch);
@@ -106,42 +105,43 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_head);
 
 /* phase_one */
 int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
-              symbols_ptr *symbol_head, variable_ptr *variable_head,
+              symbol_ptr *symbol_head, variable_ptr *variable_head,
               command_ptr *command_head, macro_ptr *macro_head);
-int is_valid_label(char *word, symbols_ptr symbol_head,
+int is_valid_label(char *word, symbol_ptr symbol_head,
                    macro_ptr macro_head);
 int is_valid_operand(char *word, macro_ptr macro_head);
-int add_symbol(symbols_ptr *head, char *name, int counter, char *type);
+int add_symbol(symbol_ptr *head, char *name, int counter, char *type);
 int add_variable(variable_ptr *head, int content, int counter);
 int init_command_word(command_ptr *head, command_ptr *ptr);
-void set_command_opcode(command_word *field, int command);
-void set_addressing_method(char *operand, command_word *field, int src_dest);
-int calc_l(command_word *field, int cmnd);
-void end_phase_one_update_counter(symbols_ptr symbol_head, int ic);
+void set_command_opcode(command_t *field, int command);
+void set_addressing_method(char *operand, command_ptr field, int src_dest);
+int calc_l(command_t *field, int cmnd);
+void phase_one_update_counter(symbol_ptr symbol_head, int ic);
 int get_data_int(char *word);
 
 
 /* phase_two */
-int build_ent(FILE *ent_fd, symbols_ptr symbol_head);
+int build_ent(FILE *ent_fd, symbol_ptr symbol_head);
 int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
              int ic, int dc);
-int build_ext(FILE *ext_fd, symbols_ptr symbol_head);
-int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
+int build_ext(FILE *ext_fd, symbol_ptr symbol_head);
+int is_symbol(char *name, symbol_ptr symbols_head, command_ptr are,
               FILE **ext_fd, char *ext_file, int line_num);
 int update_command_list(command_ptr command_list, char *word, char **word_ptr,
-                        char *filename, symbols_ptr symbols_head,
+                        char *filename, symbol_ptr symbol_head,
                         FILE **ext_fd, char *ext_file, int line_num);
-int entry_update(symbols_ptr symbol_table, char *word);
-int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
+int update_entry(symbol_ptr symbol_head, char *word, char *filename,
+                 int line_num);
+int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
               variable_ptr variable_head, command_ptr command_head,
               int expected_ic, int dc);
 
 /* cleanup */
 int free_macro_table(macro_ptr macro_head);
-int free_symbols_table(symbols_ptr symbol_head);
+int free_symbols_table(symbol_ptr symbol_head);
 int free_command_list(command_ptr command_head);
 int free_variable_list(variable_ptr variable_head);
-int free_all(macro_ptr macro_table_head, symbols_ptr symbols_list_head,
-              variable_ptr var_list_head, command_ptr cmd_list_head);
+int free_all(macro_ptr macro_table_head, symbol_ptr symbols_list_head,
+             variable_ptr var_list_head, command_ptr cmd_list_head);
 
 #endif /* ASSEMBLER_H */
