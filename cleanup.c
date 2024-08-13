@@ -33,8 +33,8 @@ int free_macro_table(macro_ptr macro_head) {
  * @param symbol_head the symbol table
  * @return 0 if the function ran successfully, 1 if symbol_head is NULL
  */
-int free_symbols_table(symbols_ptr symbol_head) {
-    symbols_ptr current, next;
+int free_symbols_table(symbol_ptr symbol_head) {
+    symbol_ptr current, next;
 
     if ((current = symbol_head) == NULL) return 1;
 
@@ -94,8 +94,8 @@ int free_command_list(command_ptr command_head) {
  * 
  * return 0
  */
-int free_all(macro_ptr macro_table_head, symbols_ptr symbols_list_head,
-            variable_ptr var_list_head, command_ptr cmd_list_head) {
+int free_all(macro_ptr macro_table_head, symbol_ptr symbols_list_head,
+             variable_ptr var_list_head, command_ptr cmd_list_head) {
     free_macro_table(macro_table_head);
     free_symbols_table(symbols_list_head);
     free_variable_list(var_list_head);
