@@ -6,57 +6,58 @@
 TODO: 
 check max line number?*/
 
-#define phase_one_allocation_failure \
-    fprintf(stdout, "Memory allocation failed.\n"); \
+#define phase_one_allocation_failure                                    \
+    fprintf(stdout, "Memory allocation failed.\n");                     \
     free_all(*macro_head, *symbol_head, *variable_head, *command_head); \
     exit(EXIT_FAILURE);
 
-#define CHECK_UNEXPECTED_COMMA(char_type, error_flag) \
-    if ((char_type) == 1) { \
-    fprintf(stdout, "Error: line %d in %s.\n       " \
-                        "Unexpected comma.\n", \
-                        line_counter, filename); \
-        (error_flag) = 1; \
-        break; \
+#define CHECK_UNEXPECTED_COMMA(char_type, error_flag)    \
+    if ((char_type) == 1)                                \
+    {                                                    \
+        fprintf(stdout, "Error: line %d in %s.\n       " \
+                        "Unexpected comma.\n",           \
+                line_counter, filename);                 \
+        (error_flag) = 1;                                \
+        break;                                           \
     }
 
-#define PRINT_OPERAND_ERROR(error_code) \
-    switch (error_code) { \
-        case -1: \
-            fprintf(stdout, "Error: line %d in %s.\n       " \
-                "A command cannot be used as an operand.\n", \
-                line_counter, filename); \
-            break; \
-        case -2: \
-            fprintf(stdout, "Error: line %d in %s.\n       " \
-                "Invalid immediate operand, after # must follow a number.\n", \
-                line_counter, filename); \
-            break; \
-        case -3: \
-            fprintf(stdout, "Error: line %d in %s.\n       " \
-                "Invalid register.\n", \
-                line_counter, filename); \
-            break; \
-        case -4: \
-            fprintf(stdout, "Error: line %d in %s.\n       " \
-                "Macro cannot be used as an operand.\n", \
-                line_counter, filename); \
-            break; \
-        case -5: \
-            fprintf(stdout, "Error: line %d in %s.\n       " \
-                "Invalid label name, must start with a letter.\n", \
-                line_counter, filename); \
-            break; \
-        case -6: \
-            fprintf(stdout, "Error: line %d in %s.\n       " \
-                "Invalid label name, must only contain " \
-                "letters and numbers.\n", \
-                line_counter, filename); \
-            break; \
-        default: \
-            break; \
+#define PRINT_OPERAND_ERROR(error_code)                                               \
+    switch (error_code)                                                               \
+    {                                                                                 \
+    case -1:                                                                          \
+        fprintf(stdout, "Error: line %d in %s.\n       "                              \
+                        "A command cannot be used as an operand.\n",                  \
+                line_counter, filename);                                              \
+        break;                                                                        \
+    case -2:                                                                          \
+        fprintf(stdout, "Error: line %d in %s.\n       "                              \
+                        "Invalid immediate operand, after # must follow a number.\n", \
+                line_counter, filename);                                              \
+        break;                                                                        \
+    case -3:                                                                          \
+        fprintf(stdout, "Error: line %d in %s.\n       "                              \
+                        "Invalid register.\n",                                        \
+                line_counter, filename);                                              \
+        break;                                                                        \
+    case -4:                                                                          \
+        fprintf(stdout, "Error: line %d in %s.\n       "                              \
+                        "Macro cannot be used as an operand.\n",                      \
+                line_counter, filename);                                              \
+        break;                                                                        \
+    case -5:                                                                          \
+        fprintf(stdout, "Error: line %d in %s.\n       "                              \
+                        "Invalid label name, must start with a letter.\n",            \
+                line_counter, filename);                                              \
+        break;                                                                        \
+    case -6:                                                                          \
+        fprintf(stdout, "Error: line %d in %s.\n       "                              \
+                        "Invalid label name, must only contain "                      \
+                        "letters and numbers.\n",                                     \
+                line_counter, filename);                                              \
+        break;                                                                        \
+    default:                                                                          \
+        break;                                                                        \
     }
-
 
 /**
  * @brief phase_one does the first pass on the file
@@ -69,16 +70,16 @@ check max line number?*/
  * @param command_head the head of the command list
  * @param macro_head the macro table from pre_assembler
  * @return 0 on success, -1 on failure;
-*/
+ */
 int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
               symbol_ptr *symbol_head, variable_ptr *variable_head,
               command_ptr *command_head, macro_ptr *macro_head) {
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0};            /* buffers */
     char *word_ptr, *label_temp_ptr = NULL;                       /* pointers */
     int label_flag = 0, error_flag = 0, expect_comma, entry_flag, /* flags */
-        i, cmnd, word_type, data_tmp, commas, operand_error,
-        line_counter = 0, /* counters */
-    char_type; /* -1 line end, 0 word, 1 comma */
+    i, cmnd, word_type, data_tmp, commas, operand_error,
+            line_counter = 0,                                              /* counters */
+    char_type;                                                     /* -1 line end, 0 word, 1 comma */
     command_ptr new_field = (command_ptr) calloc(1, sizeof(command_t)); /* command */
 
     if (new_field == NULL) {
@@ -191,8 +192,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 commas = 0;
                 expect_comma = 0;      /* no comma is expected before data */
                 while (char_type != -1 /* if char_type was updated during the loop */
-                       && (char_type = get_next_word(word, &word_ptr)) != -1
-                       && word[0] != '\0') {
+                       && (char_type = get_next_word(word, &word_ptr)) != -1 && word[0] != '\0') {
                     if (expect_comma != commas) {
                         fprintf(stdout, "Error: line %d in %s.\n       "
                                         "Improper comma use.\n",
@@ -564,20 +564,22 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
 int init_command_word(command_ptr *head, command_ptr *ptr) {
     command_ptr temp, new_node = (command_ptr) calloc(1, sizeof(command_t));
 
-    if (new_node == NULL) return -1;
+    if (new_node == NULL)
+        return -1;
 
-    new_node->are = 0x4; /* 0b100 in binary, sets ARE to be 100 (only A) */
+    new_node->are = 0x4;       /* 0b100 in binary, sets ARE to be 100 (only A) */
     new_node->dest_addr = 0x0; /* 0b0000 in binary */
     new_node->src_addr = 0x0;  /* 0b0000 in binary */
-    new_node->opcode = 0x0;  /* 0b0000 in binary */
-    new_node->l = 0x0; /* 0b000 in binary */
+    new_node->opcode = 0x0;    /* 0b0000 in binary */
+    new_node->l = 0x0;         /* 0b000 in binary */
     new_node->next = NULL;
 
     if (*head == NULL) { /* initialize the list */
         *head = new_node;
     } else {
         temp = *head;
-        while (temp->next != NULL) temp = temp->next;
+        while (temp->next != NULL)
+            temp = temp->next;
         temp->next = new_node;
     }
     *ptr = new_node;
@@ -592,13 +594,14 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
  * @return the value of 'l' based on the command
  */
 int calc_l(command_t *field, int cmnd) {
-    if (cmnd == 14 || cmnd == 15) return 0; /*command without operands*/
+    if (cmnd == 14 || cmnd == 15)
+        return 0; /*command without operands*/
 
-    if (cmnd >= 5 && cmnd <= 13) return 1; /*command with 1 operand*/
+    if (cmnd >= 5 && cmnd <= 13)
+        return 1; /*command with 1 operand*/
 
-    /*command with 2 operands, check if both are registers*/       
-    if((field->src_addr == 0x4 || field->src_addr == 0x8)
-                 && (field->dest_addr == 0x4 || field->dest_addr == 0x8)) 
+    /*command with 2 operands, check if both are registers*/
+    if ((field->src_addr == 0x4 || field->src_addr == 0x8) && (field->dest_addr == 0x4 || field->dest_addr == 0x8))
         return 1;
     return 2; /*last case, command with 2 operands*/
 }
@@ -610,63 +613,91 @@ int calc_l(command_t *field, int cmnd) {
  * @return void
  */
 void set_command_opcode(command_t *field, int command) {
-    if (command == 0) field->opcode = 0x0;       /* mov */
-    else if (command == 1) field->opcode = 0x1;  /* cmp */
-    else if (command == 2) field->opcode = 0x2;  /* add */
-    else if (command == 3) field->opcode = 0x3;  /* sub */
-    else if (command == 4) field->opcode = 0x4;  /* lea */
-    else if (command == 5) field->opcode = 0x5;  /* clr */
-    else if (command == 6) field->opcode = 0x6;  /* not */
-    else if (command == 7) field->opcode = 0x7;  /* inc */
-    else if (command == 8) field->opcode = 0x8;  /* dec */
-    else if (command == 9) field->opcode = 0x9;  /* jmp */
-    else if (command == 10) field->opcode = 0xA; /* bne */
-    else if (command == 11) field->opcode = 0xB; /* red */
-    else if (command == 12) field->opcode = 0xC; /* prn */
-    else if (command == 13) field->opcode = 0xD; /* jsr */
-    else if (command == 14) field->opcode = 0xE; /* rts */
-    else if (command == 15) field->opcode = 0xF; /* stop */
+    if (command == 0)
+        field->opcode = 0x0; /* mov */
+    else if (command == 1)
+        field->opcode = 0x1; /* cmp */
+    else if (command == 2)
+        field->opcode = 0x2; /* add */
+    else if (command == 3)
+        field->opcode = 0x3; /* sub */
+    else if (command == 4)
+        field->opcode = 0x4; /* lea */
+    else if (command == 5)
+        field->opcode = 0x5; /* clr */
+    else if (command == 6)
+        field->opcode = 0x6; /* not */
+    else if (command == 7)
+        field->opcode = 0x7; /* inc */
+    else if (command == 8)
+        field->opcode = 0x8; /* dec */
+    else if (command == 9)
+        field->opcode = 0x9; /* jmp */
+    else if (command == 10)
+        field->opcode = 0xA; /* bne */
+    else if (command == 11)
+        field->opcode = 0xB; /* red */
+    else if (command == 12)
+        field->opcode = 0xC; /* prn */
+    else if (command == 13)
+        field->opcode = 0xD; /* jsr */
+    else if (command == 14)
+        field->opcode = 0xE; /* rts */
+    else if (command == 15)
+        field->opcode = 0xF; /* stop */
 }
 
 /**
  * @brief Sets the addressing method in the command_t, used after is_valid_operand.
  * @param operand The operand to be parsed, NULL if it is a command without operands.
- * @param field Pointer to the command_t struct.
+ * @param command Pointer to the command_t struct.
  * @param src_dest 1 if source, 2 if destination.
  * @return void
  */
-void set_addressing_method(char *operand, command_ptr field, int src_dest) {
+void set_addressing_method(char *operand, command_ptr command, int src_dest) {
     if (src_dest == 1) { /* source operand */
-        if (operand == NULL) field->src_addr = 0x0;
+        if (operand == NULL)
+            command->src_addr = 0x0;
 
             /* Immediate addressing */
-        else if (operand[0] == '#') field->src_addr = 0x1;
+        else if (operand[0] == '#')
+            command->src_addr = 0x1;
 
             /* Indirect register addressing */
-        else if (operand[0] == '*') field->src_addr = 0x4; /*0b0100*/
+        else if (operand[0] == '*')
+            command->src_addr = 0x4; /*0b0100*/
 
             /* Direct register addressing */
-        else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2
-                 && operand[1] >= '0' && operand[1] <= '7')
-            field->src_addr = 0x8; /*0b1000*/
+        else if (strncmp(operand, "r", 1) == 0
+            && strlen(operand) == 2
+            && operand[1] >= '0' && operand[1] <= '7')
+            command->src_addr = 0x8; /*0b1000*/
 
             /* Direct addressing (label) */
-        else field->src_addr = 0x2; /*0b0010*/
+        else
+            command->src_addr = 0x2; /*0b0010*/
 
     } else if (src_dest == 2) { /* destination operand */
-        if (operand == NULL) field->dest_addr = 0x0;
+        if (operand == NULL)
+            command->dest_addr = 0x0;
 
-            /* Immediate addressing or indirect register addressing */
-        else if (operand[0] == '#' || operand[0] == '*')
-            field->dest_addr = 0x1; /*0b0001*/
+            /* Immediate addressing */
+        else if (operand[0] == '#')
+            command->dest_addr = 0x1; /*0b0001*/
+
+            /* Indirect register addressing */
+        else if (operand[0] == '*')
+            command->dest_addr = 0x4; /*0b0100*/
 
             /* Direct register addressing */
-        else if (strncmp(operand, "r", 1) == 0 && strlen(operand) == 2
-                 && operand[1] >= '0' && operand[1] <= '7')
-            field->dest_addr = 0x8; /*0b1000*/
+        else if (strncmp(operand, "r", 1) == 0
+            && strlen(operand) == 2
+            && operand[1] >= '0' && operand[1] <= '7')
+            command->dest_addr = 0x8; /*0b1000*/
 
             /* Direct addressing (label) */
-        else field->dest_addr = 0x2; /*0b0010*/
+        else
+            command->dest_addr = 0x2; /*0b0010*/
     }
 }
 
@@ -680,12 +711,14 @@ void set_addressing_method(char *operand, command_ptr field, int src_dest) {
  */
 int is_valid_operand(char *word, macro_ptr macro_head) {
     int i;
+
     if (is_valid_command(word) != -1) {
         return -1; /*it is a command*/
     } else if (word[0] == '#') { /*needs to be a number constant*/
         /* Check for optional +- */
         i = 1;
-        if (word[1] == '-' || word[1] == '+') i = 2;
+        if (word[1] == '-' || word[1] == '+')
+            i = 2;
         for (; word[i] != '\0'; i++)
             if (!isdigit(word[i])) {
                 return -2;
@@ -694,8 +727,7 @@ int is_valid_operand(char *word, macro_ptr macro_head) {
             return -2;
         }
     } else if (word[0] == '*') { /*needs to be a valid register*/
-        if (!(strncmp(&word[1], "r", 1) == 0 && strlen(word) == 3
-              && word[2] >= '0' && word[2] <= '7')) {
+        if (!(strncmp(&word[1], "r", 1) == 0 && strlen(word) == 3 && word[2] >= '0' && word[2] <= '7')) {
             return -3;
         }
     } else if (is_macro_name_valid(word, macro_head) == 2) {
@@ -730,33 +762,38 @@ int is_valid_label(char *word, symbol_ptr symbol_head,
     symbol_ptr current = symbol_head;
 
     /* remove colon */
-    if (word[i - 1] == ':') word[i - 1] = '\0';
+    if (word[i - 1] == ':')
+        word[i - 1] = '\0';
 
     /*is it too long*/
-    if (i > MAX_LABEL_LENGTH) return -7;
+    if (i > MAX_LABEL_LENGTH)
+        return -7;
 
     /*is it a command*/
-    if (is_valid_command(word) != -1) return -1;
+    if (is_valid_command(word) != -1)
+        return -1;
 
     /* is it an existing label */
     while (current != NULL) {
-        if (strcmp(word, current->name) == 0
-            && strcmp("entry", current->type) != 0) {
+        if (strcmp(word, current->name) == 0 && strcmp("entry", current->type) != 0) {
             return -2;
         }
         current = current->next;
     }
 
     /*is it a macro*/
-    if (is_macro_name_valid(word, macro_head) == 2) return -3;
+    if (is_macro_name_valid(word, macro_head) == 2)
+        return -3;
 
     /*is it a register*/
     for (i = 0; i < 8; i++) {
-        if (strcmp(word, registers[i]) == 0) return -4;
+        if (strcmp(word, registers[i]) == 0)
+            return -4;
     }
 
     /*does it start with a non-alpha character*/
-    if (isalpha(word[0]) == 0) return -5;
+    if (isalpha(word[0]) == 0)
+        return -5;
 
     /* Check if label contains only alphanumeric characters */
     for (i = 0; word[i] != '\0'; i++) {
@@ -781,20 +818,21 @@ int add_symbol(symbol_ptr *head, char *name, int counter,
     symbol_ptr temp, new_node = NULL; /* symbol nodes */
 
     new_node = (symbol_ptr) calloc(1, sizeof(symbol_t));
-    if (new_node == NULL) return -1;
+    if (new_node == NULL)
+        return -1;
 
     as_strdup(&new_node->name, name);
     as_strdup(&new_node->type, type);
 
-    new_node->counter = (strcmp(type, "external") == 0) ?
-                        INVALID_INT : counter; /* IC or DC */
+    new_node->counter = (strcmp(type, "external") == 0) ? INVALID_INT : counter; /* IC or DC */
     new_node->next = NULL;
 
     if (*head == NULL) { /* initializes the list */
         *head = new_node;
     } else {
         temp = *head;
-        while (temp->next != NULL) temp = temp->next;
+        while (temp->next != NULL)
+            temp = temp->next;
         temp->next = new_node;
     }
 
@@ -811,7 +849,8 @@ void phase_one_update_counter(symbol_ptr symbol_head, int ic) {
     symbol_ptr temp = symbol_head;
 
     while (temp != NULL) {
-        if (strcmp(temp->type, "data") == 0) temp->counter += ic + 100;
+        if (strcmp(temp->type, "data") == 0)
+            temp->counter += ic + 100;
         temp = temp->next;
     }
 }
@@ -826,7 +865,8 @@ void phase_one_update_counter(symbol_ptr symbol_head, int ic) {
 int add_variable(variable_ptr *head, int content, int counter) {
     variable_ptr new_node = (variable_ptr) calloc(1, sizeof(variable_ptr));
 
-    if (new_node == NULL) return -1;
+    if (new_node == NULL)
+        return -1;
 
     new_node->content = content;
     new_node->counter = counter; /*DC*/
@@ -836,7 +876,8 @@ int add_variable(variable_ptr *head, int content, int counter) {
         *head = new_node;
     } else {
         variable_ptr temp = *head;
-        while (temp->next != NULL) temp = temp->next;
+        while (temp->next != NULL)
+            temp = temp->next;
         temp->next = new_node;
     }
     return 0;
@@ -861,7 +902,8 @@ int get_data_int(char *word) {
 
     /* read the number */
     while (*word && !isspace(*word)) {
-        if (!isdigit(*word)) return INVALID_INT;
+        if (!isdigit(*word))
+            return INVALID_INT;
         result = result * 10 + (*word - '0');
         word++;
     }
