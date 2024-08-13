@@ -2,8 +2,8 @@
 
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: fixed read_next_line, made calc_l easier to read
-TODO: write function process data to save from breaks in while, make sure end of line works well
+/*updates for commit: final fix read_next_line, added check at end ic+dc+100<4096
+TODO: 
 check max line number?*/
 
 #define phase_one_allocation_failure \
@@ -324,8 +324,8 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 } /*end EXTERN case while*/
                 break;
 
-            case ENTRY: /*remove entry flag?*/
-                if (get_next_word(word, &word_ptr) == 0) {
+            case ENTRY: /*double check we don't need this before deleting*/
+                /*if (get_next_word(word, &word_ptr) == 0) {
                     if ((entry_flag =
                                  is_valid_label(word, *symbol_head, *macro_head)) == 0) {
                         if (add_symbol(symbol_head, word, *ic + 100,
@@ -345,7 +345,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                     "command.\n",
                             line_counter, filename);
                     error_flag = 1;
-                }
+                }*/
                 break;
 
             case OPERAND: /*shouldnt exist, its an error if there is an operand*/
@@ -542,6 +542,12 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
     } /* end of line loop */
     fprintf(stdout, "out of while loop, last line was: '%s' \n", line);
     phase_one_update_counter(*symbol_head, *ic);
+
+    if(*ic+*dc+100>=4096){
+        fprintf(stdout, "Error: File %s.\n       "
+                        "Code is too long, max memory is 4096 words.\n", filename);
+        error_flag ==1;
+    }
 
     if (error_flag == 1)
         return -1;

@@ -67,7 +67,7 @@ int is_valid_command(char *command) {
  * @brief Reads a line from the file and stores it in the given buffer.
  * @param file The file pointer to read from.
  * @param line The buffer to store the line.
- * @return 0 if successful, -1 if an EOF reached, -2 if error occured.
+ * @return 0 if successful, -1 if an EOF reached
  */
 int read_next_line(FILE *file, char *line) {
     char buffer[LINE_SIZE];
@@ -78,12 +78,8 @@ int read_next_line(FILE *file, char *line) {
             return 0;
         }
     }
-
-    /*If we reach here, it means either EOF or an error occurred*/
-    if (feof(file)) return -1;
-    if (ferror(file)) return -2;
-
-    return -1;
+   
+    return -1;  /*If we reach here, it means either EOF or an error occurred*/
 }
 
 /**
