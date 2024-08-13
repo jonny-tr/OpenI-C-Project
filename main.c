@@ -10,9 +10,9 @@ int main(int argc, char *argv[]) {
     int i, instruction_counter = 0, data_counter = 0; /* counter */
     int *ic = &instruction_counter, *dc = &data_counter; /* counters */
     FILE *am_fd; /* file pointer */
-    char *filename; /* filename */
+    char *am_filename; /* filename */
     macro_ptr macro_head = NULL; /* macro table */
-    symbols_ptr symbol_head = NULL; /* symbol table */
+    symbol_ptr symbol_head = NULL; /* symbol table */
     variable_ptr variable_head = NULL; /* variable table */
     command_ptr command_head = NULL; /* command table */
 
@@ -22,26 +22,26 @@ int main(int argc, char *argv[]) {
     }
 
     for (i = 1; i < argc; i++) {
-        filename = as_strcat(argv[i], ".am");
+        am_filename = as_strcat(argv[i], ".am");
         
         if (pre_assembler(&argv[i], macro_head) == -1) {
             goto cleanup; /* skip */
         }
 
-        am_fd = fopen(filename, "r");
+        am_fd = fopen(am_filename, "r");
         if (am_fd == NULL) {
-            fprintf(stdout, "Error: Could not open file %s.\n", filename);
+            fprintf(stdout, "Error: Could not open file %s.\n", am_filename);
             goto cleanup; /* skip */
         }
 
-        if ((phase_one(am_fd, filename, ic, dc, &symbol_head, &variable_head,
+        if ((phase_one(am_fd, am_filename, ic, dc, &symbol_head, &variable_head,
                        &command_head, &macro_head)) == -1) {
             goto cleanup;
         }
 
         rewind(am_fd);
-        phase_two(am_fd, filename, symbol_head, variable_head, command_head,
-                  *ic, *dc);
+        phase_two(am_fd, am_filename, symbol_head, variable_head, command_head,
+                *ic, *dc);
 
         cleanup:
         free_macro_table(macro_head);
