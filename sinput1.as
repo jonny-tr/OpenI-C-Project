@@ -14,7 +14,7 @@ endmacr
  m_macr
  add r7,*r6
  clr k
- sub L3,L3
+ sub L3,L3,
  .entry MAIN
  jmp LOOP
 END: stop
