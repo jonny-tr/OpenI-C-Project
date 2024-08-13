@@ -67,20 +67,25 @@ int is_valid_command(char *command) {
  * @brief Reads a line from the file and stores it in the given buffer.
  * @param file The file pointer to read from.
  * @param line The buffer to store the line.
- * @return 0 if successful, -1 if an EOF reached.
+ * @return 0 if successful, -1 if an EOF reached, -2 if error occured.
  */
 int read_next_line(FILE *file, char *line) {
     char buffer[LINE_SIZE];
 
-    while (fgets(buffer, LINE_SIZE, file) != NULL
-           && buffer[0] == ';'); /* skip comments */
+    while (fgets(buffer, LINE_SIZE, file) != NULL) {
+        if (buffer[0] != ';') {
+            memcpy(line, buffer, LINE_SIZE);
+            return 0;
+        }
+    }
 
+    /*If we reach here, it means either EOF or an error occurred*/
     if (feof(file)) return -1;
+    if (ferror(file)) return -2;
 
-    memcpy(line, buffer, LINE_SIZE);
-
-    return 0;
+    return -1;
 }
+
 
 /**
  * @brief checks if the next character is a comma
