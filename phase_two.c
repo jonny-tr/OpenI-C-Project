@@ -277,6 +277,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
     FILE *ob_fd = NULL, *ext_fd = NULL, *ent_fd = NULL; /* file pointers */
     command_ptr current_cmd = command_head; /* command pointer */
 
+    fprintf(stdout, "\ndebugging: Starting phase two.\n");
     if (filename_len >= 3) {
         filename_no_ext = (char *) calloc(1, filename_len + 1);
         if (filename_no_ext == NULL) {
@@ -300,27 +301,37 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
         line_num++;
         word_ptr = line;
         next_word_check
+        fprintf(stdout, "\ndebugging: line number %d, line is: %s", line_num, line);
 
         if (word[strlen(word) - 1] == ':') {
             next_word_check
+            fprintf(stdout, "debugging: skipping label: '%s'\n", word);
         } /* skip label */
 
         if ((strcmp(word, ".data") == 0)
             || (strcmp(word, ".string") == 0)) {
+                fprintf(stdout, "debugging: skipping line %d, .data or .string\n", line_num);
             continue; /* next line */
         } else if (strcmp(word, ".extern") == 0) {
             ext_flag = 1;
+            fprintf(stdout, "debugging: skipping line %d, is .extern, extern_flag = 1\n", line_num);
             continue; /* next line */
         } else if (strcmp(word, ".entry") == 0) {
             ent_flag = 1;
-            /* update labels in the symbol table */
+                        /* update labels in the symbol table */
             while ((word_flag = get_next_word(word, &word_ptr)) != -1) {
                 if (word_flag == 1) continue; /* skip comma */
                 if (update_entry(symbol_head, word,
                                  filename, line_num) == -1) error_flag = 1;
             }
-            if (error_flag) break;
-            else continue; /* next line */
+            if (error_flag) {
+                fprintf(stdout, "debugging: error updating entry '%s'\n", word);
+                break;
+            }
+            else{  
+                fprintf(stdout, "debugging: line %d, '%s', is .entry, updating table\n", line_num, word);
+                continue; /* next line */
+            }
         } else {
             ic += current_cmd->l + 1;
             if (current_cmd->l == 0) {
