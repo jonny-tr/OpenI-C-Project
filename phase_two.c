@@ -48,8 +48,8 @@ int build_ext(FILE *ext_fd, symbol_ptr symbol_head) {
  */
 int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
              int ic, int dc) {
-    int i; /* counter */
-    command_ptr current_cmd = command_head; /* current command */
+    int i;                                    /* counter */
+    command_ptr current_cmd = command_head;   /* current command */
     variable_ptr current_var = variable_head; /* current variable */
 
     fprintf(ob_fd, "%4d %d\n", ic, dc);
@@ -57,19 +57,23 @@ int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
     for (i = 100; i <= ic + 100; i++) {
         fprintf(ob_fd, "%04d %05o\n", i, command_to_num(current_cmd));
         current_cmd = current_cmd->next;
-        if (current_cmd->next == NULL) break;
+        if (current_cmd->next == NULL)
+            break;
     }
 
-    if (current_cmd->next != NULL) return -1;
+    if (current_cmd->next != NULL)
+        return -1;
 
     for (i = 100; i <= dc + 100; i++) {
-        fprintf(ob_fd, "%04d %05o\n", current_var->counter+ic+101,
+        fprintf(ob_fd, "%04d %05o\n", current_var->counter + ic + 101,
                 current_var->content);
         current_var = current_var->next;
-        if (current_var->next == NULL) break;
+        if (current_var->next == NULL)
+            break;
     }
 
-    if (current_var->next != NULL) return -1; /* more variables than dc */
+    if (current_var->next != NULL)
+        return -1; /* more variables than dc */
 
     return 0;
 }
@@ -91,7 +95,8 @@ int is_symbol(char *name, symbol_ptr symbols_head, command_ptr are,
 
     while (current != NULL) {
         if (strcmp(name, current->name) == 0) {
-            if (strcmp(current->type, "entry") == 0) are->are = 2;
+            if (strcmp(current->type, "entry") == 0)
+                are->are = 2;
             else if (strcmp(current->type, "external") == 0) {
                 if (*ext_fd == NULL) {
                     *ext_fd = fopen(ext_file, "w");
@@ -131,77 +136,28 @@ int update_command_list(command_ptr current_cmd, char *word, char **word_ptr,
     int num;
     command_ptr src_node = NULL, dest_node = NULL;
 
-    dest_node = (command_ptr) calloc(1, sizeof(command_t));
-    if (dest_node == NULL) return -2;
+    src_node = (command_ptr) calloc(1, sizeof(command_t));
+    if (src_node == NULL)
+        return -2;
 
-    /* insert dest_node to the linked list */
-    dest_node->next = current_cmd->next;
-    current_cmd->next = dest_node;
+    /* insert src_node to the linked list */
+    src_node->next = current_cmd->next;
+    current_cmd->next = src_node;
 
     /* both source and destination are registers */
-    if ((current_cmd->src_addr == 0
-        || current_cmd->src_addr == 4
-        || current_cmd->src_addr == 8)
-        && (current_cmd->dest_addr == 0
-            || current_cmd->dest_addr == 4
-            || current_cmd->dest_addr == 8)) {
-        dest_node->are = 4;
-        dest_node->dest_addr = atoi(&word[strlen(word) - 1]);
+    if ((current_cmd->l == 1)
+        && (current_cmd->opcode >= 0 && current_cmd->opcode <= 4)) {
+        src_node->are = 4;
+        src_node->dest_addr = atoi(&word[strlen(word) - 1]);
+        get_next_word(word, word_ptr); /* skip comma */
         if (get_next_word(word, word_ptr) == -1) {
             fprintf(stdout, "Error: Failed to read from %s.\n", filename);
             return -1;
         }
-        dest_node->dest_addr = dest_node->dest_addr | (atoi(word) << 3);
-        dest_node->src_addr = (atoi(&word[strlen(word) - 1]) >> 1);
+        src_node->dest_addr = src_node->dest_addr | (atoi(word) << 3);
+        src_node->src_addr = (atoi(&word[strlen(word) - 1]) >> 1);
 
         return 0;
-    }
-
-    switch (current_cmd->dest_addr) {
-        case 1: /* immediate address */
-            dest_node->are = 4;
-            num = twos_complement(atoi(&word[1]));
-            dest_node->dest_addr = num;
-            dest_node->src_addr = (num >> 4);
-            dest_node->opcode = (num >> 8);
-            break;
-        case 2: /* direct address */
-            if ((num = is_symbol(word, symbol_head, dest_node, ext_fd,
-                                 ext_file, line_num)) == -1)
-                return -1;
-            dest_node->dest_addr = num;
-            dest_node->src_addr = (num >> 4);
-            dest_node->opcode = (num >> 8);
-            break;
-        case 4: /* indirect register address */
-        case 8: /* direct register address */
-            dest_node->are = 4;
-            dest_node->dest_addr = (atoi(&word[strlen(word) - 1]));
-            break;
-        default:
-            break;
-    }
-
-    if (current_cmd->l == 1) return 0;
-
-    src_node = (command_ptr) calloc(1, sizeof(command_t));
-    if (src_node == NULL) return -2;
-
-    /* insert src_node to the linked list */
-    dest_node->next = src_node->next;
-    src_node->next = dest_node;
-
-    switch (get_next_word(word, word_ptr)) {
-        case -1:
-            fprintf(stdout, "Error: Failed to read from %s.\n", filename);
-            return -1;
-        case 1: /* comma, read next word again */
-            if (get_next_word(word, word_ptr) == -1) {
-                fprintf(stdout, "Error: Failed to read from %s.\n", filename);
-                return -1;
-            }
-        default:
-            break;
     }
 
     switch (current_cmd->src_addr) {
@@ -230,6 +186,49 @@ int update_command_list(command_ptr current_cmd, char *word, char **word_ptr,
             break;
     }
 
+    if (current_cmd->l == 1)
+        return 0;
+
+    dest_node = (command_ptr) calloc(1, sizeof(command_t));
+    if (dest_node == NULL)
+        return -2;
+
+    /* insert dest_node to the linked list */
+    dest_node->next = src_node->next;
+    src_node->next = dest_node;
+
+    get_next_word(word, word_ptr); /* skip comma */
+    if (get_next_word(word, word_ptr) == -1) {
+        fprintf(stdout, "Error: Failed to read from %s.\n", filename);
+        return -1;
+    }
+
+    switch (current_cmd->dest_addr) {
+        case 1: /* immediate address */
+            dest_node->are = 4;
+            num = twos_complement(atoi(&word[1]));
+            dest_node->dest_addr = num;
+            dest_node->src_addr = (num >> 4);
+            dest_node->opcode = (num >> 8);
+            break;
+        case 2: /* direct address */
+            if ((num = is_symbol(word, symbol_head, dest_node, ext_fd,
+                                 ext_file, line_num)) == -1)
+                return -1;
+            dest_node->dest_addr = num;
+            dest_node->src_addr = (num >> 4);
+            dest_node->opcode = (num >> 8);
+            break;
+        case 4: /* indirect register address */
+        case 8: /* direct register address */
+            dest_node->are = 4;
+            dest_node->dest_addr = (atoi(&word[strlen(word) - 1]));
+            break;
+        default:
+            break;
+    }
+
+
     return 0;
 }
 
@@ -252,7 +251,8 @@ int update_entry(symbol_ptr symbol_head, char *word, char *filename,
     }
 
     fprintf(stdout, "Error: line %d in %s.\n       "
-                    "Symbol %s, defined as entry, not found.\n", line_num, filename, word);
+                    "Symbol %s, defined as entry, not found.\n",
+            line_num, filename, word);
     return -1;
 }
 
@@ -269,13 +269,13 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
               variable_ptr variable_head, command_ptr command_head,
               int expected_ic, int dc) {
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0}, *filename_no_ext = NULL,
-        *ob_file = NULL, *ext_file = NULL, *ent_file = NULL, *word_ptr = NULL;
-        /* strings and filenames */
+            *ob_file = NULL, *ext_file = NULL, *ent_file = NULL, *word_ptr = NULL;
+    /* strings and filenames */
     int line_num = 0, ic = 0, error_flag = 0, allocation_flag = 0, word_flag,
-        ent_flag = 0, ext_flag = 0; /* counters and flags */
-    size_t filename_len = strlen(filename); /* length of filename */
+            ent_flag = 0, ext_flag = 0, i;                     /* counters and flags */
+    size_t filename_len = strlen(filename);             /* length of filename */
     FILE *ob_fd = NULL, *ext_fd = NULL, *ent_fd = NULL; /* file pointers */
-    command_ptr current_cmd = command_head; /* command pointer */
+    command_ptr current_cmd = command_head;             /* command pointer */
 
     if (filename_len >= 3) {
         filename_no_ext = (char *) calloc(1, filename_len + 1);
@@ -294,9 +294,11 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
 
     safe_free(filename_no_ext)
 
-    while (read_next_line(am_fd, line) != -1
-           && !feof(am_fd)
-           && current_cmd->next != NULL) {
+    while (read_next_line(am_fd, line) != -1 && !feof(am_fd) && current_cmd->next != NULL) {
+        if (line_num != 0)
+            for (i = 0; i < current_cmd->l; ++i) {
+                current_cmd = current_cmd->next;
+            }
         line_num++;
         word_ptr = line;
         next_word_check
@@ -305,8 +307,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
             next_word_check
         } /* skip label */
 
-        if ((strcmp(word, ".data") == 0)
-            || (strcmp(word, ".string") == 0)) {
+        if ((strcmp(word, ".data") == 0) || (strcmp(word, ".string") == 0)) {
             continue; /* next line */
         } else if (strcmp(word, ".extern") == 0) {
             ext_flag = 1;
@@ -315,23 +316,27 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
             ent_flag = 1;
             /* update labels in the symbol table */
             while ((word_flag = get_next_word(word, &word_ptr)) != -1) {
-                if (word_flag == 1) continue; /* skip comma */
+                if (word_flag == 1)
+                    continue; /* skip comma */
                 if (update_entry(symbol_head, word,
-                                 filename, line_num) == -1) error_flag = 1;
+                                 filename, line_num) == -1)
+                    error_flag = 1;
             }
-            if (error_flag) break;
-            else continue; /* next line */
+            if (error_flag)
+                break;
+            else
+                continue; /* next line */
         } else {
             ic += current_cmd->l + 1;
             if (current_cmd->l == 0) {
-                current_cmd = current_cmd->next;
+                /*current_cmd = current_cmd->next;*/
                 continue; /* next line */
             }
             next_word_check
             /* add new nodes to the command list */
             switch (update_command_list(current_cmd, word, &word_ptr,
-                                    filename, symbol_head, &ext_fd,
-                                    ext_file, line_num)) {
+                                        filename, symbol_head, &ext_fd,
+                                        ext_file, line_num)) {
                 case -1:
                     error_flag = 1;
                     break;
@@ -343,12 +348,13 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
                     break;
             }
         }
-        current_cmd = current_cmd->next;
+        /*current_cmd = current_cmd->next;*/
     }
 
     if ((ic + dc) != expected_ic) {
         fprintf(stdout, "Unknown error encountered during execution.\n        "
-                        "Review file %s.\n", filename);
+                        "Review file %s.\n",
+                filename);
         /*error_flag = 1;*/
     }
 
@@ -395,9 +401,12 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
     }
 
     cleanup:
-    if (ob_fd != NULL) fclose(ob_fd);
-    if (ext_fd != NULL) fclose(ext_fd);
-    if (ent_fd != NULL) fclose(ent_fd);
+    if (ob_fd != NULL)
+        fclose(ob_fd);
+    if (ext_fd != NULL)
+        fclose(ext_fd);
+    if (ent_fd != NULL)
+        fclose(ent_fd);
 
     safe_free(ob_file)
     safe_free(ext_file)
@@ -405,16 +414,20 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
 
     /* remove files in case there was an error and they were still created */
     if (error_flag) {
-        if (ob_fd != NULL) remove(ob_file);
-        if (ext_fd != NULL) remove(ext_file);
-        if (ent_fd != NULL) remove(ent_file);
+        if (ob_fd != NULL)
+            remove(ob_file);
+        if (ext_fd != NULL)
+            remove(ext_file);
+        if (ent_fd != NULL)
+            remove(ent_file);
     }
 
     if (allocation_flag) {
         allocation_failure
     }
 
-    if (error_flag) return -1;
+    if (error_flag)
+        return -1;
 
     return 0;
 }
