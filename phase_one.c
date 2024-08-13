@@ -531,7 +531,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 error_flag = 1;
                 break;
         } /* end of word_type switch */
-        if (word_type == COMMAND) { /*reached end of line*/
+        if (word_type == COMMAND) { /* reached end of line */
             new_field->l = calc_l(new_field, cmnd);
             fprintf(stdout, "debugging: l is: %d\n", new_field->l);
             *ic += new_field->l;
@@ -580,18 +580,18 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
 
 /**
  * @brief Calculates the value of 'L' for a given command.
- * @param field pointer to the command_t struct
+ * @param command pointer to the command_t struct
  * @param cmnd the command code
  * @return the value of 'l' based on the command
  */
-int calc_l(command_t *field, int cmnd) {
-    if (cmnd == 14 || cmnd == 15) return 0; /*command without operands*/
+int calc_l(command_ptr command, int cmnd) {
+    if (cmnd == 14 || cmnd == 15) return 0; /* command without operands */
         /* one operand or both operands are registers: 0100 or 1000*/
     else if ((cmnd >= 5 && cmnd <= 13)
              /*0b0100||0b1000*/
-             || ((field->src_addr == 0x4 || field->src_addr == 0x8)
+             || ((command->src_addr == 0x4 || command->src_addr == 0x8)
                  /*0b0100||0b1000*/
-                 && (field->dest_addr == 0x4 || field->dest_addr == 0x8)))
+                 && (command->dest_addr == 0x4 || command->dest_addr == 0x8)))
         return 1;
     else
         return 2;
