@@ -4,6 +4,9 @@
 executable
 *.as
 *.am
+*.ob
+*.ext
+*.ent
 *.xml
 *.json
 *.dtmp
