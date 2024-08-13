@@ -76,7 +76,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
               command_ptr *command_head, macro_ptr *macro_head) {
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0};            /* buffers */
     char *word_ptr, *label_temp_ptr = NULL;                       /* pointers */
-    int label_flag = 0, error_flag = 0, expect_comma, entry_flag, /* flags */
+    int label_flag = 0, error_flag = 0, expect_comma, /* flags */
     i, cmnd, word_type, data_tmp, commas, operand_error,
             line_counter = 0,                                              /* counters */
     char_type;                                                     /* -1 line end, 0 word, 1 comma */
@@ -543,10 +543,10 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
     fprintf(stdout, "out of while loop, last line was: '%s' \n", line);
     phase_one_update_counter(*symbol_head, *ic);
 
-    if(*ic+*dc+100>=4096){
+    if (*ic + *dc + 100 >= 4096) {
         fprintf(stdout, "Error: File %s.\n       "
                         "Code is too long, max memory is 4096 words.\n", filename);
-        error_flag ==1;
+        error_flag = 1;
     }
 
     if (error_flag == 1)
@@ -669,8 +669,8 @@ void set_addressing_method(char *operand, command_ptr command, int src_dest) {
 
             /* Direct register addressing */
         else if (strncmp(operand, "r", 1) == 0
-            && strlen(operand) == 2
-            && operand[1] >= '0' && operand[1] <= '7')
+                 && strlen(operand) == 2
+                 && operand[1] >= '0' && operand[1] <= '7')
             command->src_addr = 0x8; /*0b1000*/
 
             /* Direct addressing (label) */
@@ -691,8 +691,8 @@ void set_addressing_method(char *operand, command_ptr command, int src_dest) {
 
             /* Direct register addressing */
         else if (strncmp(operand, "r", 1) == 0
-            && strlen(operand) == 2
-            && operand[1] >= '0' && operand[1] <= '7')
+                 && strlen(operand) == 2
+                 && operand[1] >= '0' && operand[1] <= '7')
             command->dest_addr = 0x8; /*0b1000*/
 
             /* Direct addressing (label) */
