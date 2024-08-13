@@ -532,7 +532,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 error_flag = 1;
                 break;
         } /* end of word_type switch */
-        if (word_type == COMMAND) { /*reached end of line*/
+        if (word_type == COMMAND) { /* reached end of line */
             new_field->l = calc_l(new_field, cmnd);
             fprintf(stdout, "debugging: l is: %d\n", new_field->l);
             *ic += new_field->l;
@@ -581,7 +581,7 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
 
 /**
  * @brief Calculates the value of 'L' for a given command.
- * @param field pointer to the command_t struct
+ * @param command pointer to the command_t struct
  * @param cmnd the command code
  * @return the value of 'l' based on the command
  */
