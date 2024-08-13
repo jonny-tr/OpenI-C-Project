@@ -6,8 +6,8 @@
  * @param symbol_head a pointer to the symbol table
  * @return 0
  */
-int build_ent(FILE *ent_fd, symbols_ptr symbol_head) {
-    symbols_ptr current = symbol_head;
+int build_ent(FILE *ent_fd, symbol_ptr symbol_head) {
+    symbol_ptr current = symbol_head;
 
     while (current != NULL) {
         if (strcmp(current->type, "entry") == 0) {
@@ -25,8 +25,8 @@ int build_ent(FILE *ent_fd, symbols_ptr symbol_head) {
  * @param symbol_head a pointer to the symbol table
  * @return 0
  */
-int build_ext(FILE *ext_fd, symbols_ptr symbol_head) {
-    symbols_ptr current = symbol_head;
+int build_ext(FILE *ext_fd, symbol_ptr symbol_head) {
+    symbol_ptr current = symbol_head;
 
     while (current != NULL) {
         if (strcmp(current->type, "extenal") == 0) {
@@ -52,19 +52,21 @@ int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
     command_ptr current_cmd = command_head; /* current command */
     variable_ptr current_var = variable_head; /* current variable */
 
-    fprintf(ob_fd, "   %d %d\n", ic, dc);
+    fprintf(ob_fd, "%4d %d\n", ic, dc);
 
     for (i = 100; i <= ic + 100; i++) {
-        fprintf(ob_fd, "%04d %05o\n", i, command_to_num(*current_cmd));
+        fprintf(ob_fd, "%04d %05o\n", i, command_to_num(current_cmd));
         current_cmd = current_cmd->next;
+        if (current_cmd->next == NULL) break;
     }
 
     if (current_cmd->next != NULL) return -1;
 
     for (i = 100; i <= dc + 100; i++) {
-        fprintf(ob_fd, "%04d %05o\n", current_var->counter,
-                current_var->content); /* TODO: twos_complement? double check value printed */
+        fprintf(ob_fd, "%04d %05o\n", current_var->counter+ic+101,
+                twos_complement(current_var->content));
         current_var = current_var->next;
+        if (current_var->next == NULL) break;
     }
 
     if (current_var->next != NULL) return -1;
@@ -83,9 +85,9 @@ int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
  * @param line_num the line number of the command
  * @return the counter of the symbol, -1 if an error occurred
  */
-int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
+int is_symbol(char *name, symbol_ptr symbols_head, command_ptr are,
               FILE **ext_fd, char *ext_file, const int line_num) {
-    symbols_ptr current = symbols_head;
+    symbol_ptr current = symbols_head;
 
     while (current != NULL) {
         if (strcmp(name, current->name) == 0) {
@@ -112,7 +114,7 @@ int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
 
 /**
  * @brief the function updates the command list and adds the new command words
- * @param command_list the list of commands
+ * @param current_cmd the current command in the list
  * @param word the current word in the line
  * @param line the current line
  * @param position the current position in the line
@@ -123,91 +125,104 @@ int is_symbol(char *name, symbols_ptr symbols_head, command_ptr are,
  * @param line_num the line number
  * @return 0 if successful, -1 on failure, -2 on allocation failure
  */
-int update_command_list(command_ptr command_list, char *word, char **word_ptr,
-                        char *filename, symbols_ptr symbol_head,
+int update_command_list(command_ptr current_cmd, char *word, char **word_ptr,
+                        char *filename, symbol_ptr symbol_head,
                         FILE **ext_fd, char *ext_file, const int line_num) {
     int num;
-    char *next_word = NULL;
-    command_ptr current = command_list, new_node = NULL;
+    command_ptr src_node = NULL, dest_node = NULL;
 
-    new_node = (command_ptr) calloc(1, sizeof(command_word));
-    if (new_node == NULL) return -2;
+    src_node = (command_ptr) calloc(1, sizeof(command_t));
+    if (src_node == NULL) return -2;
 
-    new_node->next = current->next;
-    current->next = new_node;
+    /* insert src_node to the linked list */
+    src_node->next = current_cmd->next;
+    current_cmd->next = src_node;
 
     /* both source and destination are registers */
-    if ((current->src_addr == 0
-            || current->src_addr == 4
-            || current->src_addr == 8)
-                && (current->dest_addr == 0
-                    || current->dest_addr == 4
-                    || current->dest_addr == 8)) {
-        new_node->are = 4;
-        new_node->dest_addr = atoi(&word[strlen(word) - 1]);
-        if (get_next_word(word, word_ptr) == -1
-                /*read_next_word(line, position, next_word) == -1*/) {
+    if ((current_cmd->src_addr == 0
+         || current_cmd->src_addr == 4
+         || current_cmd->src_addr == 8)
+                && (current_cmd->dest_addr == 0
+                    || current_cmd->dest_addr == 4
+                    || current_cmd->dest_addr == 8)) {
+        src_node->are = 4;
+        src_node->dest_addr = atoi(&word[strlen(word) - 1]);
+        if (get_next_word(word, word_ptr) == -1) {
             fprintf(stdout, "Error: Failed to read from %s.\n", filename);
             return -1;
         }
-        new_node->dest_addr = new_node->dest_addr | (atoi(next_word) << 3);
-        new_node->src_addr = (atoi(&word[strlen(word) - 1]) >> 1);
+        src_node->dest_addr = src_node->dest_addr | (atoi(word) << 3);
+        src_node->src_addr = (atoi(&word[strlen(word) - 1]) >> 1);
 
         return 0;
     }
 
-    switch (current->src_addr) {
+    switch (current_cmd->src_addr) {
         case 1: /* immediate address */
-            new_node->are = 4;
+            src_node->are = 4;
             num = twos_complement(atoi(&word[1]));
-            new_node->dest_addr = num;
-            new_node->src_addr = (num >> 4);
-            new_node->opcode = (num >> 8);
+            src_node->dest_addr = num;
+            src_node->src_addr = (num >> 4);
+            src_node->opcode = (num >> 8);
             break;
         case 2: /* direct address */
-            if ((num = is_symbol(word, symbol_head, new_node, ext_fd,
+            if ((num = is_symbol(word, symbol_head, src_node, ext_fd,
                                  ext_file, line_num)) == -1)
                 return -1;
-            new_node->dest_addr = num;
-            new_node->src_addr = (num >> 4);
-            new_node->opcode = (num >> 8);
+            src_node->dest_addr = num;
+            src_node->src_addr = (num >> 4);
+            src_node->opcode = (num >> 8);
             break;
         case 4: /* indirect register address */
         case 8: /* direct register address */
-            new_node->are = 4;
-            new_node->dest_addr = (atoi(&word[strlen(word) - 1]) << 3);
-            new_node->src_addr = (atoi(&word[strlen(word) - 1]) >> 1);
+            src_node->are = 4;
+            src_node->dest_addr = (atoi(&word[strlen(word) - 1]) << 3);
+            src_node->src_addr = (atoi(&word[strlen(word) - 1]) >> 1);
             break;
         default:
             break;
     }
 
-    new_node = (command_ptr) calloc(1, sizeof(command_word));
-    if (new_node == NULL) return -2;
+    switch (get_next_word(word, word_ptr)) {
+        case -1:
+            fprintf(stdout, "Error: Failed to read from %s.\n", filename);
+            return -1;
+        case 1: /* comma, read next word again */
+            if (get_next_word(word, word_ptr) == -1) {
+                fprintf(stdout, "Error: Failed to read from %s.\n", filename);
+                return -1;
+            }
+        default:
+            break;
+    }
 
-    new_node->next = current->next;
-    current->next = new_node;
+    dest_node = (command_ptr) calloc(1, sizeof(command_t));
+    if (dest_node == NULL) return -2;
 
-    switch (current->dest_addr) {
+    /* insert dest_node to the linked list */
+    dest_node->next = src_node->next;
+    src_node->next = dest_node;
+
+    switch (current_cmd->dest_addr) {
         case 1: /* immediate address */
-            new_node->are = 4;
+            dest_node->are = 4;
             num = twos_complement(atoi(&word[1]));
-            new_node->dest_addr = num;
-            new_node->src_addr = (num >> 4);
-            new_node->opcode = (num >> 8);
+            dest_node->dest_addr = num;
+            dest_node->src_addr = (num >> 4);
+            dest_node->opcode = (num >> 8);
             break;
         case 2: /* direct address */
-            if ((num = is_symbol(word, symbol_head, new_node, ext_fd,
+            if ((num = is_symbol(word, symbol_head, dest_node, ext_fd,
                                  ext_file, line_num)) == -1)
                 return -1;
-            new_node->dest_addr = num;
-            new_node->src_addr = (num >> 4);
-            new_node->opcode = (num >> 8);
+            dest_node->dest_addr = num;
+            dest_node->src_addr = (num >> 4);
+            dest_node->opcode = (num >> 8);
             break;
         case 4: /* indirect register address */
         case 8: /* direct register address */
-            new_node->are = 4;
-            new_node->dest_addr = (atoi(&word[strlen(word) - 1]));
+            dest_node->are = 4;
+            dest_node->dest_addr = (atoi(&word[strlen(word) - 1]));
             break;
         default:
             break;
@@ -218,12 +233,13 @@ int update_command_list(command_ptr command_list, char *word, char **word_ptr,
 
 /**
  * @brief updates the type of the symbol to be entry
- * @param symbol_table_head pointer to the symbol table head
+ * @param symbol_head pointer to the symbol table head
  * @param word name of the symbol to be updated
  * @return 0 if successful, -1 otherwise
  */
-int entry_update(symbols_ptr symbol_table_head, char *word) {
-    symbols_ptr current = symbol_table_head;
+int update_entry(symbol_ptr symbol_head, char *word, char *filename,
+                 int line_num) {
+    symbol_ptr current = symbol_head;
 
     while (current != NULL) {
         if (strcmp(word, current->name) == 0) {
@@ -233,7 +249,8 @@ int entry_update(symbols_ptr symbol_table_head, char *word) {
         current = current->next;
     }
 
-    fprintf(stdout, "Error: Symbol %s, defined as entry, not found.\n", word);
+    fprintf(stdout, "Error: line %d in %s.\n       "
+                    "Symbol %s, defined as entry, not found.\n", line_num, filename, word);
     return -1;
 }
 
@@ -246,23 +263,39 @@ int entry_update(symbols_ptr symbol_table_head, char *word) {
  * @param dc value of dc
  * @return 0 if successful, -1 otherwise
  */
-int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
+int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
               variable_ptr variable_head, command_ptr command_head,
               int expected_ic, int dc) {
-    char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0}, *ob_file = NULL, *ext_file = NULL,
-        *ent_file = NULL, *word_ptr = NULL; /* strings and filenames */
-    int line_num = 0, ic = 0, error_flag = 0, allocation_flag = 0,
+    char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0}, *filename_no_ext = NULL,
+        *ob_file = NULL, *ext_file = NULL, *ent_file = NULL, *word_ptr = NULL;
+        /* strings and filenames */
+    int line_num = 0, ic = 0, error_flag = 0, allocation_flag = 0, word_flag,
         ent_flag = 0, ext_flag = 0; /* counters and flags */
+    size_t filename_len = strlen(filename); /* length of filename */
     FILE *ob_fd = NULL, *ext_fd = NULL, *ent_fd = NULL; /* file pointers */
-    command_ptr current_cmd = command_head, tmp_cmd = NULL; /* pointers */
+    command_ptr current_cmd = command_head; /* command pointer */
 
-    ob_file = as_strcat(filename, ".ob");
-    ext_file = as_strcat(filename, ".ext");
-    ent_file = as_strcat(filename, ".ent");
+    if (filename_len >= 3) {
+        filename_no_ext = (char *) calloc(1, filename_len + 1);
+        if (filename_no_ext == NULL) {
+            allocation_flag = 1;
+            error_flag = 1;
+            goto cleanup;
+        }
+        strncpy(filename_no_ext, filename, filename_len - 3);
+        filename_no_ext[filename_len - 3] = '\0';
+    }
+
+    ob_file = as_strcat(filename_no_ext, ".ob");
+    ext_file = as_strcat(filename_no_ext, ".ext");
+    ent_file = as_strcat(filename_no_ext, ".ent");
+
+    safe_free(filename_no_ext)
 
     while (read_next_line(am_fd, line) != -1
            && !feof(am_fd)
            && current_cmd->next != NULL) {
+        if (line_num != 0) current_cmd = current_cmd->next;
         line_num++;
         word_ptr = line;
         next_word_check
@@ -280,17 +313,16 @@ int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
         } else if (strcmp(word, ".entry") == 0) {
             ent_flag = 1;
             /* update labels in the symbol table */
-            while (get_next_word(word, &word_ptr) != -1) {
-                if (entry_update(symbol_head, word) == -1) {
-                    error_flag = 1;
-                    break;
-                }
+            while ((word_flag = get_next_word(word, &word_ptr)) != -1) {
+                if (word_flag == 1) continue; /* skip comma */
+                if (update_entry(symbol_head, word,
+                                 filename, line_num) == -1) error_flag = 1;
             }
+            if (error_flag) break;
             continue;
         } else {
-            ic += current_cmd->l;
-            if (current_cmd->l == 1) continue;
-            tmp_cmd = current_cmd->next;
+            ic += current_cmd->l + 1;
+            if (current_cmd->l == 0) continue;
             next_word_check
             /* add new nodes to the command list */
             switch (update_command_list(current_cmd, word, &word_ptr,
@@ -306,16 +338,14 @@ int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
                 default:
                     break;
             }
-            current_cmd->next = tmp_cmd;
-            current_cmd = current_cmd->next;
         }
     }
 
-    /*if (ic + dc != expected_ic) {
-        fprintf(stdout, "Unknown error encountered during execution.\n"
+    if ((ic + dc) != expected_ic) {
+        fprintf(stdout, "Unknown error encountered during execution.\n        "
                         "Review file %s.\n", filename);
-        error_flag = 1;
-    }*/
+        /*error_flag = 1;*/
+    }
 
     if (error_flag == 0) {
         ob_fd = fopen(ob_file, "w");
@@ -328,7 +358,7 @@ int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
             goto cleanup;
         }
 
-        if (build_ob(ob_fd, command_head, variable_head, ic, dc) == -1) {
+        if (build_ob(ob_fd, command_head, variable_head, expected_ic, dc) == -1) {
             error_flag = 1;
             allocation_flag = 1;
             goto cleanup;
@@ -355,7 +385,7 @@ int phase_two(FILE *am_fd, char *filename, symbols_ptr symbol_head,
                 error_flag = 1;
                 goto cleanup;
             }
-            /*build_ext(ext_fd, symbol_head); TODO: delete? built in is_symbol*/
+            build_ext(ext_fd, symbol_head);
         }
     }
 
