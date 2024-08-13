@@ -84,8 +84,7 @@ int as_strdup(char **dest, const char *s);
 char *as_strcat(const char *s1, const char *s2);
 int is_valid_command(char *command);
 int read_next_line(FILE *fd, char *line);
-
-/* add from shahar's changes */
+int read_next_part(FILE *as_fd, char **next_part);
 int get_next_word(char *word, char **word_ptr);
 int get_word_type(char *word);
 int command_to_num(command_ptr cmd);
@@ -100,7 +99,6 @@ int macro_table_builder(char *next_part, FILE *as_fd,
                         char *filename);
 macro_ptr is_macro(char *next_part, macro_ptr macro_head);
 int is_macro_name_valid(char *name, macro_ptr macro_head);
-int read_next_part(FILE *as_fd, char **next_part);
 int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_head);
 
 /* phase_one */
