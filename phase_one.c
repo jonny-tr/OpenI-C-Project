@@ -71,15 +71,15 @@ check max line number?*/
  * @return 0 on success, -1 on failure;
 */
 int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
-              symbols_ptr *symbol_head, variable_ptr *variable_head,
+              symbol_ptr *symbol_head, variable_ptr *variable_head,
               command_ptr *command_head, macro_ptr *macro_head) {
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0};            /* buffers */
     char *word_ptr, *label_temp_ptr = NULL;                       /* pointers */
     int label_flag = 0, error_flag = 0, expect_comma, entry_flag, /* flags */
-    i, cmnd, word_type, data_tmp, commas, operand_error,
-            line_counter = 0,                                              /* counters */
-    char_type;                                                     /* -1 line end, 0 word, 1 comma */
-    command_ptr new_field = (command_ptr) malloc(sizeof(command_word)); /* command */
+        i, cmnd, word_type, data_tmp, commas, operand_error,
+        line_counter = 0, /* counters */
+    char_type; /* -1 line end, 0 word, 1 comma */
+    command_ptr new_field = (command_ptr) calloc(1, sizeof(command_t)); /* command */
 
     if (new_field == NULL) {
         phase_one_allocation_failure;
@@ -191,10 +191,8 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 commas = 0;
                 expect_comma = 0;      /* no comma is expected before data */
                 while (char_type != -1 /* if char_type was updated during the loop */
-                       && (char_type =
-                                   /*read_next_word(line, &position, word)*/
-                                   get_next_word(word, &word_ptr)) != -1 &&
-                       word[0] != '\0') {
+                       && (char_type = get_next_word(word, &word_ptr)) != -1
+                       && word[0] != '\0') {
                     if (expect_comma != commas) {
                         fprintf(stdout, "Error: line %d in %s.\n       "
                                         "Improper comma use.\n",
@@ -325,7 +323,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 } /*end EXTERN case while*/
                 break;
 
-            case ENTRY: /*understand whats up with entry flag*/
+            case ENTRY:
                 if (get_next_word(word, &word_ptr) == 0) {
                     if ((entry_flag =
                                  is_valid_label(word, *symbol_head, *macro_head)) == 0) {
@@ -376,7 +374,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                     fprintf(stdout, "debugging: ic updated to: %d\n", *ic);
                     fprintf(stdout, "debugging: added label '%s' to list\n", label_temp_ptr);
                 }
-                /* initialize new command_word */
+                /* initialize new command_t */
                 if (init_command_word(command_head, &new_field) == -1) {
                     phase_one_allocation_failure
                 }
@@ -391,9 +389,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                     case 4: /*lea*/
                         /*first operand*/
                         CHECK_UNEXPECTED_COMMA(char_type, error_flag);
-                        if ((char_type =
-                                     /*read_next_word(line, &position, word)*/
-                                     get_next_word(word, &word_ptr)) != -1) {
+                        if ((char_type = get_next_word(word, &word_ptr)) != -1) {
                             fprintf(stdout, "debugging: 2 operands needed, first is: '%s'\n", word);
                             operand_error = is_valid_operand(word, *macro_head);
                             if (operand_error == 1) {
@@ -422,9 +418,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                         fprintf(stdout, "debugging: propper comma was used\n");
 
                         /*second oeprand*/
-                        if ((char_type =
-                                     /*read_next_word(line, &position, word)*/
-                                     get_next_word(word, &word_ptr)) != -1) {
+                        if ((char_type = get_next_word(word, &word_ptr)) != -1) {
                             fprintf(stdout, "debugging: second operand is: %s\n", word);
                             operand_error = is_valid_operand(word, *macro_head);
                             if (operand_error == 1) {
@@ -443,9 +437,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                             break;
                         }
                         /* check for no extra operands */
-                        if ((char_type =
-                                     /*read_next_word(line, &position, word)*/
-                                     get_next_word(word, &word_ptr)) != -1) {
+                        if ((char_type = get_next_word(word, &word_ptr)) != -1) {
                             fprintf(stdout, "Error: line %d in %s.\n       "
                                             "Too many operands.\n",
                                     line_counter, filename);
@@ -464,8 +456,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                     case 12: /*prn*/
                     case 13: /*jsr*/
                         /*only destination operand*/
-                        if ((char_type = /*read_next_word(line, &position, word)*/
-                                     get_next_word(word, &word_ptr)) != -1) {
+                        if ((char_type = get_next_word(word, &word_ptr)) != -1) {
                             fprintf(stdout, "debugging: 1 operand needed, %s\n", word);
                             CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                             operand_error = is_valid_operand(word, *macro_head);
@@ -484,8 +475,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                             break;
                         }
                         /* check no extra operands: */
-                        if ((char_type = /*read_next_word(line, &position, word)*/
-                                     get_next_word(word, &word_ptr)) != -1) {
+                        if ((char_type = get_next_word(word, &word_ptr)) != -1) {
                             fprintf(stdout, "Error: line %d in %s.\n       "
                                             "Too many operands.\n",
                                     line_counter, filename);
@@ -498,8 +488,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                     case 14: /*rts*/
                     case 15: /*stop*/
                         /*check no extra operands:*/
-                        if ((char_type = /*read_next_word(line, &position, word)*/
-                                     get_next_word(word, &word_ptr)) != -1) {
+                        if ((char_type = get_next_word(word, &word_ptr)) != -1) {
                             fprintf(stdout, "Error: line %d in %s.\n       "
                                             "Too many operands.\n",
                                     line_counter, filename);
@@ -551,7 +540,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
         fprintf(stdout, "debugging: reached end of line %d\n", line_counter);
     } /* end of line loop */
     fprintf(stdout, "out of while loop, line is: '%s' \n", line);
-    end_phase_one_update_counter(*symbol_head, *ic);
+    phase_one_update_counter(*symbol_head, *ic);
 
     if (error_flag == 1)
         return -1;
@@ -566,7 +555,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
  * @return 0 on success, -1 on failure.
  */
 int init_command_word(command_ptr *head, command_ptr *ptr) {
-    command_ptr temp, new_node = (command_ptr) calloc(1, sizeof(command_word));
+    command_ptr temp, new_node = (command_ptr) calloc(1, sizeof(command_t));
 
     if (new_node == NULL) return -1;
 
@@ -591,11 +580,11 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
 
 /**
  * @brief Calculates the value of 'L' for a given command.
- * @param field pointer to the command_word struct
+ * @param field pointer to the command_t struct
  * @param cmnd the command code
  * @return the value of 'l' based on the command
  */
-int calc_l(command_word *field, int cmnd) {
+int calc_l(command_t *field, int cmnd) {
     if (cmnd == 14 || cmnd == 15) return 0; /*command without operands*/
         /* one operand or both operands are registers: 0100 or 1000*/
     else if ((cmnd >= 5 && cmnd <= 13)
@@ -609,12 +598,12 @@ int calc_l(command_word *field, int cmnd) {
 }
 
 /**
- * @brief Sets the opcode of a command_word.
- * @param field Pointer to a command_word.
+ * @brief Sets the opcode of a command_t.
+ * @param field Pointer to a command_t.
  * @param command The command afer is_valid_command, determine opcode from.
  * @return void
  */
-void set_command_opcode(command_word *field, int command) {
+void set_command_opcode(command_t *field, int command) {
     if (command == 0) field->opcode = 0x0;       /* mov */
     else if (command == 1) field->opcode = 0x1;  /* cmp */
     else if (command == 2) field->opcode = 0x2;  /* add */
@@ -634,13 +623,13 @@ void set_command_opcode(command_word *field, int command) {
 }
 
 /**
- * @brief Sets the addressing method in the command_word, used after is_valid_operand.
+ * @brief Sets the addressing method in the command_t, used after is_valid_operand.
  * @param operand The operand to be parsed, NULL if it is a command without operands.
- * @param field Pointer to the command_word struct.
+ * @param field Pointer to the command_t struct.
  * @param src_dest 1 if source, 2 if destination.
  * @return void
  */
-void set_addressing_method(char *operand, command_word *field, int src_dest) {
+void set_addressing_method(char *operand, command_ptr field, int src_dest) {
     if (src_dest == 1) { /* source operand */
         if (operand == NULL) field->src_addr = 0x0;
 
@@ -727,12 +716,12 @@ int is_valid_operand(char *word, macro_ptr macro_head) {
  *         -4 if register, -5 if doesn't start with a letter,
  *         -6 if isn't only letters and numbers, -7 if too long, 0 if valid
  */
-int is_valid_label(char *word, symbols_ptr symbol_head,
+int is_valid_label(char *word, symbol_ptr symbol_head,
                    macro_ptr macro_head) {
     int i = (int) strlen(word);
     char *registers[] = {"r0", "r1", "r2", "r3", "r4",
                          "r5", "r6", "r7"}; /* register names */
-    symbols_ptr current = symbol_head;
+    symbol_ptr current = symbol_head;
 
     /* remove colon */
     if (word[i - 1] == ':') word[i - 1] = '\0';
@@ -745,7 +734,8 @@ int is_valid_label(char *word, symbols_ptr symbol_head,
 
     /* is it an existing label */
     while (current != NULL) {
-        if (strcmp(word, current->name) == 0 && !strcmp("entry", current->type) == 0) {
+        if (strcmp(word, current->name) == 0
+            && strcmp("entry", current->type) != 0) {
             return -2;
         }
         current = current->next;
@@ -780,11 +770,11 @@ int is_valid_label(char *word, symbols_ptr symbol_head,
  * @param type The type of the symbol: external / entry / data / code
  * @return 0 on success, -1 on failure.
  */
-int add_symbol(symbols_ptr *head, char *name, int counter,
+int add_symbol(symbol_ptr *head, char *name, int counter,
                char *type) {
-    symbols_ptr temp, new_node = NULL; /* symbol nodes */
+    symbol_ptr temp, new_node = NULL; /* symbol nodes */
 
-    new_node = (symbols_ptr) calloc(1, sizeof(symbols_list));
+    new_node = (symbol_ptr) calloc(1, sizeof(symbol_t));
     if (new_node == NULL) return -1;
 
     as_strdup(&new_node->name, name);
@@ -811,8 +801,8 @@ int add_symbol(symbols_ptr *head, char *name, int counter,
  * @param ic ic counter
  * @return void
  */
-void end_phase_one_update_counter(symbols_ptr symbol_head, int ic) {
-    symbols_ptr temp = symbol_head;
+void phase_one_update_counter(symbol_ptr symbol_head, int ic) {
+    symbol_ptr temp = symbol_head;
 
     while (temp != NULL) {
         if (strcmp(temp->type, "data") == 0) temp->counter += ic + 100;
