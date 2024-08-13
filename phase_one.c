@@ -76,7 +76,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
               command_ptr *command_head, macro_ptr *macro_head) {
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0};            /* buffers */
     char *word_ptr, *label_temp_ptr = NULL;                       /* pointers */
-    int label_flag = 0, error_flag = 0, expect_comma, entry_flag, /* flags */
+    int label_flag = 0, error_flag = 0, expect_comma, /* flags */
     i, cmnd, word_type, data_tmp, commas, operand_error,
             line_counter = 0,                                              /* counters */
     char_type;                                                     /* -1 line end, 0 word, 1 comma */

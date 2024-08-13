@@ -56,7 +56,7 @@ int is_valid_command(char *command) {
 
     for (i = 0; i < 20; i++) {
         if (strcmp(command, valid[i]) == 0) {
-            return i-4;
+            return i - 4;
         }
     }
 
@@ -78,7 +78,7 @@ int read_next_line(FILE *file, char *line) {
             return 0;
         }
     }
-   
+
     return -1;  /*If we reach here, it means either EOF or an error occurred*/
 }
 
@@ -186,10 +186,6 @@ int get_next_word(char *word, char **word_ptr) {
 
     return 0;
 }
-
-
-
-
 
 /**
  * @brief returns the type of the word
