@@ -64,12 +64,12 @@ int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
 
     for (i = 100; i <= dc + 100; i++) {
         fprintf(ob_fd, "%04d %05o\n", current_var->counter+ic+101,
-                twos_complement(current_var->content));
+                current_var->content);
         current_var = current_var->next;
         if (current_var->next == NULL) break;
     }
 
-    if (current_var->next != NULL) return -1;
+    if (current_var->next != NULL) return -1; /* more variables than dc */
 
     return 0;
 }
@@ -131,30 +131,77 @@ int update_command_list(command_ptr current_cmd, char *word, char **word_ptr,
     int num;
     command_ptr src_node = NULL, dest_node = NULL;
 
-    src_node = (command_ptr) calloc(1, sizeof(command_t));
-    if (src_node == NULL) return -2;
+    dest_node = (command_ptr) calloc(1, sizeof(command_t));
+    if (dest_node == NULL) return -2;
 
-    /* insert src_node to the linked list */
-    src_node->next = current_cmd->next;
-    current_cmd->next = src_node;
+    /* insert dest_node to the linked list */
+    dest_node->next = current_cmd->next;
+    current_cmd->next = dest_node;
 
     /* both source and destination are registers */
     if ((current_cmd->src_addr == 0
-         || current_cmd->src_addr == 4
-         || current_cmd->src_addr == 8)
-                && (current_cmd->dest_addr == 0
-                    || current_cmd->dest_addr == 4
-                    || current_cmd->dest_addr == 8)) {
-        src_node->are = 4;
-        src_node->dest_addr = atoi(&word[strlen(word) - 1]);
+        || current_cmd->src_addr == 4
+        || current_cmd->src_addr == 8)
+        && (current_cmd->dest_addr == 0
+            || current_cmd->dest_addr == 4
+            || current_cmd->dest_addr == 8)) {
+        dest_node->are = 4;
+        dest_node->dest_addr = atoi(&word[strlen(word) - 1]);
         if (get_next_word(word, word_ptr) == -1) {
             fprintf(stdout, "Error: Failed to read from %s.\n", filename);
             return -1;
         }
-        src_node->dest_addr = src_node->dest_addr | (atoi(word) << 3);
-        src_node->src_addr = (atoi(&word[strlen(word) - 1]) >> 1);
+        dest_node->dest_addr = dest_node->dest_addr | (atoi(word) << 3);
+        dest_node->src_addr = (atoi(&word[strlen(word) - 1]) >> 1);
 
         return 0;
+    }
+
+    switch (current_cmd->dest_addr) {
+        case 1: /* immediate address */
+            dest_node->are = 4;
+            num = twos_complement(atoi(&word[1]));
+            dest_node->dest_addr = num;
+            dest_node->src_addr = (num >> 4);
+            dest_node->opcode = (num >> 8);
+            break;
+        case 2: /* direct address */
+            if ((num = is_symbol(word, symbol_head, dest_node, ext_fd,
+                                 ext_file, line_num)) == -1)
+                return -1;
+            dest_node->dest_addr = num;
+            dest_node->src_addr = (num >> 4);
+            dest_node->opcode = (num >> 8);
+            break;
+        case 4: /* indirect register address */
+        case 8: /* direct register address */
+            dest_node->are = 4;
+            dest_node->dest_addr = (atoi(&word[strlen(word) - 1]));
+            break;
+        default:
+            break;
+    }
+
+    if (current_cmd->l == 1) return 0;
+
+    src_node = (command_ptr) calloc(1, sizeof(command_t));
+    if (src_node == NULL) return -2;
+
+    /* insert src_node to the linked list */
+    dest_node->next = src_node->next;
+    src_node->next = dest_node;
+
+    switch (get_next_word(word, word_ptr)) {
+        case -1:
+            fprintf(stdout, "Error: Failed to read from %s.\n", filename);
+            return -1;
+        case 1: /* comma, read next word again */
+            if (get_next_word(word, word_ptr) == -1) {
+                fprintf(stdout, "Error: Failed to read from %s.\n", filename);
+                return -1;
+            }
+        default:
+            break;
     }
 
     switch (current_cmd->src_addr) {
@@ -178,51 +225,6 @@ int update_command_list(command_ptr current_cmd, char *word, char **word_ptr,
             src_node->are = 4;
             src_node->dest_addr = (atoi(&word[strlen(word) - 1]) << 3);
             src_node->src_addr = (atoi(&word[strlen(word) - 1]) >> 1);
-            break;
-        default:
-            break;
-    }
-
-    switch (get_next_word(word, word_ptr)) {
-        case -1:
-            fprintf(stdout, "Error: Failed to read from %s.\n", filename);
-            return -1;
-        case 1: /* comma, read next word again */
-            if (get_next_word(word, word_ptr) == -1) {
-                fprintf(stdout, "Error: Failed to read from %s.\n", filename);
-                return -1;
-            }
-        default:
-            break;
-    }
-
-    dest_node = (command_ptr) calloc(1, sizeof(command_t));
-    if (dest_node == NULL) return -2;
-
-    /* insert dest_node to the linked list */
-    dest_node->next = src_node->next;
-    src_node->next = dest_node;
-
-    switch (current_cmd->dest_addr) {
-        case 1: /* immediate address */
-            dest_node->are = 4;
-            num = twos_complement(atoi(&word[1]));
-            dest_node->dest_addr = num;
-            dest_node->src_addr = (num >> 4);
-            dest_node->opcode = (num >> 8);
-            break;
-        case 2: /* direct address */
-            if ((num = is_symbol(word, symbol_head, dest_node, ext_fd,
-                                 ext_file, line_num)) == -1)
-                return -1;
-            dest_node->dest_addr = num;
-            dest_node->src_addr = (num >> 4);
-            dest_node->opcode = (num >> 8);
-            break;
-        case 4: /* indirect register address */
-        case 8: /* direct register address */
-            dest_node->are = 4;
-            dest_node->dest_addr = (atoi(&word[strlen(word) - 1]));
             break;
         default:
             break;
@@ -295,7 +297,6 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
     while (read_next_line(am_fd, line) != -1
            && !feof(am_fd)
            && current_cmd->next != NULL) {
-        if (line_num != 0) current_cmd = current_cmd->next;
         line_num++;
         word_ptr = line;
         next_word_check
@@ -306,10 +307,10 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
 
         if ((strcmp(word, ".data") == 0)
             || (strcmp(word, ".string") == 0)) {
-            continue; /* skip */
+            continue; /* next line */
         } else if (strcmp(word, ".extern") == 0) {
             ext_flag = 1;
-            continue;
+            continue; /* next line */
         } else if (strcmp(word, ".entry") == 0) {
             ent_flag = 1;
             /* update labels in the symbol table */
@@ -319,10 +320,13 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
                                  filename, line_num) == -1) error_flag = 1;
             }
             if (error_flag) break;
-            continue;
+            else continue; /* next line */
         } else {
             ic += current_cmd->l + 1;
-            if (current_cmd->l == 0) continue;
+            if (current_cmd->l == 0) {
+                current_cmd = current_cmd->next;
+                continue; /* next line */
+            }
             next_word_check
             /* add new nodes to the command list */
             switch (update_command_list(current_cmd, word, &word_ptr,
@@ -339,6 +343,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
                     break;
             }
         }
+        current_cmd = current_cmd->next;
     }
 
     if ((ic + dc) != expected_ic) {

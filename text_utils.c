@@ -82,6 +82,48 @@ int read_next_line(FILE *file, char *line) {
     return -1;  /*If we reach here, it means either EOF or an error occurred*/
 }
 
+/**
+ * @brief reads the next part of the file - spaces or text
+ * @param fd the file pointer
+ * @param next_part pointer to writing the next part
+ * @return 0 if the function ran successfully, 1 if an error occurred,
+ *         -1 if the file ended
+ */
+int read_next_part(FILE *fd, char **next_part) {
+    int c, is_space; /* character, flag */
+    char *temp = NULL; /* temporary pointer */
+    size_t buffer = 0; /* buffer */
+
+    if (next_part == NULL || *next_part == NULL) return 1;
+
+    c = fgetc(fd);
+    if (c == EOF) return 1;
+
+    is_space = isspace(c) ? 1 : 0; /* normalize the result of is_space */
+
+    do {
+        if (buffer % 19 == 0) {
+            temp = (char *) realloc(*next_part, buffer + 21);
+            if (!temp) {
+                safe_free(*next_part)
+                fclose(fd);
+                allocation_failure
+            }
+            *next_part = temp;
+        }
+        (*next_part)[buffer++] = (char) c;
+
+        c = fgetc(fd);
+        if (c == EOF) break;
+    } while ((isspace(c) ? 1 : 0) == is_space);
+    (*next_part)[buffer] = '\0';
+
+    if (c != EOF) ungetc(c, fd);
+
+    if (feof(fd)) return -1;
+
+    return 0;
+}
 
 /**
  * @brief checks if the next character is a comma
@@ -89,7 +131,6 @@ int read_next_line(FILE *file, char *line) {
  * @param position the position in the command
  * @return amount of commas, 0 if there are no commas
  */
-
 int comma_checker(char **word_ptr) {
     char *p = *word_ptr;
     int commas = 0;
