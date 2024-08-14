@@ -2,8 +2,8 @@
 
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: multiple externs works well
-TODO: CHECK_UNEXPECTED_COMMA before operands in COMMAND case
+/*updates for commit: fixed CHECK_UNEXPECTED_COMMA before operands in COMMAND case
+TODO: 
 */
 
 #define phase_one_allocation_failure                                    \
@@ -368,8 +368,8 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                     case 3: /*sub*/
                     case 4: /*lea*/
                         /*first operand*/
-                        CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                         if ((char_type = get_next_word(word, &word_ptr)) != -1) {
+                            CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                             fprintf(stdout, "debugging: 2 operands needed, first is: '%s'\n", word);
                             operand_error = is_valid_operand(word, *macro_head);
                             if (operand_error == 1) {
