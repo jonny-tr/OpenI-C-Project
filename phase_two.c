@@ -78,7 +78,7 @@ int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
  * @param ext_fd a pointer to the external file
  * @param ext_file the name of the external file
  * @param line_num the line number of the command
- * @return the counter of the symbol, -1 if an error occurred
+ * @return symbol counter, -1 if not a symbol, -2 on allocation failure
  */
 int is_symbol(char *name, symbol_ptr symbols_head, command_ptr are,
               FILE **ext_fd, char *ext_file, const int line_num) {
@@ -94,7 +94,7 @@ int is_symbol(char *name, symbol_ptr symbols_head, command_ptr are,
                     if (*ext_fd == NULL) {
                         fprintf(stdout, "Error: Failed to open %s.\n",
                                 ext_file);
-                        return -1;
+                        return -2;
                     }
                 }
                 fprintf(*ext_fd, "%-4s %04d\n", current->name, line_num);
@@ -163,9 +163,12 @@ int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
             src_node->opcode = (num >> 8);
             break;
         case 2: /* direct address */
-            if ((num = is_symbol(word, symbol_head, src_node, ext_fd,
-                                 ext_file, line_num)) == -1)
+            num = is_symbol(word, symbol_head, src_node, ext_fd,
+                            ext_file, line_num);
+            if (num == -1) /* not a symbol */
                 return -1;
+            else if (num == -2)
+                return -2;
             src_node->dest_addr = num;
             src_node->src_addr = (num >> 4);
             src_node->opcode = (num >> 8);
@@ -208,9 +211,12 @@ int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
             dest_node->opcode = (num >> 8);
             break;
         case 2: /* direct address */
-            if ((num = is_symbol(word, symbol_head, dest_node, ext_fd,
-                                 ext_file, line_num)) == -1)
+            num = is_symbol(word, symbol_head, src_node, ext_fd,
+                            ext_file, line_num);
+            if (num == -1) /* not a symbol */
                 return -1;
+            else if (num == -2)
+                return -2;
             dest_node->dest_addr = num;
             dest_node->src_addr = (num >> 4);
             dest_node->opcode = (num >> 8);
@@ -281,6 +287,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
     ent_file = as_strcat(filename, ".ent");
 
     while (read_next_line(am_fd, line) != -1) {
+        if (error_flag) break;
         line_num++;
         word_ptr = line;
         next_word_check
@@ -303,8 +310,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
                                  am_file, line_num) == -1)
                     error_flag = 1;
             }
-            if (error_flag) break;
-            else continue; /* next line */
+            continue; /* next line */
         } else {
             ic += current_cmd->l + 1;
             if (current_cmd->l == 0) {
@@ -326,7 +332,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
                     break;
             }
         }
-    }
+    } /* finish next_line loop */
 
     if (ic != expected_ic) {
         fprintf(stdout, "Unknown error encountered during execution.\n        "
