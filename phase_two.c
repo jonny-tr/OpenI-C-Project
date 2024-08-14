@@ -78,7 +78,7 @@ int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
  * @param ext_fd a pointer to the external file
  * @param ext_file the name of the external file
  * @param line_num the line number of the command
- * @return the counter of the symbol, -1 if an error occurred
+ * @return symbol counter, -1 if not a symbol, -2 on allocation failure
  */
 int is_symbol(char *name, symbol_ptr symbols_head, command_ptr are,
               FILE **ext_fd, char *ext_file, const int line_num) {
@@ -94,10 +94,10 @@ int is_symbol(char *name, symbol_ptr symbols_head, command_ptr are,
                     if (*ext_fd == NULL) {
                         fprintf(stdout, "Error: Failed to open %s.\n",
                                 ext_file);
-                        return -1;
+                        return -2;
                     }
                 }
-                fprintf(*ext_fd, "%3s %04d\n", current->name, line_num);
+                fprintf(*ext_fd, "%-4s %04d\n", current->name, line_num);
                 are->are = 1;
             }
             return current->counter;
@@ -124,7 +124,7 @@ int is_symbol(char *name, symbol_ptr symbols_head, command_ptr are,
 int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
                         char *filename, symbol_ptr symbol_head,
                         FILE **ext_fd, char *ext_file, const int line_num) {
-    int num;
+    int num, address_flag; /* counter and flag */
     command_ptr src_node = NULL, dest_node = NULL;
 
     src_node = (command_ptr) calloc(1, sizeof(command_t));
@@ -151,7 +151,10 @@ int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
         return 0;
     }
 
-    switch ((*current_cmd)->src_addr) {
+    if ((*current_cmd)->l == 1) address_flag = (*current_cmd)->dest_addr;
+    else address_flag = (*current_cmd)->src_addr;
+
+    switch (address_flag) {
         case 1: /* immediate address */
             src_node->are = 4;
             num = twos_complement(atoi(&word[1]));
@@ -160,9 +163,12 @@ int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
             src_node->opcode = (num >> 8);
             break;
         case 2: /* direct address */
-            if ((num = is_symbol(word, symbol_head, src_node, ext_fd,
-                                 ext_file, line_num)) == -1)
+            num = is_symbol(word, symbol_head, src_node, ext_fd,
+                            ext_file, line_num);
+            if (num == -1) /* not a symbol */
                 return -1;
+            else if (num == -2)
+                return -2;
             src_node->dest_addr = num;
             src_node->src_addr = (num >> 4);
             src_node->opcode = (num >> 8);
@@ -205,9 +211,12 @@ int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
             dest_node->opcode = (num >> 8);
             break;
         case 2: /* direct address */
-            if ((num = is_symbol(word, symbol_head, dest_node, ext_fd,
-                                 ext_file, line_num)) == -1)
+            num = is_symbol(word, symbol_head, src_node, ext_fd,
+                            ext_file, line_num);
+            if (num == -1) /* not a symbol */
                 return -1;
+            else if (num == -2)
+                return -2;
             dest_node->dest_addr = num;
             dest_node->src_addr = (num >> 4);
             dest_node->opcode = (num >> 8);
@@ -262,32 +271,23 @@ int update_entry(symbol_ptr symbol_head, char *word, char *filename,
 int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
               variable_ptr variable_head, command_ptr command_head,
               int expected_ic, int dc) {
-    char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0}, *filename_no_ext = NULL,
-            *ob_file = NULL, *ext_file = NULL, *ent_file = NULL, *word_ptr = NULL;
-    /* strings and filenames */
+    char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0}, *am_file,
+        *ob_file = NULL, *ext_file = NULL, *ent_file = NULL, *word_ptr = NULL;
+        /* strings and filenames */
     int line_num = 0, ic = 0, error_flag = 0, allocation_flag = 0, word_flag,
-            ent_flag = 0, ext_flag = 0;                     /* counters and flags */
-    size_t filename_len = strlen(filename);             /* length of filename */
+            ent_flag = 0;                     /* counters and flags */
     FILE *ob_fd = NULL, *ext_fd = NULL, *ent_fd = NULL; /* file pointers */
     command_ptr current_cmd = command_head;             /* command pointer */
 
     fprintf(stdout, "\ndebugging: Starting phase two.\n");
-    if (filename_len >= 3) {
-        filename_no_ext = (char *) calloc(1, filename_len + 1);
-        if (filename_no_ext == NULL) {
-            allocation_flag = 1;
-            error_flag = 1;
-            goto cleanup;
-        }
-        strncpy(filename_no_ext, filename, filename_len - 3);
-        filename_no_ext[filename_len - 3] = '\0';
-    }
 
-    ob_file = as_strcat(filename_no_ext, ".ob");
-    ext_file = as_strcat(filename_no_ext, ".ext");
-    ent_file = as_strcat(filename_no_ext, ".ent");
+    am_file = as_strcat(filename, ".am");
+    ob_file = as_strcat(filename, ".ob");
+    ext_file = as_strcat(filename, ".ext");
+    ent_file = as_strcat(filename, ".ent");
 
     while (read_next_line(am_fd, line) != -1) {
+        if (error_flag) break;
         line_num++;
         word_ptr = line;
         next_word_check
@@ -300,7 +300,6 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
         if ((strcmp(word, ".data") == 0) || (strcmp(word, ".string") == 0)) {
             continue; /* next line */
         } else if (strcmp(word, ".extern") == 0) {
-            ext_flag = 1;
             continue; /* next line */
         } else if (strcmp(word, ".entry") == 0) {
             ent_flag = 1;
@@ -308,21 +307,19 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
             while ((word_flag = get_next_word(word, &word_ptr)) != -1) {
                 if (word_flag == 1) continue; /* skip comma */
                 if (update_entry(symbol_head, word,
-                                 filename, line_num) == -1)
+                                 am_file, line_num) == -1)
                     error_flag = 1;
             }
-            if (error_flag) break;
-            else continue; /* next line */
+            continue; /* next line */
         } else {
             ic += current_cmd->l + 1;
             if (current_cmd->l == 0) {
-                /*current_cmd = current_cmd->next;*/
                 continue; /* next line */
             }
             next_word_check
             /* add new nodes to the command list */
             switch (update_command_list(&current_cmd, word, &word_ptr,
-                                        filename, symbol_head, &ext_fd,
+                                        am_file, symbol_head, &ext_fd,
                                         ext_file, line_num)) {
                 case -1:
                     error_flag = 1;
@@ -335,12 +332,12 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
                     break;
             }
         }
-    }
+    } /* finish next_line loop */
 
     if (ic != expected_ic) {
         fprintf(stdout, "Unknown error encountered during execution.\n        "
                         "Review file %s.\n",
-                filename);
+                am_file);
         error_flag = 1;
     }
 
@@ -349,8 +346,8 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
 
         if (ob_fd == NULL) {
             fprintf(stdout, "Error: Could not create an output file "
-                            "%s.ob.\n",
-                    filename_no_ext);
+                            "%s.\n",
+                    ob_file);
             error_flag = 1;
             goto cleanup;
         }
@@ -361,24 +358,12 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
             ent_fd = fopen(ent_file, "w");
             if (ent_fd == NULL) {
                 fprintf(stdout, "Error: Could not create an entry file "
-                                "%s.ent.\n",
-                        filename_no_ext);
+                                "%s.\n",
+                        ent_file);
                 error_flag = 1;
                 goto cleanup;
             }
             build_ent(ent_fd, symbol_head);
-        }
-
-        if (ext_flag) {
-            ext_fd = fopen(ext_file, "w");
-            if (ext_fd == NULL) {
-                fprintf(stdout, "Error: Could not create an external file "
-                                "%s.ext.\n",
-                        filename_no_ext);
-                error_flag = 1;
-                goto cleanup;
-            }
-            build_ext(ext_fd, symbol_head);
         }
     }
 
@@ -390,7 +375,6 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
     if (ent_fd != NULL)
         fclose(ent_fd);
 
-    safe_free(filename_no_ext)
     safe_free(ob_file)
     safe_free(ext_file)
     safe_free(ent_file)

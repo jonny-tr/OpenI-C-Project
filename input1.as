@@ -13,7 +13,7 @@ endmacr
  sub r1, r4
  m_macr
  add r7,*r6
- clr k
+ clr K
  sub L3,L3
  .entry MAIN
  jmp LOOP
