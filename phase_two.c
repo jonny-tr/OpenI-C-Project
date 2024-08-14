@@ -48,32 +48,25 @@ int build_ext(FILE *ext_fd, symbol_ptr symbol_head) {
  */
 int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
              int ic, int dc) {
-    int i;                                    /* counter */
+    int i = 100;                                    /* counter */
     command_ptr current_cmd = command_head;   /* current command */
     variable_ptr current_var = variable_head; /* current variable */
 
     fprintf(ob_fd, "%4d %d\n", ic, dc);
 
-    for (i = 100; i <= ic + 100; i++) {
+    while (current_cmd != NULL) {
         fprintf(ob_fd, "%04d %05o\n", i, command_to_num(current_cmd));
         current_cmd = current_cmd->next;
-        if (current_cmd->next == NULL)
-            break;
+        i++;
     }
 
-    if (current_cmd->next != NULL)
-        return -1;
+    fprintf(ob_fd, "DC\n"); /* TODO delete this */
 
-    for (i = 100; i <= dc + 100; i++) {
-        fprintf(ob_fd, "%04d %05o\n", current_var->counter + ic + 101,
-                current_var->content);
+    while (current_var != NULL) {
+        fprintf(ob_fd, "%04d %05o\n", i, current_var->content);
         current_var = current_var->next;
-        if (current_var->next == NULL)
-            break;
+        i++;
     }
-
-    if (current_var->next != NULL)
-        return -1; /* more variables than dc */
 
     return 0;
 }
@@ -255,6 +248,7 @@ int update_entry(symbol_ptr symbol_head, char *word, char *filename,
     fprintf(stdout, "Error: line %d in %s.\n       "
                     "Symbol %s, defined as entry, not found.\n",
             line_num, filename, word);
+
     return -1;
 }
 
@@ -274,7 +268,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
             *ob_file = NULL, *ext_file = NULL, *ent_file = NULL, *word_ptr = NULL;
     /* strings and filenames */
     int line_num = 0, ic = 0, error_flag = 0, allocation_flag = 0, word_flag,
-            ent_flag = 0, ext_flag = 0, i;                     /* counters and flags */
+            ent_flag = 0, ext_flag = 0;                     /* counters and flags */
     size_t filename_len = strlen(filename);             /* length of filename */
     FILE *ob_fd = NULL, *ext_fd = NULL, *ent_fd = NULL; /* file pointers */
     command_ptr current_cmd = command_head;             /* command pointer */
@@ -295,45 +289,32 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
     ext_file = as_strcat(filename_no_ext, ".ext");
     ent_file = as_strcat(filename_no_ext, ".ent");
 
-    safe_free(filename_no_ext)
-
-    while (read_next_line(am_fd, line) != -1 && !feof(am_fd) && current_cmd->next != NULL) {
+    while (read_next_line(am_fd, line) != -1) {
         line_num++;
         word_ptr = line;
         next_word_check
-        fprintf(stdout, "\ndebugging: line number %d, line is: %s", line_num, line);
+        fprintf(stdout, "debugging: line number %d, line is: %s\n", line_num, line);
 
         if (word[strlen(word) - 1] == ':') {
             next_word_check
-            fprintf(stdout, "debugging: skipping label: '%s'\n", word);
         } /* skip label */
 
-        if ((strcmp(word, ".data") == 0)
-            || (strcmp(word, ".string") == 0)) {
-                fprintf(stdout, "debugging: skipping line %d, .data or .string\n", line_num);
+        if ((strcmp(word, ".data") == 0) || (strcmp(word, ".string") == 0)) {
             continue; /* next line */
         } else if (strcmp(word, ".extern") == 0) {
             ext_flag = 1;
-            fprintf(stdout, "debugging: skipping line %d, is .extern, extern_flag = 1\n", line_num);
             continue; /* next line */
         } else if (strcmp(word, ".entry") == 0) {
             ent_flag = 1;
                         /* update labels in the symbol table */
             while ((word_flag = get_next_word(word, &word_ptr)) != -1) {
-                if (word_flag == 1)
-                    continue; /* skip comma */
+                if (word_flag == 1) continue; /* skip comma */
                 if (update_entry(symbol_head, word,
                                  filename, line_num) == -1)
                     error_flag = 1;
             }
-            if (error_flag) {
-                fprintf(stdout, "debugging: error updating entry '%s'\n", word);
-                break;
-            }
-            else{  
-                fprintf(stdout, "debugging: line %d, '%s', is .entry, updating table\n", line_num, word);
-                continue; /* next line */
-            }
+            if (error_flag) break;
+            else continue; /* next line */
         } else {
             ic += current_cmd->l + 1;
             if (current_cmd->l == 0) {
@@ -358,36 +339,32 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
         }
     }
 
-    if ((ic + dc) != expected_ic) {
+    if (ic != expected_ic) {
         fprintf(stdout, "Unknown error encountered during execution.\n        "
                         "Review file %s.\n",
                 filename);
-        /*error_flag = 1;*/
+        error_flag = 1;
     }
 
     if (error_flag == 0) {
         ob_fd = fopen(ob_file, "w");
 
         if (ob_fd == NULL) {
-            fprintf(stdout, "Error: Could not create an output file for "
-                            "%s.\n",
-                    filename);
+            fprintf(stdout, "Error: Could not create an output file "
+                            "%s.ob.\n",
+                    filename_no_ext);
             error_flag = 1;
             goto cleanup;
         }
 
-        if (build_ob(ob_fd, command_head, variable_head, expected_ic, dc) == -1) {
-            error_flag = 1;
-            allocation_flag = 1;
-            goto cleanup;
-        }
+        build_ob(ob_fd, command_head, variable_head,expected_ic, dc);
 
         if (ent_flag) {
             ent_fd = fopen(ent_file, "w");
             if (ent_fd == NULL) {
-                fprintf(stdout, "Error: Could not create an entry file for "
-                                "%s.\n",
-                        filename);
+                fprintf(stdout, "Error: Could not create an entry file "
+                                "%s.ent.\n",
+                        filename_no_ext);
                 error_flag = 1;
                 goto cleanup;
             }
@@ -397,9 +374,9 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
         if (ext_flag) {
             ext_fd = fopen(ext_file, "w");
             if (ext_fd == NULL) {
-                fprintf(stdout, "Error: Could not create an external file for "
-                                "%s.\n",
-                        filename);
+                fprintf(stdout, "Error: Could not create an external file "
+                                "%s.ext.\n",
+                        filename_no_ext);
                 error_flag = 1;
                 goto cleanup;
             }
@@ -415,6 +392,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
     if (ent_fd != NULL)
         fclose(ent_fd);
 
+    safe_free(filename_no_ext)
     safe_free(ob_file)
     safe_free(ext_file)
     safe_free(ent_file)
