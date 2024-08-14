@@ -12,8 +12,7 @@ check max line number?*/
     exit(EXIT_FAILURE);
 
 #define CHECK_UNEXPECTED_COMMA(char_type, error_flag)    \
-    if ((char_type) == 1)                                \
-    {                                                    \
+    if ((char_type) == 1) {                              \
         fprintf(stdout, "Error: line %d in %s.\n       " \
                         "Unexpected comma.\n",           \
                 line_counter, filename);                 \
@@ -22,8 +21,7 @@ check max line number?*/
     }
 
 #define PRINT_OPERAND_ERROR(error_code)                                               \
-    switch (error_code)                                                               \
-    {                                                                                 \
+    switch (error_code) {                                                             \
     case -1:                                                                          \
         fprintf(stdout, "Error: line %d in %s.\n       "                              \
                         "A command cannot be used as an operand.\n",                  \
@@ -77,8 +75,8 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0};            /* buffers */
     char *word_ptr, *label_temp_ptr = NULL;                       /* pointers */
     int label_flag = 0, error_flag = 0, expect_comma, /* flags */
-        i, cmnd, word_type, data_tmp, commas, operand_error,
-        line_counter = 0, /* counters */
+    i, cmnd, word_type, data_tmp, commas, operand_error,
+            line_counter = 0, /* counters */
     char_type; /* -1 line end, 0 word, 1 comma */
     command_ptr new_field = (command_ptr) calloc(1, sizeof(command_t)); /* command */
 
@@ -549,7 +547,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
         error_flag = 1;
     }
 
-    if (error_flag == 1){
+    if (error_flag == 1) {
         fprintf(stdout, "debugging: Finished phase one with errors.\n");
         return -1;
     }
