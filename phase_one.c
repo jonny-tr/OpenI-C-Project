@@ -197,7 +197,6 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                 line_counter, filename);
                         fprintf(stdout, "debugging: expect_comma: %d, commas: %d\n", expect_comma, commas);
                         error_flag = 1;
-                        char_type = -1;
                         break;
                     }
                     fprintf(stdout, "debugging: data is: %s\n", word);
@@ -230,7 +229,6 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                         "Too many commas.\n",
                                 line_counter, filename);
                         error_flag = 1;
-                        char_type = -1;
                         break;
                     }
                 }
@@ -322,31 +320,10 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 } /*end EXTERN case while*/
                 break;
 
-            case ENTRY: /*double check we don't need this before deleting*/
-                /*if (get_next_word(word, &word_ptr) == 0) {
-                    if ((entry_flag =
-                                 is_valid_label(word, *symbol_head, *macro_head)) == 0) {
-                        if (add_symbol(symbol_head, word, *ic + 100,
-                                       "entry") == -1) {
-                            phase_one_allocation_failure
-                        }
-                        fprintf(stdout, "debugging: entry '%s' added with ic: %d\n", word, *ic);
-                    } else if (entry_flag != -2) {
-                        fprintf(stdout, "Error: line %d in %s.\n       "
-                                        "Invalid label for Entry.\n",
-                                line_counter, filename);
-                        error_flag = 1;
-                    }
-                } else {
-                    fprintf(stdout, "Error: line %d in %s.\n       "
-                                    "Missing label for .entry "
-                                    "command.\n",
-                            line_counter, filename);
-                    error_flag = 1;
-                }*/
+            case ENTRY:
                 break;
 
-            case OPERAND: /*shouldnt exist, its an error if there is an operand*/
+            case OPERAND: /* error */
                 fprintf(stdout, "debugging: CASE OPERAND: %s\n", word);
                 fprintf(stdout, "line is: %s\n", line);
                 break;

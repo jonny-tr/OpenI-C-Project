@@ -20,25 +20,6 @@ int build_ent(FILE *ent_fd, symbol_ptr symbol_head) {
 }
 
 /**
- * @brief builds the ext file
- * @param ext_fd a pointer to the ext file
- * @param symbol_head a pointer to the symbol table
- * @return 0
- */
-int build_ext(FILE *ext_fd, symbol_ptr symbol_head) {
-    symbol_ptr current = symbol_head;
-
-    while (current != NULL) {
-        if (strcmp(current->type, "extenal") == 0) {
-            fprintf(ext_fd, "%s %d\n", current->name, current->counter);
-        }
-        current = current->next;
-    }
-
-    return 0;
-}
-
-/**
  * @brief builds the object file
  * @param ob_fd pointer to the object file
  * @param command_word pointer to the command list
@@ -279,8 +260,6 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
     FILE *ob_fd = NULL, *ext_fd = NULL, *ent_fd = NULL; /* file pointers */
     command_ptr current_cmd = command_head;             /* command pointer */
 
-    fprintf(stdout, "\ndebugging: Starting phase two.\n");
-
     am_file = as_strcat(filename, ".am");
     ob_file = as_strcat(filename, ".ob");
     ext_file = as_strcat(filename, ".ext");
@@ -297,9 +276,9 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
             next_word_check
         } /* skip label */
 
-        if ((strcmp(word, ".data") == 0) || (strcmp(word, ".string") == 0)) {
-            continue; /* next line */
-        } else if (strcmp(word, ".extern") == 0) {
+        if ((strcmp(word, ".data") == 0)
+            || (strcmp(word, ".string") == 0)
+            || (strcmp(word, ".extern") == 0)) {
             continue; /* next line */
         } else if (strcmp(word, ".entry") == 0) {
             ent_flag = 1;
