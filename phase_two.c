@@ -60,8 +60,6 @@ int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
         i++;
     }
 
-    fprintf(ob_fd, "DC\n"); /* TODO delete this */
-
     while (current_var != NULL) {
         fprintf(ob_fd, "%04d %05o\n", i, current_var->content);
         current_var = current_var->next;
