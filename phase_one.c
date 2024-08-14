@@ -2,7 +2,7 @@
 
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: fixed read_next_line to handle ; with whitespace
+/*updates for commit: is_valid_addressing_method, debugging, 
 TODO: 
 */
 
@@ -157,10 +157,10 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                     fprintf(stdout, "debugging: Label: '%s' added to label_tmp\n", label_temp_ptr);
                     char_type = get_next_word(word, &word_ptr);
                     if (char_type == -1) {
-                        fprintf(stdout, "Error: line %d in %s.\n       "
-                                        "Missing command after label.\n",
-                                line_counter, filename);
                         label_flag = 0;
+                        error_flag = 1;
+                        word_type = -3;
+                        break;
                     }
                     CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                     word_type = get_word_type(word);
@@ -385,9 +385,16 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                         /*check for propper commas*/
                         if (comma_checker(&word_ptr) != 1) {
                             error_flag = 1;
+                            if ((char_type = get_next_word(word, &word_ptr)) == -1) {
+                                fprintf(stdout, "Error: line %d in %s.\n       "
+                                                "Missing destination operand.\n",
+                                    line_counter, filename);
+                            }
+                            else {
                             fprintf(stdout, "Error: line %d in %s.\n       "
                                             "Invalid comma use.\n",
                                     line_counter, filename);
+                            }
                             break;
                         }
                         fprintf(stdout, "debugging: propper comma was used\n");
@@ -495,6 +502,12 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                         line_counter, filename);
                 error_flag = 1;
                 break;
+            
+            case -3: /*No code after label*/
+                fprintf(stdout, "Error: line %d in %s.\n       "
+                                "Missing code after label.\n",
+                                line_counter, filename);
+                break;
 
             default:
                 fprintf(stdout, "Word Type: unknown error: line %d in %s.\n",
@@ -511,6 +524,11 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
             fprintf(stdout, "debugging: l is: %d\n", new_field->l);
             *ic += new_field->l + 1;
             fprintf(stdout, "debugging: ic updated to: %d\n", *ic);
+            if(is_valid_addressing_method(new_field) == -1) {
+                fprintf(stdout, "Error: line %d in %s.\n       "
+                                "Operand type not allowed for this command.\n",
+                                line_counter, filename);
+            }
         }
         fprintf(stdout, "debugging: reached end of line %d\n", line_counter);
     } /* end of line loop */
@@ -625,6 +643,70 @@ void set_command_opcode(command_t *field, int command) {
 }
 
 /**
+ * @brief Checks if the addressing method in the given command is valid.
+ * 
+ * This function takes a command pointer as input and checks if the addressing method 
+ * specified in the command is valid based on the opcode and addressing modes.
+ * 
+ * @param command A pointer to the command structure to be checked.
+ * @return 1 if the addressing method is valid, -1 otherwise.
+ */
+int is_valid_addressing_method(command_ptr command) {
+    switch(command->opcode){
+        case 0x1: /* cmp */
+        case 0xE: /* rts */
+        case 0xF: /* stop */
+            return 1;
+        case 0x0: /* mov */
+        case 0x2: /* add */
+        case 0x3: /* sub */
+            if(command->dest_addr == 0x1){
+                return -1;
+            }
+            return 1;
+        case 0x4: /* lea */
+            if(command->dest_addr == 0x1){
+                return -1;
+            }
+            if(command->src_addr != 0x2){
+                return -1; 
+            }
+            return 1;
+        case 0x5: /* clr */
+        case 0x6: /* not */
+        case 0x7: /* inc */
+        case 0x8: /* dec */
+        case 0xB: /* red */
+            if(command->src_addr != 0x0){
+                return -1;
+            }
+            if(command->dest_addr == 0x1){
+                return -1;
+            }
+            return 1;
+        case 0x9: /* jmp */
+        case 0xA: /* bne */
+        case 0xD: /* jsr */
+            if(command->src_addr != 0x0){
+                fprintf(stdout, "debugging: src_addr is %d, can only be 0.\n", command->src_addr);
+                return -1;
+            }
+            if(command->dest_addr != 0x2 ||
+               command->dest_addr != 0x4){
+                fprintf(stdout, "debugging: dest_addr is %d, can only be 2 or 4.\n", command->dest_addr);
+                return -1;
+            }
+            return 1;
+        case 0xC: /* prn */
+            if(command->src_addr != 0x0){
+                return -1;
+            }
+            return 1;
+        default:
+            return -1;
+    }
+}
+/**
  * @brief Sets the addressing method in the command_t, used after is_valid_operand.
  * @param operand The operand to be parsed, NULL if it is a command without operands.
  * @param command Pointer to the command_t struct.
@@ -690,17 +772,21 @@ int is_valid_operand(char *word, macro_ptr macro_head) {
     int i;
 
     if (is_valid_command(word) != -1) {
+        fprintf(stdout, "debugging: invalid operand, '%s' is a command\n", word);
         return -1; /*it is a command*/
     } else if (word[0] == '#') { /*needs to be a number constant*/
         /* Check for optional +- */
+        fprintf(stdout, "debugging: operand is '%s', word[0] is '#'\n", word);
         i = 1;
         if (word[1] == '-' || word[1] == '+')
             i = 2;
         for (; word[i] != '\0'; i++)
             if (!isdigit(word[i])) {
+                fprintf(stdout, "debugging: error, word[i] is '%c', not a number\n", word[i]);
                 return -2;
             }
-        if (i == 2 && !isdigit(word[2])) {
+        if (i == 2 && !isdigit(word[1])) {
+            fprintf(stdout, "debugging: error, word[2] is '%c', not a number\n", word[2]);
             return -2;
         }
     } else if (word[0] == '*') { /*needs to be a valid register*/

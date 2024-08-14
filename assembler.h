@@ -112,6 +112,7 @@ int add_symbol(symbol_ptr *head, char *name, int counter, char *type);
 int add_variable(variable_ptr *head, int content, int counter);
 int init_command_word(command_ptr *head, command_ptr *ptr);
 void set_command_opcode(command_t *field, int command);
+int is_valid_addressing_method(command_ptr command);
 void set_addressing_method(char *operand, command_ptr command, int src_dest);
 int calc_l(command_ptr command, int cmnd);
 void phase_one_update_counter(symbol_ptr symbol_head, int ic);
