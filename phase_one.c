@@ -688,12 +688,10 @@ int is_valid_addressing_method(command_ptr command) {
         case 0xA: /* bne */
         case 0xD: /* jsr */
             if(command->src_addr != 0x0){
-                fprintf(stdout, "debugging: src_addr is %d, can only be 0.\n", command->src_addr);
                 return -1;
             }
-            if(command->dest_addr != 0x2 ||
+            if(command->dest_addr != 0x2 &&
                command->dest_addr != 0x4){
-                fprintf(stdout, "debugging: dest_addr is %d, can only be 2 or 4.\n", command->dest_addr);
                 return -1;
             }
             return 1;
