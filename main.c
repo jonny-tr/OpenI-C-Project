@@ -40,7 +40,7 @@ int main(int argc, char *argv[]) {
         }
 
         rewind(am_fd);
-        phase_two(am_fd, am_filename, symbol_head, variable_head, command_head,
+        phase_two(am_fd, argv[i], symbol_head, variable_head, command_head,
                 *ic, *dc);
 
         cleanup:
