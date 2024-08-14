@@ -197,7 +197,6 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                 line_counter, filename);
                         fprintf(stdout, "debugging: expect_comma: %d, commas: %d\n", expect_comma, commas);
                         error_flag = 1;
-                        char_type = -1;
                         break;
                     }
                     fprintf(stdout, "debugging: data is: %s\n", word);
@@ -230,7 +229,6 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                         "Too many commas.\n",
                                 line_counter, filename);
                         error_flag = 1;
-                        char_type = -1;
                         break;
                     }
                 }
@@ -325,7 +323,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
             case ENTRY:
                 break;
 
-            case OPERAND: /*shouldnt exist, its an error if there is an operand*/
+            case OPERAND: /* error */
                 fprintf(stdout, "debugging: CASE OPERAND: %s\n", word);
                 fprintf(stdout, "line is: %s\n", line);
                 break;
