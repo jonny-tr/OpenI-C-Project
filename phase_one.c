@@ -12,8 +12,7 @@ check max line number?*/
     exit(EXIT_FAILURE);
 
 #define CHECK_UNEXPECTED_COMMA(char_type, error_flag)    \
-    if ((char_type) == 1)                                \
-    {                                                    \
+    if ((char_type) == 1) {                              \
         fprintf(stdout, "Error: line %d in %s.\n       " \
                         "Unexpected comma.\n",           \
                 line_counter, filename);                 \
@@ -22,8 +21,7 @@ check max line number?*/
     }
 
 #define PRINT_OPERAND_ERROR(error_code)                                               \
-    switch (error_code)                                                               \
-    {                                                                                 \
+    switch (error_code) {                                                             \
     case -1:                                                                          \
         fprintf(stdout, "Error: line %d in %s.\n       "                              \
                         "A command cannot be used as an operand.\n",                  \
@@ -63,8 +61,8 @@ check max line number?*/
  * @brief phase_one does the first pass on the file
  *         and builds the symbold and variables tables
  * @param am_fd pointer to the .am file
- * @param ic needs to be 0
- * @param dc needs to be 0
+ * @param ic instruction counter
+ * @param dc data counter
  * @param symbol_head the symbol table
  * @param variable_head the variable table
  * @param command_head the head of the command list
@@ -77,13 +75,13 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0};            /* buffers */
     char *word_ptr, *label_temp_ptr = NULL;                       /* pointers */
     int label_flag = 0, error_flag = 0, expect_comma, /* flags */
-        i, cmnd, word_type, data_tmp, commas, operand_error,
-        line_counter = 0, /* counters */
+    i, cmnd, word_type, data_tmp, commas, operand_error,
+            line_counter = 0, /* counters */
     char_type; /* -1 line end, 0 word, 1 comma */
     command_ptr new_field = (command_ptr) calloc(1, sizeof(command_t)); /* command */
 
     if (new_field == NULL) {
-        phase_one_allocation_failure;
+        phase_one_allocation_failure
     }
 
     while (read_next_line(am_fd, line) != -1) {
@@ -218,7 +216,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
 
                     if (add_variable(variable_head,
                                      twos_complement(data_tmp), *dc) == -1) {
-                        phase_one_allocation_failure;
+                        phase_one_allocation_failure
                     } else { /* valid data */
                         (*dc)++;
                         fprintf(stdout, "debugging: data %d added to list with dc: %d\n", data_tmp, *dc - 1);
@@ -315,7 +313,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                     } else {
                         if (add_symbol(symbol_head, word, INVALID_INT,
                                        "external") == -1) {
-                            phase_one_allocation_failure;
+                            phase_one_allocation_failure
                         } else {
                             fprintf(stdout, "debugging: extern '%s' added\n", word);
                         }
@@ -371,7 +369,6 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                    "code") == -1) {
                         phase_one_allocation_failure
                     }
-                    (*ic)++;
                     fprintf(stdout, "debugging: ic updated to: %d\n", *ic);
                     fprintf(stdout, "debugging: added label '%s' to list\n", label_temp_ptr);
                 }
@@ -535,7 +532,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
         if (word_type == COMMAND) { /* reached end of line */
             new_field->l = calc_l(new_field, cmnd);
             fprintf(stdout, "debugging: l is: %d\n", new_field->l);
-            *ic += new_field->l;
+            *ic += new_field->l + 1;
             fprintf(stdout, "debugging: ic updated to: %d\n", *ic);
         }
         fprintf(stdout, "debugging: reached end of line %d\n", line_counter);
@@ -549,7 +546,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
         error_flag = 1;
     }
 
-    if (error_flag == 1){
+    if (error_flag == 1) {
         fprintf(stdout, "debugging: Finished phase one with errors.\n");
         return -1;
     }
@@ -591,7 +588,7 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
 }
 
 /**
- * @brief Calculates the value of 'L' for a given command.
+ * @brief Calculates the 'L' value (additional words in memory) for a command.
  * @param command pointer to the command_t struct
  * @param cmnd the command code
  * @return the value of 'l' based on the command
@@ -768,11 +765,11 @@ int is_valid_label(char *word, symbol_ptr symbol_head,
     if (word[i - 1] == ':')
         word[i - 1] = '\0';
 
-    /*is it too long*/
+    /* is it too long */
     if (i > MAX_LABEL_LENGTH)
         return -7;
 
-    /*is it a command*/
+    /* is it a command */
     if (is_valid_command(word) != -1)
         return -1;
 
@@ -784,17 +781,17 @@ int is_valid_label(char *word, symbol_ptr symbol_head,
         current = current->next;
     }
 
-    /*is it a macro*/
+    /* is it a macro */
     if (is_macro_name_valid(word, macro_head) == 2)
         return -3;
 
-    /*is it a register*/
+    /* is it a register */
     for (i = 0; i < 8; i++) {
         if (strcmp(word, registers[i]) == 0)
             return -4;
     }
 
-    /*does it start with a non-alpha character*/
+    /* does it start with a non-alpha character */
     if (isalpha(word[0]) == 0)
         return -5;
 
@@ -805,7 +802,7 @@ int is_valid_label(char *word, symbol_ptr symbol_head,
         }
     }
 
-    return 0; /*valid*/
+    return 0; /* valid */
 }
 
 /**
@@ -863,10 +860,10 @@ void phase_one_update_counter(symbol_ptr symbol_head, int ic) {
  * @param head A pointer to the head of the variable linked list.
  * @param content The content of the variable.
  * @param counter DC counter
- * @return 0 on success, -1 on failure.
+ * @return 0 on success, -1 on allocation failure.
  */
 int add_variable(variable_ptr *head, int content, int counter) {
-    variable_ptr new_node = (variable_ptr) calloc(1, sizeof(variable_ptr));
+    variable_ptr temp, new_node = (variable_ptr) calloc(1, sizeof(variable_ptr));
 
     if (new_node == NULL)
         return -1;
@@ -878,11 +875,12 @@ int add_variable(variable_ptr *head, int content, int counter) {
     if (*head == NULL) { /* initialize the list */
         *head = new_node;
     } else {
-        variable_ptr temp = *head;
+        temp = *head;
         while (temp->next != NULL)
             temp = temp->next;
         temp->next = new_node;
     }
+
     return 0;
 }
 

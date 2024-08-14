@@ -79,7 +79,7 @@ int read_next_line(FILE *file, char *line) {
         }
     }
 
-    return -1;  /*If we reach here, it means either EOF or an error occurred*/
+    return -1;  /* EOF */
 }
 
 /**
@@ -235,6 +235,8 @@ int command_to_num(command_ptr cmd) {
  */
 int twos_complement(int num) {
     int mask = 0x7FFF; /* 15 bits mask */
+
+    if (num >= 0) return num;
 
     return (~num + 1) | (~mask);
 }
