@@ -71,10 +71,18 @@ int is_valid_command(char *command) {
  */
 int read_next_line(FILE *file, char *line) {
     char buffer[LINE_SIZE];
+    char *trimmed_buffer;
 
     while (fgets(buffer, LINE_SIZE, file) != NULL) {
-        if (buffer[0] != ';') {
-            memcpy(line, buffer, LINE_SIZE);
+        /* Trim whitespace */
+        trimmed_buffer = buffer;
+        while (isspace((unsigned char)*trimmed_buffer)) {
+            trimmed_buffer++;
+        }
+
+        /* Skip lines that start with ; */
+        if (trimmed_buffer[0] != ';' && trimmed_buffer[0] != '\0') {
+            memcpy(line, trimmed_buffer, LINE_SIZE);
             return 0;
         }
     }

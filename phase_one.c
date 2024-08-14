@@ -2,9 +2,9 @@
 
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: deleted entry_flag
+/*updates for commit: fixed read_next_line to handle ; with whitespace
 TODO: 
-check max line number?*/
+*/
 
 #define phase_one_allocation_failure                                    \
     fprintf(stdout, "Memory allocation failed.\n");                     \
