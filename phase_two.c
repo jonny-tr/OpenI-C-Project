@@ -130,7 +130,7 @@ int is_symbol(char *name, symbol_ptr symbols_head, command_ptr are,
  * @param line_num the line number
  * @return 0 if successful, -1 on failure, -2 on allocation failure
  */
-int update_command_list(command_ptr current_cmd, char *word, char **word_ptr,
+int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
                         char *filename, symbol_ptr symbol_head,
                         FILE **ext_fd, char *ext_file, const int line_num) {
     int num;
@@ -141,12 +141,12 @@ int update_command_list(command_ptr current_cmd, char *word, char **word_ptr,
         return -2;
 
     /* insert src_node to the linked list */
-    src_node->next = current_cmd->next;
-    current_cmd->next = src_node;
+    src_node->next = (*current_cmd)->next;
+    (*current_cmd)->next = src_node;
 
     /* both source and destination are registers */
-    if ((current_cmd->l == 1)
-        && (current_cmd->opcode >= 0 && current_cmd->opcode <= 4)) {
+    if (((*current_cmd)->l == 1)
+        && ((*current_cmd)->opcode >= 0 && (*current_cmd)->opcode <= 4)) {
         src_node->are = 4;
         src_node->dest_addr = atoi(&word[strlen(word) - 1]);
         get_next_word(word, word_ptr); /* skip comma */
@@ -156,11 +156,11 @@ int update_command_list(command_ptr current_cmd, char *word, char **word_ptr,
         }
         src_node->dest_addr = src_node->dest_addr | (atoi(word) << 3);
         src_node->src_addr = (atoi(&word[strlen(word) - 1]) >> 1);
-
+        (*current_cmd) = src_node->next;
         return 0;
     }
 
-    switch (current_cmd->src_addr) {
+    switch ((*current_cmd)->src_addr) {
         case 1: /* immediate address */
             src_node->are = 4;
             num = twos_complement(atoi(&word[1]));
@@ -186,8 +186,10 @@ int update_command_list(command_ptr current_cmd, char *word, char **word_ptr,
             break;
     }
 
-    if (current_cmd->l == 1)
+    if ((*current_cmd)->l == 1) {
+        (*current_cmd) = src_node->next;
         return 0;
+    }
 
     dest_node = (command_ptr) calloc(1, sizeof(command_t));
     if (dest_node == NULL)
@@ -203,7 +205,7 @@ int update_command_list(command_ptr current_cmd, char *word, char **word_ptr,
         return -1;
     }
 
-    switch (current_cmd->dest_addr) {
+    switch ((*current_cmd)->dest_addr) {
         case 1: /* immediate address */
             dest_node->are = 4;
             num = twos_complement(atoi(&word[1]));
@@ -228,7 +230,7 @@ int update_command_list(command_ptr current_cmd, char *word, char **word_ptr,
             break;
     }
 
-
+    (*current_cmd) = dest_node->next;
     return 0;
 }
 
@@ -296,10 +298,6 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
     safe_free(filename_no_ext)
 
     while (read_next_line(am_fd, line) != -1 && !feof(am_fd) && current_cmd->next != NULL) {
-        if (line_num != 0)
-            for (i = 0; i < current_cmd->l; ++i) {
-                current_cmd = current_cmd->next;
-            }
         line_num++;
         word_ptr = line;
         next_word_check
@@ -344,7 +342,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
             }
             next_word_check
             /* add new nodes to the command list */
-            switch (update_command_list(current_cmd, word, &word_ptr,
+            switch (update_command_list(&current_cmd, word, &word_ptr,
                                         filename, symbol_head, &ext_fd,
                                         ext_file, line_num)) {
                 case -1:
@@ -358,7 +356,6 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
                     break;
             }
         }
-        /*current_cmd = current_cmd->next;*/
     }
 
     if ((ic + dc) != expected_ic) {
