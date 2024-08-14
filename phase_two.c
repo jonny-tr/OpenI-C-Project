@@ -124,7 +124,7 @@ int is_symbol(char *name, symbol_ptr symbols_head, command_ptr are,
 int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
                         char *filename, symbol_ptr symbol_head,
                         FILE **ext_fd, char *ext_file, const int line_num) {
-    int num;
+    int num, address_flag; /* counter and flag */
     command_ptr src_node = NULL, dest_node = NULL;
 
     src_node = (command_ptr) calloc(1, sizeof(command_t));
@@ -151,7 +151,10 @@ int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
         return 0;
     }
 
-    switch ((*current_cmd)->src_addr) {
+    if ((*current_cmd)->l == 1) address_flag = (*current_cmd)->dest_addr;
+    else address_flag = (*current_cmd)->src_addr;
+
+    switch (address_flag) {
         case 1: /* immediate address */
             src_node->are = 4;
             num = twos_complement(atoi(&word[1]));
@@ -267,7 +270,6 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
         /* strings and filenames */
     int line_num = 0, ic = 0, error_flag = 0, allocation_flag = 0, word_flag,
             ent_flag = 0;                     /* counters and flags */
-    size_t filename_len = strlen(filename);            /* length of filename */
     FILE *ob_fd = NULL, *ext_fd = NULL, *ent_fd = NULL; /* file pointers */
     command_ptr current_cmd = command_head;             /* command pointer */
 
