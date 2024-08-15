@@ -246,7 +246,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                         }
                         /* add null terminator */
                         if (add_variable(variable_head,
-                                         get_ascii_value('0'), *dc) == -1) {
+                                         get_ascii_value('\0'), *dc) == -1) {
                             phase_one_allocation_failure
                         }
                         (*dc)++;
@@ -291,7 +291,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                        "external") == -1) {
                             phase_one_allocation_failure
                     }
-                    
+
                     /* check for commas */
                     expect_comma = 1;
                     commas = comma_checker(&word_ptr);
@@ -749,7 +749,8 @@ int is_valid_operand(char *word, macro_ptr macro_head) {
             return -2;
         }
     } else if (word[0] == '*') { /*needs to be a valid register*/
-        if (!(strncmp(&word[1], "r", 1) == 0 && strlen(word) == 3 && word[2] >= '0' && word[2] <= '7')) {
+        if (!(strncmp(&word[1], "r", 1) == 0 && strlen(word) == 3
+            && word[2] >= '0' && word[2] <= '7')) {
             return -3;
         }
     } else if (is_macro_name_valid(word, macro_head) == 2) {
