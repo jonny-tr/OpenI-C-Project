@@ -348,12 +348,9 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
     }
 
     cleanup:
-    if (ob_fd != NULL)
-        fclose(ob_fd);
-    if (ext_fd != NULL)
-        fclose(ext_fd);
-    if (ent_fd != NULL)
-        fclose(ent_fd);
+    if (ob_fd != NULL) fclose(ob_fd);
+    if (ext_fd != NULL) fclose(ext_fd);
+    if (ent_fd != NULL) fclose(ent_fd);
 
     safe_free(ob_file)
     safe_free(ext_file)
@@ -361,12 +358,9 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
 
     /* remove files in case there was an error and they were still created */
     if (error_flag) {
-        if (ob_fd != NULL)
-            remove(ob_file);
-        if (ext_fd != NULL)
-            remove(ext_file);
-        if (ent_fd != NULL)
-            remove(ent_file);
+        if (ob_fd != NULL) remove(ob_file);
+        if (ext_fd != NULL) remove(ext_file);
+        if (ent_fd != NULL) remove(ent_file);
     }
 
     if (allocation_flag) {
@@ -375,8 +369,6 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
 
     if (error_flag)
         return -1;
-
-    fprintf(stdout, "Phase two completed successfully.\n"); /* TODO delete */
 
     return 0;
 }
