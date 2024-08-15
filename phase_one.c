@@ -254,11 +254,16 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                     fprintf(stdout, "debugging: string is: %s\n", word);
                     if (word[0] == '"' && word[strlen(word) - 1] == '"') {
                         for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
-                            if (add_variable(variable_head,
-                                             get_ascii_value(word[i]), *dc) == -1) {
+                            if (isprint(word[i]) == 0) {
+                                fprintf(stdout, "Error: line %d in %s.\n       "
+                                                "Invalid string character.\n",
+                                        line_counter, filename);
+                                error_flag = 1;
+                                break;
+                            } else if (add_variable(variable_head,
+                                             get_ascii_value(word[i]),
+                                             *dc) == -1) {
                                 phase_one_allocation_failure
-                            } else {
-                                fprintf(stdout, "added variable '%c', dc: %d\n", word[i], *dc);
                             }
                             (*dc)++;
                         }
