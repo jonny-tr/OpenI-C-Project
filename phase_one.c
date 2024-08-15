@@ -2,7 +2,7 @@
 
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: is_valid_addressing_method, debugging, 
+/*updates for commit: fixed CHECK_UNEXPECTED_COMMA before operands in COMMAND case
 TODO: 
 */
 
@@ -290,35 +290,40 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 break;
 
             case EXTERN:
-                expect_comma = 0;
-                while (get_next_word(word, &word_ptr) != -1 && word[0] != '\0') {
-                    if (expect_comma == 1) {
-                        commas = comma_checker(&word_ptr);
-                        if (commas == 0) {
-                            fprintf(stdout, "Error: line %d in %s.\n       "
-                                            "Missing comma.\n",
-                                    line_counter, filename);
-                            error_flag = 1;
-                            break;
-                        } else if (commas > 1) {
-                            fprintf(stdout, "Error: line %d in %s.\n       "
-                                            "Too many commas.\n",
-                                    line_counter, filename);
-                            error_flag = 1;
-                            break;
-                        } else
-                            expect_comma = 0;
-                    } else {
-                        if (add_symbol(symbol_head, word, INVALID_INT,
+                commas = 0;
+                expect_comma = 0;      /* no comma is expected before 1st extern */
+                while (char_type != -1 /* if char_type was updated during the loop */
+                       && (char_type = get_next_word(word, &word_ptr)) != -1 && word[0] != '\0') {
+                    if (expect_comma != commas) {
+                        fprintf(stdout, "Error: line %d in %s.\n       "
+                                        "Improper comma use.\n",
+                                line_counter, filename);
+                        fprintf(stdout, "debugging: expect_comma: %d, commas: %d\n", expect_comma, commas);
+                        error_flag = 1;
+                        break;
+                    }
+
+                    /* add extern to the  list */
+                    if (add_symbol(symbol_head, word, INVALID_INT,
                                        "external") == -1) {
                             phase_one_allocation_failure
-                        } else {
-                            fprintf(stdout, "debugging: extern '%s' added\n", word);
-                        }
-                        expect_comma = 1;
+                    } else {
+                        fprintf(stdout, "debugging: extern '%s' added\n", word);
                     }
-                } /*end EXTERN case while*/
-                break;
+
+                    /* check for commas */
+                    expect_comma = 1;
+                    commas = comma_checker(&word_ptr);
+                    if (commas > 1) {
+                        fprintf(stdout, "Error: line %d in %s.\n"
+                                        "Too many commas.\n",
+                                line_counter, filename);
+                        error_flag = 1;
+                        break;
+                    }
+                }
+                fprintf(stdout, "debugging: end of extern\n");
+                break; /*end EXTERN case while*/
 
             case ENTRY:
                 break;
@@ -363,8 +368,8 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                     case 3: /*sub*/
                     case 4: /*lea*/
                         /*first operand*/
-                        CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                         if ((char_type = get_next_word(word, &word_ptr)) != -1) {
+                            CHECK_UNEXPECTED_COMMA(char_type, error_flag);
                             fprintf(stdout, "debugging: 2 operands needed, first is: '%s'\n", word);
                             operand_error = is_valid_operand(word, *macro_head);
                             if (operand_error == 1) {
@@ -687,12 +692,11 @@ int is_valid_addressing_method(command_ptr command) {
         case 0x9: /* jmp */
         case 0xA: /* bne */
         case 0xD: /* jsr */
-            if (command->src_addr != 0x0) {
-                fprintf(stdout, "debugging: src_addr is %d, can only be 0.\n", command->src_addr);
+            if(command->src_addr != 0x0){
                 return -1;
             }
-            if (command->dest_addr != 0x2 && command->dest_addr != 0x4) {
-                fprintf(stdout, "debugging: dest_addr is %d, can only be 2 or 4.\n", command->dest_addr);
+            if(command->dest_addr != 0x2 &&
+               command->dest_addr != 0x4){
                 return -1;
             }
             return 1;
