@@ -7,10 +7,10 @@
  * @return 0 if the program ran successfully, 1 if an error occurred
  */
 int main(int argc, char *argv[]) {
-    int i, instruction_counter = 0, data_counter = 0; /* counter */
-    int *ic = &instruction_counter, *dc = &data_counter; /* counters */
-    FILE *am_fd; /* file pointer */
+    int i, instruction_counter = 0, data_counter = 0,
+            *ic = &instruction_counter, *dc = &data_counter; /* counters */
     char *am_filename; /* filename */
+    FILE *am_fd; /* file pointer */
     macro_ptr macro_head = NULL; /* macro table */
     symbol_ptr symbol_head = NULL; /* symbol table */
     variable_ptr variable_head = NULL; /* variable table */
@@ -23,7 +23,7 @@ int main(int argc, char *argv[]) {
 
     for (i = 1; i < argc; i++) {
         am_filename = as_strcat(argv[i], ".am");
-        
+
         if (pre_assembler(&argv[i], macro_head) == -1) {
             goto cleanup; /* skip */
         }
@@ -34,14 +34,16 @@ int main(int argc, char *argv[]) {
             goto cleanup; /* skip */
         }
 
-        if ((phase_one(am_fd, am_filename, ic, dc, &symbol_head, &variable_head,
-                       &command_head, &macro_head)) == -1) {
+        if ((phase_one(am_fd, am_filename, ic, dc, &symbol_head,
+                       &variable_head, &command_head, &macro_head)) == -1) {
             goto cleanup;
         }
 
+        fprintf(stdout, "%s: %d %d\n", argv[i], *ic, *dc); /* TODO delete */
+
         rewind(am_fd);
         phase_two(am_fd, argv[i], symbol_head, variable_head, command_head,
-                *ic, *dc);
+                  *ic, *dc);
 
         cleanup:
         free_macro_table(macro_head);

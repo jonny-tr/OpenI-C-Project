@@ -41,6 +41,8 @@ int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
         i++;
     }
 
+    fprintf(ob_fd, "DC\n"); /* TODO delete */
+
     while (current_var != NULL) {
         fprintf(ob_fd, "%04d %05o\n", i, current_var->content);
         current_var = current_var->next;
@@ -373,6 +375,8 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
 
     if (error_flag)
         return -1;
+
+    fprintf(stdout, "Phase two completed successfully.\n"); /* TODO delete */
 
     return 0;
 }
