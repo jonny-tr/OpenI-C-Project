@@ -120,8 +120,8 @@ int get_data_int(char *word);
 
 
 /* phase_two */
-int build_ent(FILE *ent_fd, symbol_ptr symbol_head);
-int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
+void build_ent(FILE *ent_fd, symbol_ptr symbol_head);
+void build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
              int ic, int dc);
 int is_symbol(char *name, symbol_ptr symbols_head, command_ptr are,
               FILE **ext_fd, char *ext_file, int line_num);

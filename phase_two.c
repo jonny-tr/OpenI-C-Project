@@ -6,7 +6,7 @@
  * @param symbol_head a pointer to the symbol table
  * @return 0
  */
-int build_ent(FILE *ent_fd, symbol_ptr symbol_head) {
+void build_ent(FILE *ent_fd, symbol_ptr symbol_head) {
     symbol_ptr current = symbol_head;
 
     while (current != NULL) {
@@ -15,8 +15,6 @@ int build_ent(FILE *ent_fd, symbol_ptr symbol_head) {
         }
         current = current->next;
     }
-
-    return 0;
 }
 
 /**
@@ -27,7 +25,7 @@ int build_ent(FILE *ent_fd, symbol_ptr symbol_head) {
  * @param dc the data counter
  * @return 0 if successful, -1 otherwise
  */
-int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
+void build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
              int ic, int dc) {
     int i = 100;                                    /* counter */
     command_ptr current_cmd = command_head;   /* current command */
@@ -41,15 +39,11 @@ int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
         i++;
     }
 
-    fprintf(ob_fd, "DC\n"); /* TODO delete */
-
     while (current_var != NULL) {
         fprintf(ob_fd, "%04d %05o\n", i, current_var->content);
         current_var = current_var->next;
         i++;
     }
-
-    return 0;
 }
 
 /**
