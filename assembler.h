@@ -94,12 +94,12 @@ int get_ascii_value(char ch);
 
 /* pre_assembler */
 int pre_assembler(char **in_fd, macro_ptr macro_head);
-int macro_table_builder(char *next_part, FILE *as_fd,
-                        macro_ptr *macro_table_head, int *line_num,
-                        char *filename);
-macro_ptr is_macro(char *next_part, macro_ptr macro_head);
+int macro_table_builder(FILE *as_fd, macro_ptr *macro_head, int *line_num,
+                        char *filename, char *macro_name);
+macro_ptr is_macro(char *word, macro_ptr macro_head);
 int is_macro_name_valid(char *name, macro_ptr macro_head);
 int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_head);
+int skip_macro(FILE *as_fd, char *filename, int *line_num);
 
 /* phase_one */
 int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
