@@ -27,7 +27,7 @@ void build_ent(FILE *ent_fd, symbol_ptr symbol_head) {
  */
 void build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
              int ic, int dc) {
-    int i = 100;                                    /* counter */
+    int i = 100, mask = 0x7FFF; /* counter and mask */
     command_ptr current_cmd = command_head;   /* current command */
     variable_ptr current_var = variable_head; /* current variable */
 
@@ -40,7 +40,7 @@ void build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
     }
 
     while (current_var != NULL) {
-        fprintf(ob_fd, "%04d %05o\n", i, current_var->content);
+        fprintf(ob_fd, "%04d %05o\n", i, (current_var->content & mask));
         current_var = current_var->next;
         i++;
     }
@@ -134,7 +134,7 @@ int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
     switch (address_flag) {
         case 1: /* immediate address */
             src_node->are = 4;
-            num = twos_complement(atoi(&word[1]));
+            num = atoi(&word[1]);
             src_node->dest_addr = num;
             src_node->src_addr = (num >> 4);
             src_node->opcode = (num >> 8);
@@ -142,9 +142,12 @@ int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
         case 2: /* direct address */
             num = is_symbol(word, symbol_head, src_node, ext_fd,
                             ext_file, line_num);
-            if (num == -1) /* not a symbol */
+            if (num == -1) { /* not a symbol */
+                fprintf(stdout, "Error: line %d in %s.\n       "
+                                "Label %s not found.\n",
+                        line_num, filename, word);
                 return -1;
-            else if (num == -2)
+            } else if (num == -2) /* allocation failure */
                 return -2;
             src_node->dest_addr = num;
             src_node->src_addr = (num >> 4);
@@ -182,7 +185,7 @@ int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
     switch ((*current_cmd)->dest_addr) {
         case 1: /* immediate address */
             dest_node->are = 4;
-            num = twos_complement(atoi(&word[1]));
+            num = atoi(&word[1]);
             dest_node->dest_addr = num;
             dest_node->src_addr = (num >> 4);
             dest_node->opcode = (num >> 8);
@@ -190,9 +193,12 @@ int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
         case 2: /* direct address */
             num = is_symbol(word, symbol_head, src_node, ext_fd,
                             ext_file, line_num);
-            if (num == -1) /* not a symbol */
+            if (num == -1) { /* not a symbol */
+                fprintf(stdout, "Error: line %d in %s.\n       "
+                                "Label %s not found.\n",
+                        line_num, filename, word);
                 return -1;
-            else if (num == -2)
+            } else if (num == -2) /* allocation failure */
                 return -2;
             dest_node->dest_addr = num;
             dest_node->src_addr = (num >> 4);
@@ -308,7 +314,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
         }
     } /* finish next_line loop */
 
-    if (ic != expected_ic) {
+    if (error_flag == 0 && ic != expected_ic) {
         fprintf(stdout, "Unknown error encountered during execution.\n        "
                         "Review file %s.\n",
                 am_file);
