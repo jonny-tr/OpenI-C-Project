@@ -61,11 +61,12 @@ TODO:
  * @brief phase_one does the first pass on the file
  *         and builds the symbold and variables tables
  * @param am_fd pointer to the .am file
+ * @param filename the name of the file
  * @param ic instruction counter
  * @param dc data counter
  * @param symbol_head the symbol table
  * @param variable_head the variable table
- * @param command_head the head of the command list
+ * @param command_head the command list
  * @param macro_head the macro table from pre_assembler
  * @return 0 on success, -1 on failure;
  */
@@ -190,7 +191,8 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 commas = 0;
                 expect_comma = 0;      /* no comma is expected before data */
                 while (char_type != -1 /* if char_type was updated during the loop */
-                       && (char_type = get_next_word(word, &word_ptr)) != -1 && word[0] != '\0') {
+                       && (char_type = get_next_word(word, &word_ptr)) != -1
+                       && word[0] != '\0') {
                     if (expect_comma != commas) {
                         fprintf(stdout, "Error: line %d in %s.\n       "
                                         "Improper comma use.\n",
@@ -538,7 +540,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
         fprintf(stdout, "debugging: reached end of line %d\n", line_counter);
     } /* end of line loop */
     fprintf(stdout, "debugging: out of while loop, last line was: '%s' \n", line);
-    phase_one_update_counter(*symbol_head, *ic);
+    update_ic(*symbol_head, *ic);
 
     if (*ic + *dc + 100 >= 4096) {
         fprintf(stdout, "Error: File %s.\n       "
@@ -551,13 +553,12 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
         return -1;
     }
 
-    fprintf(stdout, "debugging: Finished phase one 0 errors!!.\n");
     return 0;
 }
 
 /**
  * @brief Creates a new command word and adds it to the linked list.
- * @param head pointer to the head of the linked list.
+ * @param head the command list
  * @param ptr pointer to the newly created command word.
  * @return 0 on success, -1 on failure.
  */
@@ -589,11 +590,11 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
 
 /**
  * @brief Calculates the 'L' value (additional words in memory) for a command.
- * @param command pointer to the command_t struct
+ * @param field the command_t struct
  * @param cmnd the command code
  * @return the value of 'l' based on the command
  */
-int calc_l(command_t *field, int cmnd) {
+int calc_l(command_ptr field, int cmnd) {
     if (cmnd == 14 || cmnd == 15)
         return 0; /*command without operands*/
 
@@ -612,7 +613,7 @@ int calc_l(command_t *field, int cmnd) {
  * @param command The command afer is_valid_command, determine opcode from.
  * @return void
  */
-void set_command_opcode(command_t *field, int command) {
+void set_command_opcode(command_ptr field, int command) {
     if (command == 0)
         field->opcode = 0x0; /* mov */
     else if (command == 1)
@@ -653,7 +654,7 @@ void set_command_opcode(command_t *field, int command) {
  * This function takes a command pointer as input and checks if the addressing method 
  * specified in the command is valid based on the opcode and addressing modes.
  *
- * @param command A pointer to the command structure to be checked.
+ * @param command pointer to the command structure to be checked.
  * @return 1 if the addressing method is valid, -1 otherwise.
  */
 int is_valid_addressing_method(command_ptr command) {
@@ -912,7 +913,7 @@ int add_symbol(symbol_ptr *head, char *name, int counter,
  * @param ic ic counter
  * @return void
  */
-void phase_one_update_counter(symbol_ptr symbol_head, int ic) {
+void update_ic(symbol_ptr symbol_head, int ic) {
     symbol_ptr temp = symbol_head;
 
     while (temp != NULL) {
