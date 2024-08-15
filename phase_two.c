@@ -270,7 +270,6 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
         line_num++;
         word_ptr = line;
         next_word_check
-        fprintf(stdout, "debugging: line number %d, line is: %s\n", line_num, line);
 
         if (word[strlen(word) - 1] == ':') {
             next_word_check

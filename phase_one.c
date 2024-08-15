@@ -537,7 +537,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
         }
         fprintf(stdout, "debugging: reached end of line %d\n", line_counter);
     } /* end of line loop */
-    fprintf(stdout, "out of while loop, last line was: '%s' \n", line);
+    fprintf(stdout, "debugging: out of while loop, last line was: '%s' \n", line);
     phase_one_update_counter(*symbol_head, *ic);
 
     if (*ic + *dc + 100 >= 4096) {
@@ -652,12 +652,12 @@ void set_command_opcode(command_t *field, int command) {
  * 
  * This function takes a command pointer as input and checks if the addressing method 
  * specified in the command is valid based on the opcode and addressing modes.
- * 
+ *
  * @param command A pointer to the command structure to be checked.
  * @return 1 if the addressing method is valid, -1 otherwise.
  */
 int is_valid_addressing_method(command_ptr command) {
-    switch(command->opcode){
+    switch (command->opcode) {
         case 0x1: /* cmp */
         case 0xE: /* rts */
         case 0xF: /* stop */
@@ -665,16 +665,16 @@ int is_valid_addressing_method(command_ptr command) {
         case 0x0: /* mov */
         case 0x2: /* add */
         case 0x3: /* sub */
-            if(command->dest_addr == 0x1){
+            if (command->dest_addr == 0x1) {
                 return -1;
             }
             return 1;
         case 0x4: /* lea */
-            if(command->dest_addr == 0x1){
+            if (command->dest_addr == 0x1) {
                 return -1;
             }
-            if(command->src_addr != 0x2){
-                return -1; 
+            if (command->src_addr != 0x2) {
+                return -1;
             }
             return 1;
         case 0x5: /* clr */
@@ -682,10 +682,10 @@ int is_valid_addressing_method(command_ptr command) {
         case 0x7: /* inc */
         case 0x8: /* dec */
         case 0xB: /* red */
-            if(command->src_addr != 0x0){
+            if (command->src_addr != 0x0) {
                 return -1;
             }
-            if(command->dest_addr == 0x1){
+            if (command->dest_addr == 0x1) {
                 return -1;
             }
             return 1;
@@ -701,7 +701,7 @@ int is_valid_addressing_method(command_ptr command) {
             }
             return 1;
         case 0xC: /* prn */
-            if(command->src_addr != 0x0){
+            if (command->src_addr != 0x0) {
                 return -1;
             }
             return 1;
@@ -709,6 +709,7 @@ int is_valid_addressing_method(command_ptr command) {
             return -1;
     }
 }
+
 /**
  * @brief Sets the addressing method in the command_t, used after is_valid_operand.
  * @param operand The operand to be parsed, NULL if it is a command without operands.

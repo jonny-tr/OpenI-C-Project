@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
         free_variable_list(variable_head);
         free_command_list(command_head);
 
-        fclose(am_fd);
+        if (am_fd) fclose(am_fd);
     }
 
     return 0;
