@@ -193,19 +193,6 @@ int command_to_num(command_ptr cmd) {
 }
 
 /**
- * @brief the function converts a number to twos complement
- * @param num a number to convert
- * @return the converted number
- */
-int twos_complement(int num) {
-    int mask = 0x7FFF; /* 15 bits mask */
-
-    if (num >= 0) return num;
-
-    return (~num + 1) | (~mask);
-}
-
-/**
  * @brief returns the ASCII value of a character.
  * @param ch The character to convert.
  * @return The ASCII value.

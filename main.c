@@ -39,8 +39,6 @@ int main(int argc, char *argv[]) {
             goto cleanup;
         }
 
-        fprintf(stdout, "%s: %d %d\n", argv[i], *ic, *dc); /* TODO delete */
-
         rewind(am_fd);
         phase_two(am_fd, argv[i], symbol_head, variable_head, command_head,
                   *ic, *dc);

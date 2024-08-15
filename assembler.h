@@ -88,7 +88,6 @@ int read_next_part(FILE *as_fd, char **next_part);
 int get_next_word(char *word, char **word_ptr);
 int get_word_type(char *word);
 int command_to_num(command_ptr cmd);
-int twos_complement(int num);
 int comma_checker(char **word_ptr);
 int get_ascii_value(char ch);
 
@@ -120,8 +119,8 @@ int get_data_int(char *word);
 
 
 /* phase_two */
-int build_ent(FILE *ent_fd, symbol_ptr symbol_head);
-int build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
+void build_ent(FILE *ent_fd, symbol_ptr symbol_head);
+void build_ob(FILE *ob_fd, command_ptr command_head, variable_ptr variable_head,
              int ic, int dc);
 int is_symbol(char *name, symbol_ptr symbols_head, command_ptr are,
               FILE **ext_fd, char *ext_file, int line_num);
