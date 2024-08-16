@@ -226,13 +226,24 @@ int update_command_list(command_ptr *current_cmd, char *word, char **word_ptr,
 int update_entry(symbol_ptr symbol_head, char *word, char *filename,
                  int line_num) {
     symbol_ptr current = symbol_head;
+    int flag = 0;
 
     while (current != NULL) {
         if (strcmp(word, current->name) == 0) {
+            if (strcmp(current->type, "external") == 0) {
+                fprintf(stdout, "Error: line %d in %s.\n       "
+                        "Symbol %s, defined as entry, was already defined as extern.\n",
+                line_num, filename, word);
+                return -1;
+            }
             current->type = "entry";
-            return 0;
+            flag = 1;
         }
         current = current->next;
+    }
+
+    if (flag == 1){
+        return 0;
     }
 
     fprintf(stdout, "Error: line %d in %s.\n       "
@@ -279,8 +290,8 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
 
         if ((strcmp(word, ".data") == 0)
             || (strcmp(word, ".string") == 0)
-            || (strcmp(word, ".extern") == 0)) { /* TODO ensure the next word was not already used as a lbael */
-            continue; /* next line */
+            || (strcmp(word, ".extern") == 0)) {
+            continue; /* next line */    
         } else if (strcmp(word, ".entry") == 0) {
             ent_flag = 1;
                         /* update labels in the symbol table */

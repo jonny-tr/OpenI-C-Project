@@ -285,6 +285,12 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 break;
 
             case EXTERN:
+                if (label_flag == 1) {
+                    fprintf(stdout, "Warning: line %d in %s.\n         "
+                                    "Label for .extern value does not have"
+                                    " effect.\n",
+                            line_counter, filename);
+                }
                 commas = 0;
                 expect_comma = 0;      /* no comma is expected before 1st extern */
                 while (char_type != -1 /* if char_type was updated during the loop */
@@ -314,7 +320,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                         break;
                     }
                 }
-                break; /*end EXTERN case while*/
+                break; /*end EXTERN case*/
 
             case ENTRY:
                 if (label_flag == 1) {
