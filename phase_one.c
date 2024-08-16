@@ -2,7 +2,7 @@
 
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: removed case OPERAND, added check for space before :
+/*updates for commit: fixed repetitive printing on error, magic numbers
 TODO: 
 */
 
@@ -22,32 +22,32 @@ TODO:
 
 #define PRINT_OPERAND_ERROR(error_code)                                               \
     switch (error_code) {                                                             \
-    case -1:                                                                          \
+    case O_COMMAND:                                                                          \
         fprintf(stdout, "Error: line %d in %s.\n       "                              \
                         "A command cannot be used as an operand.\n",                  \
                 line_counter, filename);                                              \
         break;                                                                        \
-    case -2:                                                                          \
+    case O_IMMEDIATE:                                                                          \
         fprintf(stdout, "Error: line %d in %s.\n       "                              \
                         "Invalid immediate operand, after # must follow a number.\n", \
                 line_counter, filename);                                              \
         break;                                                                        \
-    case -3:                                                                          \
+    case O_INDIRECT:                                                                          \
         fprintf(stdout, "Error: line %d in %s.\n       "                              \
                         "Invalid register.\n",                                        \
                 line_counter, filename);                                              \
         break;                                                                        \
-    case -4:                                                                          \
+    case O_MACRO:                                                                          \
         fprintf(stdout, "Error: line %d in %s.\n       "                              \
                         "Macro cannot be used as an operand.\n",                      \
                 line_counter, filename);                                              \
         break;                                                                        \
-    case -5:                                                                          \
+    case O_START:                                                                          \
         fprintf(stdout, "Error: line %d in %s.\n       "                              \
                         "Invalid label name, must start with a letter.\n",            \
                 line_counter, filename);                                              \
         break;                                                                        \
-    case -6:                                                                          \
+    case O_CHAR:                                                                          \
         fprintf(stdout, "Error: line %d in %s.\n       "                              \
                         "Invalid label name, must only contain "                      \
                         "letters and numbers.\n",                                     \
@@ -94,73 +94,73 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                             "':' must be adjacent to a label.\n",
                     line_counter, filename);
             error_flag = 1;
-            word_type = -5;
+            word_type = FINISH;
         } else {
             CHECK_UNEXPECTED_COMMA(char_type, error_flag);
             word_type = get_word_type(word);
         }
         if (word_type == LABEL) {
             switch (is_valid_label(word, *symbol_head, *macro_head)) {
-                case -1:
+                case L_COMMAND:
                     fprintf(stdout, "Error: line %d in %s.\n       "
                                     "Cannot use a command as a label.\n",
                             line_counter, filename);
                     error_flag = 1;
-                    word_type = ERROR;
+                    word_type = FINISH;
                     break;
-                case -2:
+                case L_EXISTS:
                     fprintf(stdout, "Error: line %d in %s.\n       "
                                     "Label already exists.\n",
                             line_counter, filename);
                     error_flag = 1;
-                    word_type = ERROR;
+                    word_type = FINISH;
                     break;
-                case -3:
+                case L_MACRO:
                     fprintf(stdout, "Error: line %d in %s.\n       "
                                     "Cannot use a macro as a label.\n",
                             line_counter, filename);
                     error_flag = 1;
-                    word_type = ERROR;
+                    word_type = FINISH;
                     break;
-                case -4:
+                case L_REGISTER:
                     fprintf(stdout, "Error: line %d in %s.\n       "
                                     "Cannot use a register as a label.\n",
                             line_counter, filename);
                     error_flag = 1;
-                    word_type = ERROR;
+                    word_type = FINISH;
                     break;
-                case -5:
+                case L_START:
                     fprintf(stdout, "Error: line %d in %s.\n       "
                                     "Label must start with a letter.\n",
                             line_counter, filename);
                     error_flag = 1;
-                    word_type = ERROR;
+                    word_type = FINISH;
                     break;
-                case -6:
+                case L_CHAR:
                     fprintf(stdout, "Error: line %d in %s.\n       "
                                     "Label must only contain "
                                     "letters and numbers.\n",
                             line_counter, filename);
                     error_flag = 1;
-                    word_type = ERROR;
+                    word_type = FINISH;
                     break;
-                case -7:
+                case L_LONG:
                     fprintf(stdout, "Error: line %d in %s.\n       "
                                     "Label is too long, max length of "
                                     "a label and its content shoult "
                                     "not exceed %d characters.\n",
                             line_counter, filename, MAX_LABEL_LENGTH);
                     error_flag = 1;
-                    word_type = ERROR;
+                    word_type = FINISH;
                     break;
-                case 0: /* valid label */
+                case L_VALID: /* valid label */
                     as_strdup(&label_temp_ptr, word);
                     label_flag = 1;
                     char_type = get_next_word(word, &word_ptr);
                     if (char_type == -1) {
                         label_flag = 0;
                         error_flag = 1;
-                        word_type = -3;
+                        word_type = MISSING_CODE;
                         break;
                     }
                     CHECK_UNEXPECTED_COMMA(char_type, error_flag);
@@ -218,7 +218,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                     expect_comma = 1;
                     commas = comma_checker(&word_ptr);
                     if (commas > 1) {
-                        fprintf(stdout, "Error: line %d in %s.\n"
+                        fprintf(stdout, "Error: line %d in %s.\n       "
                                         "Too many commas.\n",
                                 line_counter, filename);
                         error_flag = 1;
@@ -352,6 +352,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                             } else {
                                 PRINT_OPERAND_ERROR(operand_error);
                                 error_flag = 1;
+                                word_type = FINISH;
                                 break;
                             }
                         } else {
@@ -359,6 +360,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                             "Missing operands.\n",
                                     line_counter, filename);
                             error_flag = 1;
+                            word_type = FINISH;
                             break;
                         }
                         /*check for propper commas*/
@@ -366,7 +368,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                             error_flag = 1;
                             if ((char_type = get_next_word(word, &word_ptr)) == -1) {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
-                                                "Missing destination operand.\n",
+                                                "Missing operand.\n",
                                     line_counter, filename);
                             }
                             else {
@@ -374,6 +376,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                             "Invalid comma use.\n",
                                     line_counter, filename);
                             }
+                            word_type = FINISH;
                             break;
                         }
 
@@ -385,13 +388,15 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                             } else {
                                 PRINT_OPERAND_ERROR(operand_error);
                                 error_flag = 1;
+                                word_type = FINISH;
                                 break;
                             }
                         } else {
                             fprintf(stdout, "Error: line %d in %s.\n       "
-                                            "Missing destination operand.\n",
+                                            "Missing operand.\n",
                                     line_counter, filename);
                             error_flag = 1;
+                            word_type = FINISH;
                             break;
                         }
                         /* check for no extra operands */
@@ -400,6 +405,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                             "Too many operands.\n",
                                     line_counter, filename);
                             error_flag = 1;
+                            word_type = FINISH;
                             break;
                         }
                         break;
@@ -422,6 +428,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                             else {
                                 PRINT_OPERAND_ERROR(operand_error);
                                 error_flag = 1;
+                                word_type = FINISH;
                                 break;
                             }
                         } else {
@@ -429,6 +436,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                             "Missing operand.\n",
                                     line_counter, filename);
                             error_flag = 1;
+                            word_type = FINISH;
                             break;
                         }
                         /* check no extra operands: */
@@ -437,6 +445,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                             "Too many operands.\n",
                                     line_counter, filename);
                             error_flag = 1;
+                            word_type = FINISH;
                             break;
                         }
                         break;
@@ -450,6 +459,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                             "Too many operands.\n",
                                     line_counter, filename);
                             error_flag = 1;
+                            word_type = FINISH;
                             break;
                         }
                         break;
@@ -457,6 +467,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                         fprintf(stdout, "in COMMAND CASE: unknown error: line %d in %s.\n",
                                 line_counter, filename);
                         error_flag = 1;
+                        word_type = FINISH;
                         break;
                 } /* end of cmnd switch */
                 break;
@@ -469,10 +480,10 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 error_flag = 1;
                 break;
 
-            case -5:
+            case FINISH:
                 break;
             
-            case -3: /*No code after label*/
+            case MISSING_CODE:
                 fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Missing code after label.\n",
                                 line_counter, filename);
@@ -485,6 +496,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 error_flag = 1;
                 break;
         } /* end of word_type switch */
+
         if (word_type == COMMAND) { /* reached end of line */
             new_field->l = calc_l(new_field, cmnd);
             (*ic) += new_field->l + 1;
@@ -732,7 +744,7 @@ int is_valid_operand(char *word, macro_ptr macro_head) {
     int i;
 
     if (is_valid_command(word) != -1) {
-        return -1; /*it is a command*/
+        return O_COMMAND; /*it is a command*/
     } else if (word[0] == '#') { /*needs to be a number constant*/
         /* Check for optional +- */
         i = 1;
@@ -740,29 +752,29 @@ int is_valid_operand(char *word, macro_ptr macro_head) {
             i = 2;
         for (; word[i] != '\0'; i++)
             if (!isdigit(word[i])) {
-                return -2;
+                return O_IMMEDIATE;
             }
         if (i == 2 && !isdigit(word[1])) {
-            return -2;
+            return O_IMMEDIATE;
         }
     } else if (word[0] == '*') { /*needs to be a valid register*/
         if (!(strncmp(&word[1], "r", 1) == 0 && strlen(word) == 3
             && word[2] >= '0' && word[2] <= '7')) {
-            return -3;
+            return O_INDIRECT;
         }
     } else if (is_macro_name_valid(word, macro_head) == 2) {
-        return -4;
+        return O_MACRO;
     } else { /*needs to be a valid label*/
         if (isalpha(word[0]) == 0) {
-            return -5;
+            return O_START;
         }
         for (i = 0; word[i] != '\0'; i++) {
             if (!isalnum(word[i])) {
-                return -6;
+                return O_CHAR;
             }
         }
     }
-    return 1;
+    return O_VALID;
 }
 
 /**
@@ -787,38 +799,38 @@ int is_valid_label(char *word, symbol_ptr symbol_head,
 
     /* is it too long */
     if (i > MAX_LABEL_LENGTH)
-        return -7;
+        return L_LONG;
 
     /* is it a command */
     if (is_valid_command(word) != -1)
-        return -1;
+        return L_COMMAND;
 
     /* is it an existing label */
     while (current != NULL) {
         if (strcmp(word, current->name) == 0 && strcmp("entry", current->type) != 0) {
-            return -2;
+            return L_EXISTS;
         }
         current = current->next;
     }
 
     /* is it a macro */
     if (is_macro_name_valid(word, macro_head) == 2)
-        return -3;
+        return L_MACRO;
 
     /* is it a register */
     for (i = 0; i < 8; i++) {
         if (strcmp(word, registers[i]) == 0)
-            return -4;
+            return L_REGISTER;
     }
 
     /* does it start with a non-alpha character */
     if (isalpha(word[0]) == 0)
-        return -5;
+        return L_START;
 
     /* Check if label contains only alphanumeric characters */
     for (i = 0; word[i] != '\0'; i++) {
         if (!isalnum(word[i])) {
-            return -6;
+            return L_CHAR;
         }
     }
 

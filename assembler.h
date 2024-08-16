@@ -29,15 +29,38 @@
 
 /*---------------------------------enums-------------------------------------*/
 enum word_type_e {
+    FINISH = -6,
+    MISSING_CODE = -3,
     ERROR = -1,
     LABEL = 0,
     DATA = 1,
     STRING = 2,
     ENTRY = 3,
     EXTERN = 4,
-    COMMAND = 5,
-    OPERAND = 6
+    COMMAND = 5
 };
+
+enum label_error_e {
+    L_COMMAND = -1,
+    L_EXISTS = -2,
+    L_MACRO = -3,
+    L_REGISTER = -4,
+    L_START = -5,
+    L_CHAR = -6,
+    L_LONG = -7,
+    L_VALID = 0
+};
+
+enum operand_error_e {
+    O_COMMAND = -1,
+    O_IMMEDIATE = -2,
+    O_INDIRECT = -3,
+    O_MACRO = -4,
+    O_START = -5,
+    O_CHAR = -6,
+    O_VALID = 1
+};
+
 
 /*--------------------------------structures---------------------------------*/
 typedef struct string_t {
