@@ -12,6 +12,8 @@
 /*----------------------------------macros-----------------------------------*/
 #define LINE_SIZE 81
 
+#define MAX_LABEL_LENGTH 31
+
 #define INVALID_INT INT_MIN
 
 #define allocation_failure \

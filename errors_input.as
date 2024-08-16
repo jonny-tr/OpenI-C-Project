@@ -1,3 +1,6 @@
+
+testing2: .extern ext1, ext1
+ 
  ; space before colon
  LIST : sub #1, r3
 
