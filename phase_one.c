@@ -3,7 +3,7 @@
 #define MAX_LABEL_LENGTH 31
 
 /*updates for commit:  L_SPACE instead of -2
-TODO: 
+TODO: delete this comment
 */
 
 #define phase_one_allocation_failure                                    \
@@ -75,7 +75,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
               command_ptr *command_head, macro_ptr *macro_head) {
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0};            /* buffers */
     char *word_ptr, *label_temp_ptr = NULL;                       /* pointers */
-    int label_flag = 0, variable_flag, error_flag = 0, expect_comma, /* flags */
+    int label_flag = 0, error_flag = 0, expect_comma, /* flags */
         i, cmnd, word_type, data_tmp, commas, operand_error,
         line_counter = 0, mask = 0x7FFF, /* counters */
         char_type; /* -1 line end, 0 word, 1 comma */
@@ -88,6 +88,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
     while (read_next_line(am_fd, line) != -1) {
         word_ptr = line;
         line_counter++;
+        label_flag = 0;
         char_type = get_next_word(word, &word_ptr);
         if (char_type == L_SPACE) {
             fprintf(stdout, "Error: line %d in %s.\n       "
@@ -175,6 +176,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                 "       Cannot use two labels "
                                 "at once.\n",
                         line_counter, filename);
+                label_flag = 0;
                 error_flag = 1;
                 break;
 
@@ -209,15 +211,9 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                         break;
                     }
 
-                    if ((variable_flag = add_variable(variable_head,
-                                     data_tmp & mask, *dc)) == -1) {
+                    if (add_variable(variable_head,
+                                     data_tmp & mask, *dc) == -1) {
                         phase_one_allocation_failure
-                    } else if (variable_flag == -2) {
-                        fprintf(stdout, "Error: line %d in %s.\n       "
-                                        "Data is out of range.\n",
-                                line_counter, filename);
-                        error_flag = 1;
-                        break;
                     } else (*dc)++;
 
                     /* check for commas */
@@ -321,6 +317,12 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 break; /*end EXTERN case while*/
 
             case ENTRY:
+                if (label_flag == 1) {
+                    fprintf(stdout, "Warning: line %d in %s.\n         "
+                                    "Label for .entry value does not have"
+                                    " effect.\n",
+                            line_counter, filename);
+                }
                 break;
 
             case COMMAND:
@@ -571,15 +573,15 @@ int init_command_word(command_ptr *head, command_ptr *ptr) {
  */
 int calc_l(command_ptr field, int cmnd) {
     if (cmnd == 14 || cmnd == 15)
-        return 0; /*command without operands*/
+        return 0; /* command without operands */
 
     if (cmnd >= 5 && cmnd <= 13)
-        return 1; /*command with 1 operand*/
+        return 1; /* command with 1 operand */
 
-    /*command with 2 operands, check if both are registers*/
+    /* command with 2 operands, check if both are registers */
     if ((field->src_addr == 0x4 || field->src_addr == 0x8) && (field->dest_addr == 0x4 || field->dest_addr == 0x8))
         return 1;
-    return 2; /*last case, command with 2 operands*/
+    return 2; /* last case, command with 2 operands */
 }
 
 /**
@@ -908,10 +910,6 @@ int add_variable(variable_ptr *head, int content, int counter) {
     if (new_node == NULL)
         return -1;
 
-    if (content < 0 || content > 0x7FFF) {
-        return -2;
-    }
-
     new_node->content = content;
     new_node->counter = counter; /*DC*/
     new_node->next = NULL;
@@ -951,6 +949,10 @@ int get_data_int(char *word) {
             return INVALID_INT;
         result = result * 10 + (*word - '0');
         word++;
+    }
+
+    if ((unsigned int) result > 0x7FFF) {
+        return INVALID_INT;
     }
 
     return sign * result;

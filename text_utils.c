@@ -71,7 +71,7 @@ int is_valid_command(char *command) {
  * @return 0 if successful, -1 if an EOF reached
  */
 int read_next_line(FILE *file, char *line) {
-    char buffer[LINE_SIZE], *ptr;
+    char buffer[LINE_SIZE], *ptr; /* strings */
 
     while (fgets(buffer, LINE_SIZE, file) != NULL) {
         ptr = buffer;

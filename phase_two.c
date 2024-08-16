@@ -279,7 +279,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
 
         if ((strcmp(word, ".data") == 0)
             || (strcmp(word, ".string") == 0)
-            || (strcmp(word, ".extern") == 0)) {
+            || (strcmp(word, ".extern") == 0)) { /* TODO ensure the next word was not already used as a lbael */
             continue; /* next line */
         } else if (strcmp(word, ".entry") == 0) {
             ent_flag = 1;
@@ -355,14 +355,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
     safe_free(ob_file)
     safe_free(ext_file)
     safe_free(ent_file)
-
-    /* remove files in case there was an error and they were still created */
-    if (error_flag) {
-        if (ob_fd != NULL) remove(ob_file);
-        if (ext_fd != NULL) remove(ext_file);
-        if (ent_fd != NULL) remove(ent_file);
-    }
-
+    
     if (allocation_flag) {
         allocation_failure
     }
