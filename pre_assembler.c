@@ -88,7 +88,7 @@ int macro_table_builder(FILE *as_fd, macro_ptr *macro_head, int *line_num,
         line_ptr = line;
         endmacr_flag = 0;
 
-        while (isspace(line_ptr[0])) line_ptr++;
+        while (isspace((unsigned char) line_ptr[0])) line_ptr++;
         if (line_ptr[0] == ';') continue; /* comment */
         if (get_next_word(word, &line_ptr) == -1) continue; /* empty */
 
@@ -196,7 +196,7 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_head) {
     char line[LINE_SIZE] = {0}, *content_buffer = NULL, *macro_buffer = NULL,
             word[LINE_SIZE] = {0}, *word_ptr = NULL, buffer[LINE_SIZE] = {0};
     /* strings */
-    int i, line_num = 0, word_counter, macro_flag = 0, error_flag = 0;
+    int line_num = 0, word_counter, macro_flag = 0, error_flag = 0;
     /* counters and flags */
     FILE *am_fd; /* file pointer */
     macro_ptr macro_index = NULL; /* macro to spread */
@@ -215,9 +215,6 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_head) {
         line_num += 1;
         word_ptr = line;
 
-        i = 0;
-        while (isspace(line[i])) i++;
-        if (line[i] == ';') continue; /* comment */
         if (get_next_word(word, &word_ptr) == -1) continue; /* empty */
 
         /* loop words in line */
