@@ -75,7 +75,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
               command_ptr *command_head, macro_ptr *macro_head) {
     char line[LINE_SIZE] = {0}, word[LINE_SIZE] = {0};            /* buffers */
     char *word_ptr, *label_temp_ptr = NULL;                       /* pointers */
-    int label_flag = 0, error_flag = 0, expect_comma, /* flags */
+    int label_flag = 0, variable_flag, error_flag = 0, expect_comma, /* flags */
         i, cmnd, word_type, data_tmp, commas, operand_error,
         line_counter = 0, mask = 0x7FFF, /* counters */
         char_type; /* -1 line end, 0 word, 1 comma */
@@ -209,9 +209,15 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                         break;
                     }
 
-                    if (add_variable(variable_head,
-                                     data_tmp & mask, *dc) == -1) {
+                    if ((variable_flag = add_variable(variable_head,
+                                     data_tmp & mask, *dc)) == -1) {
                         phase_one_allocation_failure
+                    } else if (variable_flag == -2) {
+                        fprintf(stdout, "Error: line %d in %s.\n       "
+                                        "Data is out of range.\n",
+                                line_counter, filename);
+                        error_flag = 1;
+                        break;
                     } else (*dc)++;
 
                     /* check for commas */
@@ -237,8 +243,10 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 }
                 if (get_next_word(word, &word_ptr) != -1 && word[0] != '\0') {
                     if (word[0] == '"' && word[strlen(word) - 1] == '"') {
-                        for (i = 1; i < strlen(word) - 1; i++) { /*add the string without the quotes*/
-                            if (isprint(word[i]) == 0) {
+                        /* add string without the quotes */
+                        for (i = 1; i < strlen(word) - 1; i++) {
+                            if (isprint(word[i]) == 0
+                                || (unsigned char) word[i] > 127) {
                                 fprintf(stdout, "Error: line %d in %s.\n       "
                                                 "Invalid string character.\n",
                                         line_counter, filename);
@@ -900,6 +908,10 @@ int add_variable(variable_ptr *head, int content, int counter) {
     if (new_node == NULL)
         return -1;
 
+    if (content < 0 || content > 0x7FFF) {
+        return -2;
+    }
+
     new_node->content = content;
     new_node->counter = counter; /*DC*/
     new_node->next = NULL;
@@ -934,8 +946,8 @@ int get_data_int(char *word) {
     }
 
     /* read the number */
-    while (*word && !isspace(*word)) {
-        if (!isdigit(*word))
+    while (*word && !isspace((unsigned char) *word)) {
+        if (!isdigit((unsigned char) *word))
             return INVALID_INT;
         result = result * 10 + (*word - '0');
         word++;
