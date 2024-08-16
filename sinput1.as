@@ -5,7 +5,8 @@ MAIN: add r3, LIST
 
   ; does it delete?
 
-  sub, r3, #1
-  sub , r3
-  sub r3 #1
-  sub r3, , r1
+
+ LIST : sub #1, r3
+grow 23
+.read #1
+CHECK: LAB: dec r3, r2

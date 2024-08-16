@@ -112,7 +112,7 @@ int comma_checker(char **word_ptr) {
  * @brief gets the next word
  * @param word the word to store
  * @param word_ptr the pointer to the word
- * @return 0 if successful, -1 if the line is empty, 1 if comma
+ * @return 0 if successful, -1 if the line is empty, 1 if comma, -2 if wrong usage of :
  */
 int get_next_word(char *word, char **word_ptr) {
     char *p = *word_ptr, *w = word;
@@ -148,6 +148,15 @@ int get_next_word(char *word, char **word_ptr) {
     *w = '\0'; /* Null-terminate the word */
     *word_ptr = p; /* Update word_ptr to the new position */
 
+    /*check for : with spaces before it*/
+    while (isspace(*p)) {
+        p++;
+    }
+    if (*p == ':') {
+        /* Return -2 but keep word_ptr pointing to the end of the word */
+        return -2;
+    }
+
     return 0;
 }
 
@@ -175,7 +184,6 @@ int get_word_type(char *word) {
     }
 
     if (is_valid_command(word) != -1) return COMMAND;
-    fprintf(stdout, "debugging: ERROR, word is %s\n", word);
 
     return ERROR;
 }
