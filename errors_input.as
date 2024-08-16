@@ -1,5 +1,5 @@
-testing1: .entry ent1, ent2
-testing2: .extern ext1, ext2
+
+testing2: .extern ext1, ext1
  
  ; space before colon
  LIST : sub #1, r3

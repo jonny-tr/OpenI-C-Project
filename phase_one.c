@@ -1,11 +1,5 @@
 #include "assembler.h"
 
-#define MAX_LABEL_LENGTH 31
-
-/*updates for commit:  L_SPACE instead of -2
-TODO: delete this comment
-*/
-
 #define phase_one_allocation_failure                                    \
     fprintf(stdout, "Memory allocation failed.\n");                     \
     free_all(*macro_head, *symbol_head, *variable_head, *command_head); \
@@ -513,9 +507,11 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 break;
         } /* end of word_type switch */
 
-        if (word_type == COMMAND) { /* reached end of line */
+        if (word_type == COMMAND) { /* reached end of line, update ic */
             new_field->l = calc_l(new_field, cmnd);
             (*ic) += new_field->l + 1;
+
+            /*validate proper addressing method*/
             if (is_valid_addressing_method(new_field) == -1) {
                 fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Operand type not allowed for this command.\n",
@@ -523,9 +519,10 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 error_flag = 1;
             }
         }
-    } /* end of line loop */
-    update_ic(*symbol_head, *ic);
+    } /* end of line while */
 
+    update_ic(*symbol_head, *ic);
+    
     if (*ic + *dc + 100 >= 4096) {
         fprintf(stdout, "Error: File %s.\n       "
                         "Code is too long, max memory is 4096 words.\n", filename);
