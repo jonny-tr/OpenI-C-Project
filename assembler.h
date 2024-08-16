@@ -48,6 +48,7 @@ enum label_error_e {
     L_START = -5,
     L_CHAR = -6,
     L_LONG = -7,
+    L_SPACE = -8,
     L_VALID = 0
 };
 

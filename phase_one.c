@@ -2,7 +2,7 @@
 
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: fixed repetitive printing on error, magic numbers
+/*updates for commit:  L_SPACE instead of -2
 TODO: 
 */
 
@@ -89,7 +89,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
         word_ptr = line;
         line_counter++;
         char_type = get_next_word(word, &word_ptr);
-        if (char_type == -2) {
+        if (char_type == L_SPACE) {
             fprintf(stdout, "Error: line %d in %s.\n       "
                             "':' must be adjacent to a label.\n",
                     line_counter, filename);
