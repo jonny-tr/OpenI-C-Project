@@ -2,7 +2,7 @@
 
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: added error flag where missing
+/*updates for commit: removed case OPERAND, added check for space before :
 TODO: 
 */
 
@@ -89,8 +89,16 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
         word_ptr = line;
         line_counter++;
         char_type = get_next_word(word, &word_ptr);
-        CHECK_UNEXPECTED_COMMA(char_type, error_flag);
-        word_type = get_word_type(word);
+        if (char_type == -2) {
+            fprintf(stdout, "Error: line %d in %s.\n       "
+                            "':' must be adjacent to a label.\n",
+                    line_counter, filename);
+            error_flag = 1;
+            word_type = -5;
+        } else {
+            CHECK_UNEXPECTED_COMMA(char_type, error_flag);
+            word_type = get_word_type(word);
+        }
         if (word_type == LABEL) {
             switch (is_valid_label(word, *symbol_head, *macro_head)) {
                 case -1:
@@ -307,12 +315,6 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
             case ENTRY:
                 break;
 
-            case OPERAND: /* error */
-                fprintf(stdout, "Error: line %d in %s.\n       "
-                                "Unexpected operand without command.",
-                                line_counter, filename);
-                break;
-
             case COMMAND:
                 cmnd = is_valid_command(word);
                 if (cmnd == -1) {
@@ -467,11 +469,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 error_flag = 1;
                 break;
 
-            case -2: /* Space before ':' error */
-                fprintf(stdout, "Error: line %d in %s.\n       "
-                                "Label cannot end with a whitespace.\n",
-                        line_counter, filename);
-                error_flag = 1;
+            case -5:
                 break;
             
             case -3: /*No code after label*/
