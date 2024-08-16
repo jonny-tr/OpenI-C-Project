@@ -64,27 +64,27 @@ int is_valid_command(char *command) {
 }
 
 /**
- * @brief Reads a line from the file and stores it in the given buffer.
+ * @brief Reads a line from the file and stores it in the given buffer,
+ *        skipping comments and empty lines.
  * @param file The file pointer to read from.
  * @param line The buffer to store the line.
  * @return 0 if successful, -1 if an EOF reached
  */
 int read_next_line(FILE *file, char *line) {
-    char buffer[LINE_SIZE];
-    char *trimmed_buffer;
+    char buffer[LINE_SIZE], *ptr;
 
     while (fgets(buffer, LINE_SIZE, file) != NULL) {
-        /* Trim whitespace */
-        trimmed_buffer = buffer;
-        while (isspace((unsigned char)*trimmed_buffer)) {
-            trimmed_buffer++;
+        ptr = buffer;
+
+        while (*ptr && isspace((unsigned char)*ptr)) {
+            ptr++;
         }
 
-        /* Skip lines that start with ; */
-        if (trimmed_buffer[0] != ';' && trimmed_buffer[0] != '\0') {
-            memcpy(line, trimmed_buffer, LINE_SIZE);
-            return 0;
-        }
+        /* comment or empty line */
+        if (*ptr == ';' || *ptr == '\0') continue;
+
+        memcpy(line, buffer, LINE_SIZE);
+        return 0;
     }
 
     return -1;  /* EOF */
@@ -100,7 +100,7 @@ int comma_checker(char **word_ptr) {
     int commas = 0;
 
     /* Count commas, including those separated by whitespaces */
-    while (*p == ',' || isspace(*p)) {
+    while (*p == ',' || isspace((unsigned char) *p)) {
         if (*p == ',') commas++;
         p++;
     }
@@ -118,7 +118,7 @@ int get_next_word(char *word, char **word_ptr) {
     char *p = *word_ptr, *w = word;
 
     /* Skip whitespaces */
-    while (isspace(*p)) {
+    while (isspace((unsigned char) *p)) {
         if (*p == '\n' || *p == '\0') {
             *word_ptr = p; /* Update word_ptr to the end of the line */
             return -1; /* End of line */
@@ -137,7 +137,7 @@ int get_next_word(char *word, char **word_ptr) {
         return 1;
     }
 
-    while (*p && !isspace(*p) && *p != ',' && *p != ':') {
+    while (*p && !isspace((unsigned char) *p) && *p != ',' && *p != ':') {
         *w++ = *p++;
     }
 
@@ -148,8 +148,8 @@ int get_next_word(char *word, char **word_ptr) {
     *w = '\0'; /* Null-terminate the word */
     *word_ptr = p; /* Update word_ptr to the new position */
 
-    /*check for : with spaces before it*/
-    while (isspace(*p)) {
+    /* check for : with spaces before it */
+    while (isspace((unsigned char) *p)) {
         p++;
     }
     if (*p == ':') {
@@ -179,7 +179,7 @@ int get_word_type(char *word) {
 
     while (word[i] != '\0') i++;
     if (i >= 2 && word[i - 1] == ':') {
-        if (isspace(word[i - 2])) return -2;
+        if (isspace((unsigned char) word[i - 2])) return -2;
         return LABEL;
     }
 
