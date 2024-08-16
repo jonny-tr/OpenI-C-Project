@@ -175,7 +175,6 @@ int get_word_type(char *word) {
     }
 
     if (is_valid_command(word) != -1) return COMMAND;
-    fprintf(stdout, "debugging: ERROR, word is %s\n", word);
 
     return ERROR;
 }

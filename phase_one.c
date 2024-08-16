@@ -2,7 +2,7 @@
 
 #define MAX_LABEL_LENGTH 31
 
-/*updates for commit: fixed CHECK_UNEXPECTED_COMMA before operands in COMMAND case
+/*updates for commit: added error flag where missing
 TODO: 
 */
 
@@ -89,7 +89,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
         word_ptr = line;
         line_counter++;
         char_type = get_next_word(word, &word_ptr);
-        CHECK_UNEXPECTED_COMMA(char_type, error_flag)
+        CHECK_UNEXPECTED_COMMA(char_type, error_flag);
         word_type = get_word_type(word);
         if (word_type == LABEL) {
             switch (is_valid_label(word, *symbol_head, *macro_head)) {
@@ -325,7 +325,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 if (label_flag == 1) {
                     label_flag = 0;
                     if (add_symbol(symbol_head, label_temp_ptr, (*ic + 100),
-                                   "code") == -1) {
+                                                            "code") == -1){
                         phase_one_allocation_failure
                     }
                 }
@@ -494,6 +494,7 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                 fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Operand type not allowed for this command.\n",
                                 line_counter, filename);
+                error_flag = 1;
             }
         }
     } /* end of line loop */

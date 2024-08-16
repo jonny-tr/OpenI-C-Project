@@ -5,7 +5,5 @@ MAIN: add r3, LIST
 
   ; does it delete?
 
-  sub, r3, #1
-  sub , r3
-  sub r3 #1
-  sub r3, , r1
+ LIST: sub #1, r3
+
