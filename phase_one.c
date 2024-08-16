@@ -59,7 +59,7 @@ TODO:
 
 /**
  * @brief phase_one does the first pass on the file
- *         and builds the symbold and variables tables
+ *         and builds the symbols and variables tables
  * @param am_fd pointer to the .am file
  * @param filename the name of the file
  * @param ic instruction counter
