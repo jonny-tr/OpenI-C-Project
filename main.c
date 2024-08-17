@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
     int i, instruction_counter = 0, data_counter = 0,
             *ic = &instruction_counter, *dc = &data_counter; /* counters */
     char *am_filename; /* filename */
-    FILE *am_fd; /* file pointer */
+    FILE *am_fd = NULL; /* file pointer */
     macro_ptr macro_head = NULL; /* macro table */
     symbol_ptr symbol_head = NULL; /* symbol table */
     variable_ptr variable_head = NULL; /* variable table */
@@ -28,8 +28,7 @@ int main(int argc, char *argv[]) {
             goto cleanup; /* skip */
         }
 
-        am_fd = fopen(am_filename, "r");
-        if (am_fd == NULL) {
+        if ((am_fd = fopen(am_filename, "r")) == NULL) {
             fprintf(stdout, "Error: Could not open file %s.\n", am_filename);
             goto cleanup; /* skip */
         }
@@ -49,7 +48,7 @@ int main(int argc, char *argv[]) {
         free_variable_list(variable_head);
         free_command_list(command_head);
 
-        if (am_fd) fclose(am_fd);
+        if (am_fd != NULL) fclose(am_fd);
     }
 
     return 0;

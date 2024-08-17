@@ -254,14 +254,14 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_head) {
             if (get_next_word(word, &word_ptr) == -1) {
                 fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Macro name is missing.\n", line_num, filename);
-                return -1;
+                error_flag = 1;
             }
 
             if (get_next_word(buffer, &word_ptr) != -1) {
                 fprintf(stdout, "Error: line %d in %s.\n       "
                                 "Extra characters after macro name.\n",
                         line_num, filename);
-                return -1;
+                error_flag = 1;
             }
 
             /* check if macro name is valid */
@@ -272,7 +272,7 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_head) {
                             line_num, filename, word);
                     error_flag = 1;
                     if (skip_macro(as_fd, filename, &line_num) == -1)
-                        return -1;
+                        error_flag = 1;
                     break;
                 case 2:
                     fprintf(stdout, "Error: line %d in %s.\n       "
@@ -280,7 +280,7 @@ int macro_parser(FILE *as_fd, char *filename, macro_ptr *macro_head) {
                             line_num, filename, word);
                     error_flag = 1;
                     if (skip_macro(as_fd, filename, &line_num) == -1)
-                        return -1;
+                        error_flag = 1;
                     break;
                 case 0: /* valid name */
                     if (macro_table_builder(as_fd, macro_head, &line_num,
