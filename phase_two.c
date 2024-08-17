@@ -363,7 +363,7 @@ int phase_two(FILE *am_fd, char *filename, symbol_ptr symbol_head,
     if (ext_fd != NULL) fclose(ext_fd);
     if (ent_fd != NULL) fclose(ent_fd);
     
-    safe_free(am_fils)
+    safe_free(am_file)
     safe_free(ob_file)
     safe_free(ext_file)
     safe_free(ent_file)
