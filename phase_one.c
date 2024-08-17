@@ -314,6 +314,12 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                         break;
                     }
                 }
+                if (char_type == -1 && commas >= 1) {
+                    fprintf(stdout, "Error: line %d in %s.\n       "
+                                    "Extra comma after label name.\n",
+                            line_counter, filename);
+                    error_flag = 1;
+                }
                 break; /*end EXTERN case*/
 
             case ENTRY:
@@ -322,6 +328,17 @@ int phase_one(FILE *am_fd, char *filename, int *ic, int *dc,
                                     "Label for .entry value does not have"
                                     " effect.\n",
                             line_counter, filename);
+                }
+                
+                /* only one label is allowed */
+                if (get_next_word(word, &word_ptr) != 0) {
+                    if (get_next_word(word, &word_ptr) != -1) {
+                        fprintf(stdout, "Error: line %d in %s.\n       "
+                                        "Extra characters after label, "
+                                        "note that only one entry is allowed.\n",
+                                line_counter, filename);
+                        error_flag = 1;
+                    }
                 }
                 break;
 
